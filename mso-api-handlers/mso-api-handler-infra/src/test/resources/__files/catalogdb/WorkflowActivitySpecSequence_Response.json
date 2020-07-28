@@ -1,0 +1,54 @@
+{
+	"_embedded": {
+		"workflowActivitySpecSequence": [
+			{
+				"activitySpecId": 1,
+				"workflowId": 1,				
+				"id": null,
+				"_links": {
+					"self": {
+						"href": "http://localhost:8090/workflowActivitySpecSequence//1/workflowActivitySpecSequence"
+					},
+					"workflowActivitySpecSequence": {
+						"href": "http://localhost:8090/workflowActivitySpecSequence/1/workflowActivitySpecSequence"
+					},
+					"activitySpec": {
+						"href": "http://localhost:8090/workflowActivitySpecSequence/1/activitySpec"
+					}
+				}
+			},
+			{
+				"activitySpecId": 2,
+				"workflowId": 1,				
+				"id": null,
+				"_links": {
+					"self": {
+						"href": "http://localhost:8090/workflowActivitySpecSequence/2/workflowActivitySpecSequence"
+					},
+					"workflowActivitySpecSequence": {
+						"href": "http://localhost:8090/workflowActivitySpecSequence/2/workflowActivitySpecSequence"
+					},
+					"activitySpec": {
+						"href": "http://localhost:8090/workflowActivitySpecSequence/2/activitySpec"
+					}
+				}
+			},
+			{
+				"activitySpecId": 3,
+				"workflowId": 1,
+				"id": null,
+				"_links": {
+					"self": {
+						"href": "http://localhost:8090/workflowActivitySpecSequence/3"
+					},
+					"workflowActivitySpecSequence": {
+						"href": "http://localhost:8090/workflowActivitySpecSequence/3/workflowActivitySpecSequence"
+					},
+					"activitySpec": {
+						"href": "http://localhost:8090/workflowActivitySpecSequence/3/activitySpec"
+					}
+				}
+			}
+		]
+	}
+}

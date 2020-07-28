@@ -1,0 +1,63 @@
+# will be used as entry in DB to say SITE OFF/ON for healthcheck
+# MSO Properties go here
+     
+server:
+  port: 8080 
+  tomcat:
+      max-threads: 75
+     
+mso:
+  logPath: ./logs/openstack
+  site-name: localDevEnv
+  async:
+    core-pool-size: 50
+    max-pool-size: 50
+    queue-capacity: 500
+  workflow:
+    topics:
+      retryMultiplier: 60000
+      retrySequence: 1, 1, 2, 3, 5, 8, 13, 20
+spring:
+  datasource:
+    hikari:
+      jdbc-url: jdbc:mariadb://${DB_HOST}:${DB_PORT}/catalogdb
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+      driver-class-name: org.mariadb.jdbc.Driver
+      pool-name: catdb-pool
+      registerMbeans: true
+  jpa:
+      show-sql: false
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5Dialect
+        ddl-auto: none
+        naming-strategy: org.hibernate.cfg.ImprovedNamingStrategy
+        enable-lazy-load-no-trans: true
+  main:
+    allow-bean-definition-overriding: true
+org:
+  onap:
+    so:
+      adapters:
+        default_keystone_url_version: /v2.0
+        default_keystone_reg_ex: "/[vV][0-9]"        
+        po:
+          retryCodes: 504
+          retryDelay: 5
+          retryCount: 3
+          pollTimeout: 7500
+          pollInterval: 15
+          
+#Actuator
+management:
+  endpoints:
+    web:
+      base-path: /manage
+      exposure:
+        include: "*"
+  metrics:
+    se-global-registry: false
+    export:
+      prometheus:
+        enabled: true # Whether exporting of metrics to Prometheus is enabled.
+        step: 1m # Step size (i.e. reporting frequency) to use.

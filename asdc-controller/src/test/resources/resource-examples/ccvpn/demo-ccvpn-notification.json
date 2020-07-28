@@ -1,0 +1,47 @@
+{
+  "distributionID": "8a01603d-606d-4e40-8bc4-37107ad97897",
+  "serviceName": "CCVPNService",
+  "serviceVersion": "1.0",
+  "serviceUUID": "317887d3-a4e4-45cb-8971-2a78426fefac",
+  "serviceDescription": "CCVPN",
+  "serviceInvariantUUID": "e43f9b81-3035-44df-b618-a787e1c49427",
+  "resources": [
+    {
+      "resourceInstanceName": "siteResource",
+      "resourceCustomizationUUID": "e9e01777-bb2f-42f0-b825-aef0f4c37ccf",
+      "resourceName": "siteResource",
+      "resourceVersion": "1.0",
+      "resoucreType": "VF",
+      "resourceUUID": "5a641276-443b-45ca-ac9c-a0ee84f5007b",
+      "resourceInvariantUUID": "5338673f-df81-483a-afa4-b9766442ebf1",
+      "category": "Configuration",
+      "subcategory": "Configuration",
+      "artifacts": []
+    },
+    {
+      "resourceInstanceName": "SDWANVPNResource",
+      "resourceCustomizationUUID": "7815f32c-bdbf-41f7-9a18-6f0e6d5a0d0e",
+      "resourceName": "SDWANVPNResource",
+      "resourceVersion": "1.0",
+      "resoucreType": "VF",
+      "resourceUUID": "5f9f2164-f7e4-461d-b8de-3470297ce2b3",
+      "resourceInvariantUUID": "5ca15886-9990-419c-a4bb-f0229eac0926",
+      "category": "Configuration",
+      "subcategory": "Configuration",
+      "artifacts": []
+    }
+  ],
+  "serviceArtifacts": [
+    {
+      "artifactName": "service-Ccvpnservice-csar.csar",
+      "artifactType": "TOSCA_CSAR",
+      "artifactURL": "/service-Ccvpnservice-csar.csar",
+      "artifactChecksum": "NTZlNGU4YTQwNzVkZWMwYWZkODE5M2MwYzcyNzM3M2U\u003d",
+      "artifactDescription": "TOSCA definition package of the asset",
+      "artifactTimeout": 0,
+      "artifactVersion": "2",
+      "artifactUUID": "59f34dcf-ec33-4a88-8dbe-aa7f4571ef59"
+    }
+  ],
+  "workloadContext": "Production"
+}

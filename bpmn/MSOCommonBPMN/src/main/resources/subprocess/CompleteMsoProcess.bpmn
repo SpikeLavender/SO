@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="_EsMs0HcuEeW2U_kkOHX1ZQ" targetNamespace="http://camunda.org/schema/1.0/bpmn" exporter="Camunda Modeler" exporterVersion="1.10.0" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
+  <bpmn2:process id="CompleteMsoProcess" name="CompleteMsoProcess" isExecutable="true">
+    <bpmn2:scriptTask id="preProcessRequest" name="Pre-Process Request" scriptFormat="groovy">
+      <bpmn2:incoming>SequenceFlow_18</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_2</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[import org.onap.so.bpmn.common.scripts.*
+def preProcessRequestData = new CompleteMsoProcess()
+preProcessRequestData.preProcessRequest(execution)
+
+]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:sequenceFlow id="SequenceFlow_2" name="" sourceRef="preProcessRequest" targetRef="ScriptTask_3" />
+    <bpmn2:startEvent id="StartEvent_1">
+      <bpmn2:outgoing>SequenceFlow_18</bpmn2:outgoing>
+      <bpmn2:messageEventDefinition id="MessageEventDefinition_1" messageRef="Message_2" />
+    </bpmn2:startEvent>
+    <bpmn2:sequenceFlow id="SequenceFlow_18" name="" sourceRef="StartEvent_1" targetRef="preProcessRequest" />
+    <bpmn2:subProcess id="subProcessExceptionCompleteMSO" name="Sub Process Exception Complete MSO" triggeredByEvent="true">
+      <bpmn2:endEvent id="endEventExceptionCompleteMSO">
+        <bpmn2:extensionElements>
+          <camunda:connector>
+            <camunda:inputOutput>
+              <camunda:outputParameter name="DB_ADAPTER_ERROR">${CMSO_updateRequestResponse}</camunda:outputParameter>
+            </camunda:inputOutput>
+          </camunda:connector>
+        </bpmn2:extensionElements>
+        <bpmn2:incoming>SequenceFlow_1i1h3il</bpmn2:incoming>
+        <bpmn2:terminateEventDefinition id="MessageEventDefinition_3" />
+      </bpmn2:endEvent>
+      <bpmn2:startEvent id="startEventExceptionCompleteMSO">
+        <bpmn2:outgoing>SequenceFlow_1i1h3il</bpmn2:outgoing>
+        <bpmn2:errorEventDefinition id="ErrorEventDefinition_4" />
+      </bpmn2:startEvent>
+      <bpmn2:sequenceFlow id="SequenceFlow_1i1h3il" sourceRef="startEventExceptionCompleteMSO" targetRef="endEventExceptionCompleteMSO" />
+    </bpmn2:subProcess>
+    <bpmn2:scriptTask id="ScriptTask_3" name="&#10;MSO&#10;Update&#10;(infra active req)&#10;" scriptFormat="groovy">
+      <bpmn2:incoming>SequenceFlow_2</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1oes9qv</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[import org.onap.so.bpmn.common.scripts.*
+def completeMsoProcess = new CompleteMsoProcess()
+completeMsoProcess.updateInfraRequestDB(execution)]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:endEvent id="EndEvent_1">
+      <bpmn2:incoming>SequenceFlow_1oes9qv</bpmn2:incoming>
+      <bpmn2:terminateEventDefinition id="_TerminateEventDefinition_2" />
+    </bpmn2:endEvent>
+    <bpmn2:sequenceFlow id="SequenceFlow_1oes9qv" sourceRef="ScriptTask_3" targetRef="EndEvent_1" />
+  </bpmn2:process>
+  <bpmn2:message id="Message_2" name="CompleteMsoProcessRequest" />
+  <bpmn2:error id="Error_3" name="MSOWorkflowException" errorCode="MSOWorkflowException" />
+  <bpmn2:error id="Error_1" name="Java Lang Exception" errorCode="java.lang.Exception" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="CompleteMsoProcess">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_41" bpmnElement="StartEvent_1">
+        <dc:Bounds x="103" y="156" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="131" y="197" width="47" height="24" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_ScriptTask_34" bpmnElement="preProcessRequest">
+        <dc:Bounds x="293" y="134" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_SequenceFlow_2" bpmnElement="SequenceFlow_2" sourceElement="_BPMNShape_ScriptTask_34" targetElement="_BPMNShape_ScriptTask_88">
+        <di:waypoint xsi:type="dc:Point" x="393" y="174" />
+        <di:waypoint xsi:type="dc:Point" x="440" y="174" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="371.5" y="159" width="90" height="0" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_SequenceFlow_20" bpmnElement="SequenceFlow_18" sourceElement="_BPMNShape_StartEvent_41" targetElement="_BPMNShape_ScriptTask_34">
+        <di:waypoint xsi:type="dc:Point" x="139" y="174" />
+        <di:waypoint xsi:type="dc:Point" x="293" y="174" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="171" y="159" width="90" height="0" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="_BPMNShape_SubProcess_13" bpmnElement="subProcessExceptionCompleteMSO" isExpanded="true">
+        <dc:Bounds x="208" y="407" width="427" height="169" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_110" bpmnElement="endEventExceptionCompleteMSO">
+        <dc:Bounds x="508" y="474" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="481" y="515" width="90" height="0" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_51" bpmnElement="startEventExceptionCompleteMSO">
+        <dc:Bounds x="256" y="474" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="229" y="515" width="90" height="0" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_128" bpmnElement="EndEvent_1">
+        <dc:Bounds x="699" y="156" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="672" y="197" width="90" height="0" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_ScriptTask_88" bpmnElement="ScriptTask_3">
+        <dc:Bounds x="440" y="134" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1i1h3il_di" bpmnElement="SequenceFlow_1i1h3il">
+        <di:waypoint xsi:type="dc:Point" x="292" y="492" />
+        <di:waypoint xsi:type="dc:Point" x="508" y="492" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="355" y="477" width="90" height="0" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1oes9qv_di" bpmnElement="SequenceFlow_1oes9qv">
+        <di:waypoint xsi:type="dc:Point" x="540" y="174" />
+        <di:waypoint xsi:type="dc:Point" x="699" y="174" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="619.5" y="153" width="0" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>

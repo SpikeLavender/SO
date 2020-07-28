@@ -1,0 +1,37 @@
+{
+	"cloudSiteId": "cloudRegionId",
+	"tenantId": "tenantId",
+	"vnfId": "vnfId",
+	"vnfType": "vnfType",
+	"vfModuleId": "vfModuleId",
+	"vfModuleName": "vfModuleName",
+	"vfModuleType": "vfModuleModelName",
+	"vnfVersion": "serviceModelVersion",
+	"modelCustomizationUuid": "vfModuleModelCustomizationUuid",
+	"skipAAI": true,
+	"backout": false,
+	"failIfExists": false,
+	"enableBridge": true,
+	"msoRequest": 
+	{
+		"requestId": "requestId",
+		"serviceInstanceId": "serviceInstanceId"
+	},
+
+	"vfModuleParams": 
+	{
+		"environment_context": "environmentContext",
+		"key1": "value1",
+		"paramOne": "paramOneValue",
+		"paramThree": "paramThreeValue",
+		"paramTwo": "paramTwoValue",
+		"vf_module_id": "vfModuleId",
+		"vf_module_index": "1",
+		"vf_module_name": "vfModuleName",
+		"vnf_id": "vnfId",
+		"vnf_name": "vnfName",
+		"workload_context": "workloadContext",
+        "sdnc_directives": "{ \"attributes\": [ {\"attribute_name\": \"key1\", \"attribute_value\": \"value1\"}, {\"attribute_name\": \"paramThree\", \"attribute_value\": \"paramThreeValue\"}, {\"attribute_name\": \"paramOne\", \"attribute_value\": \"paramOneValue\"}, {\"attribute_name\": \"paramTwo\", \"attribute_value\": \"paramTwoValue\"}] }",
+        "user_directives": "{ \"attributes\": [ {\"attribute_name\": \"key1\", \"attribute_value\": \"value1\"}] }"
+	}
+}

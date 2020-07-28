@@ -1,0 +1,112 @@
+# will be used as entry in DB to say SITE OFF/ON for healthcheck
+
+server-port: 8080
+ssl-enable: false
+
+
+
+spring:
+  datasource:
+    jdbc-url: jdbc:mariadb://localhost:3307/catalogdb
+    username: root
+    password: password
+    driver-class-name: org.mariadb.jdbc.Driver    
+    initialization-mode: always
+  jpa:   
+    generate-ddl: false
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+      naming-strategy: org.hibernate.cfg.ImprovedNamingStrategy
+      enable-lazy-load-no-trans: true
+    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+  security:
+    usercredentials:
+    -  
+      username: test
+      password: '$2a$12$Zi3AuYcZoZO/gBQyUtST2.F5N6HqcTtaNci2Et.ufsQhski56srIu'
+      role: Asdc-Client        
+
+mariaDB4j:
+  dataDir: 
+  port: 3307
+  databaseName: catalogdb
+  databaseName2: requestdb
+        
+request:
+  datasource:
+    jdbc-url: jdbc:mariadb://localhost:3307/requestdb
+    username: root
+    password: password
+    driver-class-name: org.mariadb.jdbc.Driver
+
+
+#Actuator
+management:
+  endpoints:
+    web:
+      base-path: /manage
+  server:
+    servlet:
+      context-path: /manage
+  metrics:
+    se-global-registry: false
+    export:
+      prometheus:
+        enabled: true # Whether exporting of metrics to Prometheus is enabled.
+        step: 1m # Step size (i.e. reporting frequency) to use.  
+
+mso:
+  adapters:
+    requestDb:
+      auth: Basic YnBlbDptc28tZGItMTUwNyE=
+      endpoint: http://localhost:8081  
+  logPath: logs
+  catalog:
+    db:
+      spring:
+        endpoint: "http://localhost:"
+  camundaURL: http://localhost:${wiremock.server.port}/        
+  db:
+    auth: Basic YnBlbDptc28tZGItMTUwNyE=
+  site-name: siteName
+  asdc-connections:
+    asdc-controller1:
+      user: msopreist
+      consumerGroup: msoasdc-id-local
+      consumerId: msoasdc-id-local
+      environmentName: Pre-IST
+      asdcAddress: localhost:8443
+      password: CB655C3C236F1F0370A347E3A0E0E133BE10ADCF4D16377E7378D3FE46A4BF60C27DF1FFB4
+      pollingInterval: 30
+      pollingTimeout: 30
+      relevantArtifactTypes: HEAT,HEAT_ENV,HEAT_VOL
+      useHttpsWithDmaap: true
+      activateServerTLSAuth: false
+      keyStorePassword:  
+      keyStorePath:
+      watchDogTimeout: 1
+      isFilterInEmptyResources: true
+      messageBusAddress: localhost,localhost
+  asdc:
+    config:
+      activity:
+        endpoint: http://localhost:${wiremock.server.port}
+      key: 566B754875657232314F5548556D3665
+      components:
+        count: 3,
+        componentNames: SO,AAI,SDNC
+  scheduling:
+    enabled: false
+  aai:
+    endpoint: http://localhost:${wiremock.server.port}
+  config:
+    defaultpath: src/test/resources
+
+sdc:
+  endpoint: http://localhost:${wiremock.server.port}
+  
+etsi-catalog-manager:
+  endpoint:  http://localhost:${wiremock.server.port}/api/catalog/v1
+  rest:
+    timeoutInSeconds: 5

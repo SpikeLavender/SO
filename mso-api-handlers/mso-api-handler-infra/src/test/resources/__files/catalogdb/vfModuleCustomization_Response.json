@@ -1,0 +1,27 @@
+{
+  "id" : 1,
+  "modelCustomizationUUID": "cb82ffd8-252a-11e7-93ae-92361f002671",
+  "label": "base",
+  "minInstances": 0,
+  "maxInstances": 0,
+  "initialCount": 1,
+  "availabilityZoneCount": 0,
+  "created": "2017-05-26 09:38:23.000",
+  "_links": {
+    "self": {
+      "href": "http://localhost:8090/vfModuleCustomization/1"
+    },
+    "vfModuleCustomization": {
+      "href": "http://localhost:8090/vfModuleCustomization/1"
+    },
+    "volumeHeatEnv": {
+      "href": "http://localhost:8090/vfModuleCustomization/1/volumeHeatEnv"
+    },
+    "vfModule": {
+      "href": "http://localhost:8090/vfModuleCustomization/1/vfModule"
+    },
+    "heatEnvironment": {
+      "href": "http://localhost:8090/vfModuleCustomization/1/heatEnvironment"
+    }
+  }
+}

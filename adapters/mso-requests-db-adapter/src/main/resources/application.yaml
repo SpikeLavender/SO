@@ -1,0 +1,65 @@
+# will be used as entry in DB to say SITE OFF/ON for healthcheck
+
+server:
+    port: 8080
+    tomcat:
+        max-threads: 50
+ssl-enable: false
+mso:
+  adapters:
+    requestDb:
+      auth: Basic YnBlbDptc28tZGItMTUwNyE=
+      endpoint: http://localhost:8081
+  logPath: .logs/reqdb
+  site-name: unkwon
+  infra-requests:
+    archived:
+      period: 180
+# H2
+spring:
+  datasource:
+    hikari:
+      jdbc-url: jdbc:mariadb://${DB_HOST}:${DB_PORT}/requestdb
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+      driver-class-name: org.mariadb.jdbc.Driver 
+      pool-name: reqdb-pool
+      registerMbeans: true
+  flyway:
+    baseline-on-migrate: false
+    url:  jdbc:mariadb://${DB_HOST}:${DB_PORT}/requestdb
+    user: ${DB_ADMIN_USERNAME}
+    password: ${DB_ADMIN_PASSWORD}
+  jpa:
+      show-sql: false
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5Dialect
+        ddl-auto: validate
+        naming-strategy: org.hibernate.cfg.ImprovedNamingStrategy
+        enable-lazy-load-no-trans: true
+  security:
+    usercredentials:
+    -
+      username: bpel
+      password: '$2a$12$1xyutEZNfjGewIZRfKaE8eZE99f5sYFUmmM80BobI65KNjmcK0JuO'
+      role: BPEL-Client
+    -  
+      username: mso_admin
+      password: '$2a$12$tidKuu.h88E2nuL95pTVY.ZOYMN/1dp29A9b1o.0GFDsVVSYlMkHa'
+      role: ACTUATOR
+  main:
+    allow-bean-definition-overriding: true
+
+#Actuator
+management:
+  endpoints:
+    web:
+      base-path: /manage
+      exposure:
+        include: "*"
+  metrics:
+    se-global-registry: false
+    export:
+      prometheus:
+        enabled: true # Whether exporting of metrics to Prometheus is enabled.
+        step: 1m # Step size (i.e. reporting frequency) to use.

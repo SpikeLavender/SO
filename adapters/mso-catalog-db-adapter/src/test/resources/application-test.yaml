@@ -1,0 +1,106 @@
+# TEST FILE
+catalog.db.endpoint: http://localhost:${wiremock.server.port}
+
+ssl-enable: false 
+mso:
+  site-name: localDevEnv
+  logPath: logs
+  catalog:
+    db:
+      spring:
+        endpoint: http://localhost:${wiremock.server.port}
+  db:
+    auth: Basic YnBlbDptc28tZGItMTUwNyE=
+
+spring:
+  datasource:
+    url: jdbc:mariadb://localhost:3307/catalogdb
+    username: root
+    password: password
+    driver-class-name: org.mariadb.jdbc.Driver
+    initialization-mode: always
+    data: classpath*:data.sql
+  flyway:
+    baseline-on-migrate: false
+    url: jdbc:mariadb://localhost:3307/catalogdb
+    user: root
+    password: password
+  jpa:   
+    generate-ddl: false
+    show-sql: false
+    hibernate:
+      dialect: org.hibernate.dialect.MySQL5Dialect
+      storage_engine: innodb
+      naming-strategy: org.hibernate.cfg.ImprovedNamingStrategy
+      enable-lazy-load-no-trans: true
+      database-platform: org.hibernate.dialect.MySQL5Dialect
+      ddl-auto: validate
+  security:
+    usercredentials:
+    -  
+      username: test
+      password: '$2a$12$Zi3AuYcZoZO/gBQyUtST2.F5N6HqcTtaNci2Et.ufsQhski56srIu'
+      role: BPEL-Client
+    -
+      username: bpel
+      password: '$2a$12$1xyutEZNfjGewIZRfKaE8eZE99f5sYFUmmM80BobI65KNjmcK0JuO'
+      role: BPEL-Client
+    -  
+      username: mso_admin
+      password: '$2a$12$tidKuu.h88E2nuL95pTVY.ZOYMN/1dp29A9b1o.0GFDsVVSYlMkHa'
+      role: ACTUATOR  
+mariaDB4j:
+  dataDir: 
+  port: 3307
+  databaseName: catalogdb
+  
+server:
+    port: ${wiremock.server.port}
+    tomcat:
+        max-threads: 50
+
+
+management:
+  endpoints:
+    web:
+      base-path: /manage
+  server:
+    servlet:
+      context-path: /manage
+  metrics:
+    se-global-registry: false
+    export:
+      prometheus:
+        enabled: true # Whether exporting of metrics to Prometheus is enabled.
+        step: 1m # Step size (i.e. reporting frequency) to use.  
+
+cloud_config:
+  identity_services:
+    MTKEYSTONE:
+      identity_url: "http://localhost:5000/v2.0"
+      mso_id: "john"
+      mso_pass: "313DECE408AF7759D442D7B06DD9A6AA"
+      admin_tenant: "admin"
+      member_role: "_member_"
+      tenant_metadata: false
+      identity_server_type: "KEYSTONE"
+      identity_authentication_type: "USERNAME_PASSWORD"
+  cloud_sites:
+    mtn13:
+      region_id: "mtn13"
+      clli: "MDT13"
+      aic_version: "3.0"
+      identity_service_id: "MTN13"
+      orchestrator: "orchestrator"
+      cloudify_id: "mtn13"
+    regionOne:
+      region_id: "regionOne"
+      clli: "MT2"
+      aic_version: "2.5"
+      identity_service_id: "MTKEYSTONE"
+  cloudify_managers:
+    manager:
+      cloudify_url: "http://localhost:8080"
+      username: "user"
+      password: "password"
+      version: "2.0"
