@@ -20,7 +20,10 @@
 
 package org.onap.so.adapters.nssmf.rest;
 
+import org.onap.so.adapters.nssmf.entity.RestResponse;
+import org.onap.so.adapters.nssmf.enums.JobStatus;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
+import org.onap.so.adapters.nssmf.util.RestUtil;
 import org.onap.so.beans.nsmf.ActDeActNssi;
 import org.onap.so.beans.nsmf.AllocateAnNssi;
 import org.onap.so.beans.nsmf.AllocateCnNssi;
@@ -52,15 +55,15 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Component;
 import static java.lang.String.valueOf;
-import static org.onap.so.adapters.nssmf.rest.HttpMethod.DELETE;
-import static org.onap.so.adapters.nssmf.rest.HttpMethod.GET;
-import static org.onap.so.adapters.nssmf.rest.HttpMethod.POST;
-import static org.onap.so.adapters.nssmf.rest.HttpMethod.PUT;
-import static org.onap.so.adapters.nssmf.rest.JobStatus.ERROR;
-import static org.onap.so.adapters.nssmf.rest.JobStatus.FINISHED;
-import static org.onap.so.adapters.nssmf.rest.JobStatus.PROCESSING;
-import static org.onap.so.adapters.nssmf.rest.JobStatus.STARTED;
-import static org.onap.so.adapters.nssmf.rest.JobStatus.fromString;
+import static org.onap.so.adapters.nssmf.enums.HttpMethod.DELETE;
+import static org.onap.so.adapters.nssmf.enums.HttpMethod.GET;
+import static org.onap.so.adapters.nssmf.enums.HttpMethod.POST;
+import static org.onap.so.adapters.nssmf.enums.HttpMethod.PUT;
+import static org.onap.so.adapters.nssmf.enums.JobStatus.ERROR;
+import static org.onap.so.adapters.nssmf.enums.JobStatus.FINISHED;
+import static org.onap.so.adapters.nssmf.enums.JobStatus.PROCESSING;
+import static org.onap.so.adapters.nssmf.enums.JobStatus.STARTED;
+import static org.onap.so.adapters.nssmf.enums.JobStatus.fromString;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.ACTIVATE_NSS_SUCCESS;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.ALLOCATE_NSS_SUCCESS;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.CREATE_NSS_SUCCESS;
@@ -76,6 +79,7 @@ import static org.onap.so.beans.nsmf.ActDeActNssi.DE_ACT_URL;
 
 @Component
 @Primary
+@Deprecated
 public class NssmfManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NssmfManager.class);
@@ -84,10 +88,10 @@ public class NssmfManager {
 
     public final static String QUERY_BY_ID = "/api/rest/provMns/v1/NSS/nssi" + "/{nssiId}";
 
-    @Autowired
+    @Autowired(required = false)
     private ResourceOperationStatusRepository rscOperStatusRepo;
 
-    @Autowired
+    @Autowired(required = false)
     private RestUtil restUtil;
 
 
@@ -137,6 +141,11 @@ public class NssmfManager {
                 break;
 
         }
+
+        /**
+         * 内部的，调用 workflow
+         * 外部的，访问第三方api
+         */
         RestResponse rsp = restUtil.sendRequest(allocateUrl, POST, allocateReq, nssmiAllocate.getEsrInfo());
         assertObjectNotNull(rsp);
 
@@ -151,6 +160,9 @@ public class NssmfManager {
         }
         return rsp;
     }
+
+
+
 
     public RestResponse createNssi(NssiCreateRequest nssiCreate) throws ApplicationException {
 

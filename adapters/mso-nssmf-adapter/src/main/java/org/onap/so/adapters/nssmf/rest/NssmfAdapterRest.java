@@ -20,6 +20,7 @@
 
 package org.onap.so.adapters.nssmf.rest;
 
+import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.beans.nsmf.JobStatusRequest;
 import org.onap.so.beans.nsmf.NssiActDeActRequest;
@@ -43,6 +44,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.assertObjectNotNull;
 
+@Deprecated
 @Controller
 @RequestMapping(value = "/api/rest/provMns/v1", produces = {APPLICATION_JSON}, consumes = {APPLICATION_JSON})
 public class NssmfAdapterRest {
@@ -57,6 +59,7 @@ public class NssmfAdapterRest {
         try {
             logger.info("Nssmi allocate request is invoked");
             assertObjectNotNull(allocate);
+
             RestResponse rsp = getNssmfMgr().allocateNssi(allocate);
             return buildResponse(rsp);
         } catch (ApplicationException e) {

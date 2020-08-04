@@ -20,8 +20,11 @@
 
 package org.onap.so.adapters.nssmf;
 
+import org.onap.so.adapters.nssmf.extclients.aai.AaiServiceProvider;
+import org.onap.so.spring.SpringContextHelper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
 @SpringBootApplication(scanBasePackages = {"org.onap.so"})
 public class MSONssmfApplication {

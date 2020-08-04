@@ -21,27 +21,13 @@
 package org.onap.so.beans.nsmf;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Data
 public class NsiInfo {
 
     private String nsiName;
 
     private String nsiId;
-
-    public String getNsiName() {
-        return nsiName;
-    }
-
-    public void setNsiName(String nsiName) {
-        this.nsiName = nsiName;
-    }
-
-    public void setNsiId(String nsiId) {
-        this.nsiId = nsiId;
-    }
-
-    public String getNsiId() {
-        return nsiId;
-    }
 }

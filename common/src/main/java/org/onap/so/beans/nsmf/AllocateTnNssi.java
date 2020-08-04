@@ -20,12 +20,21 @@
 
 package org.onap.so.beans.nsmf;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class AllocateTnNssi {
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.io.Serializable;
+import java.util.List;
+
+@Data
+public class AllocateTnNssi implements Serializable {
+
+    private static final long serialVersionUID = -7069801712339914746L;
 
     public final static String URL = "/api/rest/provMns/v1/tn/NSS" + "/SliceProfiles";
+
+    public final static String WORKFLOW_URL = "/onap/so/infra/e2eServiceInstances/v3";
 
     private String nsstId;
 
@@ -35,6 +44,7 @@ public class AllocateTnNssi {
 
     private String nssiName;
 
+    @Deprecated
     private TnSliceProfile sliceProfile;
 
     private String scriptName;
@@ -43,67 +53,15 @@ public class AllocateTnNssi {
 
     private NsiInfo nsiInfo;
 
-    public String getNsstId() {
-        return nsstId;
-    }
+    @NotBlank
+    private String serviceInvariantUuid;
 
-    public void setNsstId(String nsstId) {
-        this.nsstId = nsstId;
-    }
+    @NotBlank
+    private String serviceUuid;
 
-    public String getFlavorId() {
-        return flavorId;
-    }
+    @NotNull
+    private List<NetworkSliceInfo> networkSliceInfos;
 
-    public void setFlavorId(String flavorId) {
-        this.flavorId = flavorId;
-    }
-
-    public String getNssiId() {
-        return nssiId;
-    }
-
-    public void setNssiId(String nssiId) {
-        this.nssiId = nssiId;
-    }
-
-    public String getNssiName() {
-        return nssiName;
-    }
-
-    public void setNssiName(String nssiName) {
-        this.nssiName = nssiName;
-    }
-
-    public TnSliceProfile getSliceProfile() {
-        return sliceProfile;
-    }
-
-    public void setSliceProfile(TnSliceProfile sliceProfile) {
-        this.sliceProfile = sliceProfile;
-    }
-
-    public String getScriptName() {
-        return scriptName;
-    }
-
-    public void setScriptName(String scriptName) {
-        this.scriptName = scriptName;
-    }
-
-    public Object getExtension() {
-        return extension;
-    }
-
-    public void setExtension(Object extension) {
-        this.extension = extension;
-    }
-
-    public NsiInfo getNsiInfo() {
-        return nsiInfo;
-    }
-
-    public void setNsiInfo(NsiInfo nsiInfo) {
-        this.nsiInfo = nsiInfo;
-    }
+    @NotNull
+    private List<TransportSliceNetwork> transportSliceNetworks;
 }
