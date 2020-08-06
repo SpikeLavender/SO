@@ -1,6 +1,5 @@
 package org.onap.so.adapters.nssmf.service;
 
-import org.onap.so.adapters.nssmf.util.RestUtil;
 import org.onap.so.beans.nsmf.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;

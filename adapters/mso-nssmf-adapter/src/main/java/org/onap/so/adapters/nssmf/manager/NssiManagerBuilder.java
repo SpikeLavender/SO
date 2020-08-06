@@ -2,56 +2,52 @@ package org.onap.so.adapters.nssmf.manager;
 
 import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
-import org.onap.so.adapters.nssmf.manager.impl.AnNssiManager;
-import org.onap.so.adapters.nssmf.manager.impl.CnNssiManager;
-import org.onap.so.adapters.nssmf.manager.impl.TnNssiManager;
+import org.onap.so.adapters.nssmf.manager.impl.DefaultAnNssiManager;
+import org.onap.so.adapters.nssmf.manager.impl.DefaultCnNssiManager;
+import org.onap.so.adapters.nssmf.manager.impl.DefaultTnNssiManager;
 import org.onap.so.adapters.nssmf.util.RestUtil;
 import org.onap.so.beans.nsmf.EsrInfo;
 
 public class NssiManagerBuilder {
 
-    private EsrInfo esrInfo;
-
     private NssiManger nssiManger;
 
+    private RestUtil restUtil;
+
+    private ActionType actionType;
+
     public NssiManagerBuilder(EsrInfo esrInfo) throws ApplicationException {
-        this.esrInfo = esrInfo;
-        creatNssiManager();
-        this.nssiManger.setEsrInfo(esrInfo);
-    }
-
-    public NssiManagerBuilder setRestUtil(RestUtil restUtil) {
-
-        this.nssiManger.setRestUtil(restUtil);
-
-        return this;
-    }
-
-    public NssiManagerBuilder setActionType(ActionType actionType) {
-
-        this.nssiManger.setActionType(actionType);
-
-        return this;
-    }
-
-    private void creatNssiManager() throws ApplicationException {
-
-        switch (this.esrInfo.getNetworkType()) {
+        switch (esrInfo.getNetworkType()) {
             case ACCESS:
-                this.nssiManger = new AnNssiManager();
+                this.nssiManger = new DefaultAnNssiManager(esrInfo);
                 break;
             case CORE:
-                this.nssiManger = new CnNssiManager();
+                this.nssiManger = new DefaultCnNssiManager(esrInfo);
                 break;
             case TRANSPORT:
-                this.nssiManger = new TnNssiManager();
+                this.nssiManger = new DefaultTnNssiManager(esrInfo);
                 break;
             default:
                 throw new ApplicationException(501, "invalid domain type: " + esrInfo.getNetworkType().name());
         }
     }
 
-    public NssiManger build() {
-        return this.nssiManger;
+
+    public NssiManagerBuilder setRestUtil(RestUtil restUtil) {
+
+        this.restUtil = restUtil;
+        return this;
+    }
+
+    public NssiManagerBuilder setActionType(ActionType actionType) {
+
+        this.actionType = actionType;
+
+        return this;
+    }
+
+
+    public NssiManger build() throws ApplicationException {
+        return this.nssiManger.create().setRestUtil(restUtil).setActionType(actionType);
     }
 }

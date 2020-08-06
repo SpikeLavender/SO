@@ -1,17 +1,35 @@
 package org.onap.so.adapters.nssmf.manager.impl;
 
+import org.onap.so.adapters.nssmf.enums.ExecutorType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
+import org.onap.so.adapters.nssmf.manager.NssiManger;
 import org.onap.so.beans.nsmf.*;
 
-public class TnNssiManager extends BaseNssiManager {
+import static org.onap.so.adapters.nssmf.enums.ExecutorType.INNER;
+import static org.onap.so.adapters.nssmf.enums.ExecutorType.THIRD_PARTY;
+
+public class DefaultAnNssiManager extends BaseNssiManager {
+
+    public DefaultAnNssiManager(EsrInfo esrInfo) {
+        super(esrInfo);
+    }
 
     @Override
     protected <T> String doWrapReqBody(T t) {
-        //放到service
-
+        //
         return null;
     }
+
+    @Override
+    public NssiManger create() {
+        if (ExecutorType.INNER.equals(getExecutorType())) {
+            return this;
+        }
+        return new ExternalAnManager(esrInfo);
+    }
+
+
 
     @Override
     protected String doAllocateNssi(NssiAllocateRequest allocateRequest) throws ApplicationException {
@@ -20,7 +38,7 @@ public class TnNssiManager extends BaseNssiManager {
 
     @Override
     protected String doDeAllocateNssi(NssiDeAllocateRequest deAllocateRequest, String sliceId) throws ApplicationException {
-        return null;
+        return wrapReqBody(deAllocateRequest.getDeAllocateNssi());
     }
 
     @Override
@@ -47,4 +65,6 @@ public class TnNssiManager extends BaseNssiManager {
     protected String doUpdateNssi(NssiUpdateRequest nssiUpdate, String sliceId) throws ApplicationException {
         return null;
     }
+
+
 }

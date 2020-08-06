@@ -1,6 +1,7 @@
 package org.onap.so.adapters.nssmf.manager;
 
 import org.onap.so.adapters.nssmf.enums.ActionType;
+import org.onap.so.adapters.nssmf.enums.ExecutorType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.util.RestUtil;
@@ -26,10 +27,9 @@ public interface NssiManger {
 
     RestResponse updateNssiById(NssiUpdateRequestById nssiUpdateById, String nssiId) throws ApplicationException;
 
-    void setRestUtil(RestUtil restUtil);
+    NssiManger setRestUtil(RestUtil restUtil);
 
-    void setEsrInfo(EsrInfo esrInfo);
+    NssiManger setActionType(ActionType actionType);
 
-    void setActionType(ActionType actionType);
-
+    NssiManger create() throws ApplicationException;
 }

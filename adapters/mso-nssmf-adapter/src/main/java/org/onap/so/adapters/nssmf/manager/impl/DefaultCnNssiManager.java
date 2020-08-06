@@ -1,10 +1,16 @@
 package org.onap.so.adapters.nssmf.manager.impl;
 
+import org.onap.so.adapters.nssmf.enums.ExecutorType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
+import org.onap.so.adapters.nssmf.manager.NssiManger;
 import org.onap.so.beans.nsmf.*;
 
-public class CnNssiManager extends BaseNssiManager {
+public class DefaultCnNssiManager extends BaseNssiManager {
+
+    public DefaultCnNssiManager(EsrInfo esrInfo) {
+        super(esrInfo);
+    }
 
     @Override
     protected <T> String doWrapReqBody(T t) {
@@ -44,5 +50,13 @@ public class CnNssiManager extends BaseNssiManager {
     @Override
     protected String doUpdateNssi(NssiUpdateRequest nssiUpdate, String sliceId) throws ApplicationException {
         return null;
+    }
+
+    @Override
+    public NssiManger create() {
+        if (ExecutorType.INNER.equals(getExecutorType())) {
+            return this;
+        }
+        return new ExternalCnManager(esrInfo);
     }
 }

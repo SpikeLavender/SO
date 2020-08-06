@@ -17,20 +17,21 @@ public abstract class BaseNssiManager implements NssiManger {
 
     private RestUtil restUtil;
 
-    private ExecutorType executorType;
-
     private ActionType actionType;
 
-    private EsrInfo esrInfo;
+    protected EsrInfo esrInfo;
 
     private String nssmfUrl;
 
     private HttpMethod httpMethod;
 
+    public BaseNssiManager(EsrInfo esrInfo) {
+        this.esrInfo = esrInfo;
+    }
+
     public RestResponse allocateNssi(NssiAllocateRequest allocateRequest) throws ApplicationException {
 
-        this.init(allocateRequest.getEsrInfo());
-
+        this.urlHandler();
         String reqBody = doAllocateNssi(allocateRequest);
 
         return sendRequest(reqBody);
@@ -41,9 +42,7 @@ public abstract class BaseNssiManager implements NssiManger {
     @Override
     public RestResponse deAllocateNssi(NssiDeAllocateRequest deAllocateRequest, String sliceId) throws ApplicationException {
         //url处理
-        this.init(deAllocateRequest.getEsrInfo());
-
-        this.afterUrlHandler(sliceId);
+        this.urlHandler(sliceId);
 
         String reqBody = doDeAllocateNssi(deAllocateRequest, sliceId);
 
@@ -54,9 +53,7 @@ public abstract class BaseNssiManager implements NssiManger {
 
     @Override
     public RestResponse terminateNssi(NssiTerminateRequest terminateRequest, String nssiId) throws ApplicationException {
-        this.init(terminateRequest.getEsrInfo());
-
-        this.afterUrlHandler(nssiId);
+        this.urlHandler(nssiId);
 
         String reqBody = doTerminateNssi(terminateRequest, nssiId);
 
@@ -67,9 +64,7 @@ public abstract class BaseNssiManager implements NssiManger {
 
     @Override
     public RestResponse activateNssi(NssiActDeActRequest deActRequest, String snssai) throws ApplicationException {
-        this.init(deActRequest.getEsrInfo());
-
-        this.afterUrlHandler(snssai);
+        this.urlHandler(snssai);
 
         String reqBody = doActivateNssi(deActRequest, snssai);
 
@@ -80,9 +75,7 @@ public abstract class BaseNssiManager implements NssiManger {
 
     @Override
     public RestResponse deActivateNssi(NssiActDeActRequest nssiDeActivate, String snssai) throws ApplicationException {
-        this.init(nssiDeActivate.getEsrInfo());
-
-        this.afterUrlHandler(snssai);
+        this.urlHandler(snssai);
 
         String reqBody = doDeActivateNssi(nssiDeActivate, snssai);
 
@@ -105,9 +98,7 @@ public abstract class BaseNssiManager implements NssiManger {
 
     @Override
     public RestResponse updateNssi(NssiUpdateRequest nssiUpdate, String sliceId) throws ApplicationException {
-        this.init(nssiUpdate.getEsrInfo());
-
-        this.afterUrlHandler(sliceId);
+        this.urlHandler(sliceId);
 
         String reqBody = doUpdateNssi(nssiUpdate, sliceId);
 
@@ -121,15 +112,6 @@ public abstract class BaseNssiManager implements NssiManger {
         return null;
     }
 
-
-    private void init(EsrInfo esrInfo) {
-        this.esrInfo = esrInfo;
-
-        this.executorType = getExecutorType(esrInfo);
-
-        this.urlHandler(actionType);
-    }
-
     protected abstract <T> String doWrapReqBody(T t);
 
     //发送请求
@@ -141,10 +123,11 @@ public abstract class BaseNssiManager implements NssiManger {
     //获取url
     //protected abstract<T> String getUrlInfo(Class<T> clazz) throws Exception; //配置类，读配置文件吧      //todo：config类读url
 
-    protected void urlHandler(ActionType actionType) {
-        NssmfUrlInfo nssmfUrlInfo = NssmfConsts.getNssmfUrlInfo(this.executorType, this.esrInfo.getNetworkType(), actionType);
+    private void urlHandler(String... vars) {
+        NssmfUrlInfo nssmfUrlInfo = NssmfConsts.getNssmfUrlInfo(getExecutorType(), this.esrInfo.getNetworkType(), actionType);
         this.nssmfUrl = nssmfUrlInfo.getUrl();
         this.httpMethod = nssmfUrlInfo.getHttpMethod();
+        this.afterUrlHandler(vars);
     }
 
     private void afterUrlHandler(String... vars) {
@@ -157,7 +140,7 @@ public abstract class BaseNssiManager implements NssiManger {
 
     //包装请求体
     protected <T> String wrapReqBody(T t) throws ApplicationException {
-        if (this.executorType.equals(ExecutorType.THIRD_PARTY)) {
+        if (getExecutorType().equals(ExecutorType.THIRD_PARTY)) {
             return doWrapThirdPartyReqBody(t);
         }
         return doWrapReqBody(t);
@@ -168,10 +151,10 @@ public abstract class BaseNssiManager implements NssiManger {
     }
 
 
-    private ExecutorType getExecutorType(EsrInfo esrInfo) {
+    protected ExecutorType getExecutorType() {
         ExecutorType executorType;
 
-        if (esrInfo.getVendor().equals("SO_INNER")) {
+        if (esrInfo.getVendor().equals("ONAP_SO_INNER")) {
             executorType = ExecutorType.INNER;
         } else  {
             executorType = ExecutorType.THIRD_PARTY;
@@ -179,18 +162,16 @@ public abstract class BaseNssiManager implements NssiManger {
         return executorType;
     }
 
+
     @Override
-    public void setRestUtil(RestUtil restUtil) {
+    public NssiManger setRestUtil(RestUtil restUtil) {
         this.restUtil = restUtil;
+        return this;
     }
 
     @Override
-    public void setEsrInfo(EsrInfo esrInfo) {
-        this.esrInfo = esrInfo;
-    }
-
-    @Override
-    public void setActionType(ActionType actionType) {
+    public NssiManger setActionType(ActionType actionType) {
         this.actionType = actionType;
+        return this;
     }
 }
