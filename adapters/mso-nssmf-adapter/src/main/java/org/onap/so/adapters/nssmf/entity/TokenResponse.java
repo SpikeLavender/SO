@@ -29,5 +29,4 @@ public class TokenResponse {
     private String accessToken;
 
     private int expires;
-
 }

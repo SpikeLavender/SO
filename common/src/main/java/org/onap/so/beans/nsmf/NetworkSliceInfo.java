@@ -1,5 +1,6 @@
 package org.onap.so.beans.nsmf;
 
+
 import lombok.Data;
 
 import java.io.Serializable;
@@ -8,10 +9,9 @@ import java.io.Serializable;
 public class NetworkSliceInfo implements Serializable {
     private static final long serialVersionUID = 4401921718259398587L;
 
-    private String NNNSAI;
+    private String snssai;
 
     private String customer;
 
     private String serviceType;
-
 }

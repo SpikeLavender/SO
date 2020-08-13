@@ -28,11 +28,7 @@ import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.*;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.StringEntity;
@@ -43,6 +39,7 @@ import org.onap.aai.domain.yang.EsrSystemInfo;
 import org.onap.aai.domain.yang.EsrSystemInfoList;
 import org.onap.aai.domain.yang.EsrThirdpartySdnc;
 import org.onap.aai.domain.yang.EsrThirdpartySdncList;
+import org.onap.so.adapters.nssmf.consts.NssmfConsts;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.extclients.aai.AaiServiceProvider;
 import org.onap.so.adapters.nssmf.entity.TokenRequest;
@@ -111,23 +108,9 @@ public class RestUtil {
 
         throw new ApplicationException(BAD_REQUEST, "ESR information is improper");
     }
+    
 
-
-
-    public RestResponse sendRequest(String url, HttpMethod methodType, String content, EsrInfo esrInfo)
-            throws ApplicationException {
-
-        if (esrInfo.getVendor().equals("test")) {
-            return sendRequest(url, methodType, content);
-        }
-
-        NssmfInfo nssmfInfo = getNssmfHost(esrInfo);
-        Header header = new BasicHeader("X-Auth-Token", getToken(nssmfInfo));
-        String nssmfUrl = nssmfInfo.getUrl() + url;
-        return send(nssmfUrl, methodType, content, header);
-    }
-
-    private String getToken(NssmfInfo nssmfInfo) throws ApplicationException {
+    public String getToken(NssmfInfo nssmfInfo) throws ApplicationException {
 
 
         TokenRequest req = new TokenRequest();
@@ -144,16 +127,9 @@ public class RestUtil {
 
         return res.getAccessToken();
     }
+    
 
-    //内部流程请求
-    private RestResponse sendRequest(String url, HttpMethod methodType, String content) {
-
-        //从配置文件读取
-        Header header = new BasicHeader("X-Auth-Token", "");
-        return send(url, methodType, content, header);
-    }
-
-    private RestResponse send(String url, HttpMethod methodType, String content, Header header) {
+    public RestResponse send(String url, HttpMethod methodType, String content, Header header) {
 
         HttpRequestBase req = null;
         HttpResponse res = null;
@@ -187,8 +163,6 @@ public class RestUtil {
             }
             if (null != req) {
                 req.reset();
-            } else {
-                logger.debug("method is NULL:");
             }
             req = null;
 
@@ -220,7 +194,7 @@ public class RestUtil {
         }
     }
 
-    private RestResponse createResponse(int statusCode, String errMsg) {
+    public RestResponse createResponse(int statusCode, String errMsg) {
         RestResponse restResponse = new RestResponse();
         restResponse.setStatus(statusCode);
         restResponse.setResponseContent(errMsg);
@@ -229,7 +203,7 @@ public class RestUtil {
 
     private HttpRequestBase getHttpReq(String url, HttpMethod method, Header header, RequestConfig config,
             String content) throws ApplicationException {
-        HttpRequestBase base = null;
+        HttpRequestBase base;
         switch (method) {
             case POST:
                 HttpPost post = new HttpPost(url);
@@ -248,6 +222,7 @@ public class RestUtil {
                 break;
 
             case PATCH:
+                base = new HttpPatch(url);
                 break;
 
             case DELETE:
@@ -257,6 +232,8 @@ public class RestUtil {
                 }
                 base = delete;
                 break;
+            default:
+                throw new ApplicationException(404, "invalid method: " + method);
 
         }
         base.setConfig(config);
@@ -264,6 +241,13 @@ public class RestUtil {
             base.setHeader(header);
         }
         return base;
+    }
+
+    public RestResponse sendRequest(String allocateUrl, HttpMethod post, String allocateReq, EsrInfo esrInfo) throws ApplicationException {
+        NssmfInfo nssmfInfo = getNssmfHost(esrInfo);
+        Header header = new BasicHeader("X-Auth-Token", getToken(nssmfInfo));
+        String nssmfUrl = nssmfInfo.getUrl() + allocateUrl;
+        return send(nssmfUrl, post, allocateReq, header);
     }
 
     class HttpDeleteWithBody extends HttpEntityEnclosingRequestBase {

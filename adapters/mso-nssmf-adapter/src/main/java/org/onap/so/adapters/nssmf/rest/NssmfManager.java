@@ -88,10 +88,10 @@ public class NssmfManager {
 
     public final static String QUERY_BY_ID = "/api/rest/provMns/v1/NSS/nssi" + "/{nssiId}";
 
-    @Autowired(required = false)
+    @Autowired
     private ResourceOperationStatusRepository rscOperStatusRepo;
 
-    @Autowired(required = false)
+    @Autowired
     private RestUtil restUtil;
 
 
@@ -133,11 +133,11 @@ public class NssmfManager {
             case TRANSPORT:
                 AllocateTnNssi tn = nssmiAllocate.getAllocateTnNssi();
                 assertObjectNotNull(tn);
-                assertObjectNotNull(tn.getNsiInfo());
-                assertObjectNotNull(tn.getNsiInfo().getNsiId());
-                nsiId = tn.getNsiInfo().getNsiId();
+//                assertObjectNotNull(tn.getNsiInfo());
+//                assertObjectNotNull(tn.getNsiInfo().getNsiId());
+//                nsiId = tn.getNsiInfo().getNsiId();
                 allocateReq = marshal(tn);
-                allocateUrl = AllocateTnNssi.URL;
+//                allocateUrl = AllocateTnNssi.URL;
                 break;
 
         }

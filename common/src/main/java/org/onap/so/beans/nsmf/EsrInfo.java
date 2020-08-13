@@ -21,16 +21,30 @@
 package org.onap.so.beans.nsmf;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Data;
 
 import java.io.Serializable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Data
 public class EsrInfo implements Serializable {
 
     private static final long serialVersionUID = -7696600990607396263L;
     private String vendor;
 
     private NetworkType networkType;
+
+    public String getVendor() {
+        return vendor;
+    }
+
+    public void setVendor(String vendor) {
+        this.vendor = vendor;
+    }
+
+    public NetworkType getNetworkType() {
+        return networkType;
+    }
+
+    public void setNetworkType(NetworkType networkType) {
+        this.networkType = networkType;
+    }
 }

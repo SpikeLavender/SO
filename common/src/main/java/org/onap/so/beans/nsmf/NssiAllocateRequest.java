@@ -21,13 +21,11 @@
 package org.onap.so.beans.nsmf;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.Data;
 
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Data
 public class NssiAllocateRequest implements Serializable {
 
     private static final long serialVersionUID = -454145891489457960L;
@@ -40,4 +38,38 @@ public class NssiAllocateRequest implements Serializable {
     private AllocateTnNssi allocateTnNssi;
 
     private AllocateAnNssi allocateAnNssi;
+
+    private ServiceInfo serviceInfo;
+
+    public EsrInfo getEsrInfo() {
+        return esrInfo;
+    }
+
+    public void setEsrInfo(EsrInfo esrInfo) {
+        this.esrInfo = esrInfo;
+    }
+
+    public AllocateCnNssi getAllocateCnNssi() {
+        return allocateCnNssi;
+    }
+
+    public void setAllocateCnNssi(AllocateCnNssi allocateCnNssi) {
+        this.allocateCnNssi = allocateCnNssi;
+    }
+
+    public AllocateTnNssi getAllocateTnNssi() {
+        return allocateTnNssi;
+    }
+
+    public void setAllocateTnNssi(AllocateTnNssi allocateTnNssi) {
+        this.allocateTnNssi = allocateTnNssi;
+    }
+
+    public AllocateAnNssi getAllocateAnNssi() {
+        return allocateAnNssi;
+    }
+
+    public void setAllocateAnNssi(AllocateAnNssi allocateAnNssi) {
+        this.allocateAnNssi = allocateAnNssi;
+    }
 }

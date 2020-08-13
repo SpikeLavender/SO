@@ -20,10 +20,9 @@
 
 package org.onap.so.beans.nsmf;
 
+
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.List;
 
@@ -32,36 +31,5 @@ public class AllocateTnNssi implements Serializable {
 
     private static final long serialVersionUID = -7069801712339914746L;
 
-    public final static String URL = "/api/rest/provMns/v1/tn/NSS" + "/SliceProfiles";
-
-    public final static String WORKFLOW_URL = "/onap/so/infra/e2eServiceInstances/v3";
-
-    private String nsstId;
-
-    private String flavorId;
-
-    private String nssiId;
-
-    private String nssiName;
-
-    @Deprecated
-    private TnSliceProfile sliceProfile;
-
-    private String scriptName;
-
-    private Object extension;
-
-    private NsiInfo nsiInfo;
-
-    @NotBlank
-    private String serviceInvariantUuid;
-
-    @NotBlank
-    private String serviceUuid;
-
-    @NotNull
     private List<NetworkSliceInfo> networkSliceInfos;
-
-    @NotNull
-    private List<TransportSliceNetwork> transportSliceNetworks;
 }

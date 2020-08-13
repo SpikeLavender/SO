@@ -10,9 +10,6 @@ public class NssmfUrlInfo {
 
     private HttpMethod httpMethod;
 
-    public NssmfUrlInfo() {
-    }
-
     public NssmfUrlInfo(String url, HttpMethod httpMethod) {
         this.url = url;
         this.httpMethod = httpMethod;

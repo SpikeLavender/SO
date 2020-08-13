@@ -15,7 +15,7 @@ public enum ActionType {
 
     QUERY_JOB_STATUS,
 
-    UPDATE_BY_ID,
+    MODIFY_BY_ID,
 
-    UPDATE
+    MODIFY
 }
