@@ -2,7 +2,7 @@ package org.onap.so.adapters.nssmf.manager.impl;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
-import org.onap.so.adapters.nssmf.consts.NssmfConsts;
+import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.entity.NssmfInfo;
 import org.onap.so.adapters.nssmf.entity.NssmfUrlInfo;
 import org.onap.so.adapters.nssmf.enums.ActionType;
@@ -231,7 +231,7 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
 
     private void urlHandler() {
-        NssmfUrlInfo nssmfUrlInfo = NssmfConsts.getNssmfUrlInfo(this.executorType, this.esrInfo.getNetworkType(), actionType);
+        NssmfUrlInfo nssmfUrlInfo = NssmfAdapterConsts.getNssmfUrlInfo(this.executorType, this.esrInfo.getNetworkType(), actionType);
         this.nssmfUrl = nssmfUrlInfo.getUrl();
         this.httpMethod = nssmfUrlInfo.getHttpMethod();
         this.nssmfUrl = nssmfUrl.replaceAll("\\{apiVersion}", getApiVersion());

@@ -1,6 +1,6 @@
 package org.onap.so.adapters.nssmf.manager.impl;
 
-import org.onap.so.adapters.nssmf.consts.NssmfConsts;
+import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.beans.nsmf.*;
@@ -29,6 +29,6 @@ public class InternalAnNssmfManager extends BaseNssmfManager {
 
     @Override
     protected String getApiVersion() {
-        return NssmfConsts.CURRENT_INTERNAL_NSSMF_API_VERSION;
+        return NssmfAdapterConsts.CURRENT_INTERNAL_NSSMF_API_VERSION;
     }
 }

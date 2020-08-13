@@ -1,6 +1,6 @@
 package org.onap.so.adapters.nssmf.manager;
 
-import org.onap.so.adapters.nssmf.consts.NssmfConsts;
+import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.enums.ExecutorType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
@@ -52,7 +52,7 @@ public class NssmfManagerBuilder {
     }
 
     private ExecutorType getExecutorType(EsrInfo esrInfo) {
-        if (NssmfConsts.ONAP_INTERNAL_TAG.equals(esrInfo.getVendor())){
+        if (NssmfAdapterConsts.ONAP_INTERNAL_TAG.equals(esrInfo.getVendor())){
             return ExecutorType.INTERNAL;
         }
         return ExecutorType.EXTERNAL;

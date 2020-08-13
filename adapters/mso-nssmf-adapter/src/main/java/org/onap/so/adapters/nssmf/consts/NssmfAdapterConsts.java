@@ -9,7 +9,7 @@ import org.onap.so.beans.nsmf.NetworkType;
 import java.util.HashMap;
 import java.util.Map;
 
-public class NssmfConsts {
+public class NssmfAdapterConsts {
 
     public final static String ONAP_INTERNAL_TAG = "ONAP_internal";
 

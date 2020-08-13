@@ -39,7 +39,6 @@ import org.onap.aai.domain.yang.EsrSystemInfo;
 import org.onap.aai.domain.yang.EsrSystemInfoList;
 import org.onap.aai.domain.yang.EsrThirdpartySdnc;
 import org.onap.aai.domain.yang.EsrThirdpartySdncList;
-import org.onap.so.adapters.nssmf.consts.NssmfConsts;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.extclients.aai.AaiServiceProvider;
 import org.onap.so.adapters.nssmf.entity.TokenRequest;

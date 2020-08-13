@@ -12,9 +12,9 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 @RestController
 @RequestMapping(value = "/api/rest/provMns/v1", produces = {APPLICATION_JSON}, consumes = {APPLICATION_JSON})
-public class NssmfController {
+public class NssmfAdapterController {
 
-    private static final Logger logger = LoggerFactory.getLogger(NssmfController.class);
+    private static final Logger logger = LoggerFactory.getLogger(NssmfAdapterController.class);
 
     @Autowired
     private NssmfManagerService nssmfManagerService;
