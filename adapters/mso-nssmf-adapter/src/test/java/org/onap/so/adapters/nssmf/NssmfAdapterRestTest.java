@@ -24,6 +24,8 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -127,6 +129,9 @@ public class NssmfAdapterRestTest {
     }
 
     private void createCommonMock(int statusCode, NssmfInfo nssmf) throws Exception {
+        when(this.restUtil.send(any(String.class), any(HttpMethod.class), any(String.class), any(Header.class)))
+                .thenCallRealMethod();
+        when(this.restUtil.createResponse(any(Integer.class), any(String.class))).thenCallRealMethod();
         when(nssmfRest.getNssmfMgr()).thenReturn(nssmfMgr);
         when(nssmfRest.allocateNssi(any(NssiAllocateRequest.class))).thenCallRealMethod();
         when(nssmfRest.deAllocateNssi(any(NssiDeAllocateRequest.class), any(String.class))).thenCallRealMethod();

@@ -90,8 +90,9 @@ public class NssmfManagerServiceImplTest {
         repository.set(nssiManagerService, this.repository);
        // nssiManagerService.setRestUtil(this.restUtil);
 
-//        when(this.restUtil.send(any(String.class), any(HttpMethod.class), any(String.class), any(Header.class)))
-//                .thenCallRealMethod();
+        when(this.restUtil.send(any(String.class), any(HttpMethod.class), any(String.class), any(Header.class)))
+                .thenCallRealMethod();
+        when(this.restUtil.createResponse(any(Integer.class), any(String.class))).thenCallRealMethod();
     }
 
     private void createCommonMock(int statusCode, NssmfInfo nssmf) throws Exception {
