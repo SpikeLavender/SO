@@ -1,9 +1,7 @@
 package org.onap.so.adapters.nssmf.manager;
 
-import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
-import org.onap.so.adapters.nssmf.util.RestUtil;
 import org.onap.so.beans.nsmf.*;
 
 public interface NssmfManager {

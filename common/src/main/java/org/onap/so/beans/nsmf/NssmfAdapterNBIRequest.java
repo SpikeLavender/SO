@@ -1,8 +1,8 @@
 package org.onap.so.beans.nsmf;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
-import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 
@@ -11,10 +11,10 @@ public class NssmfAdapterNBIRequest implements Serializable {
 
     private static final long serialVersionUID = -454145891489457960L;
 
-    @NotNull
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private EsrInfo esrInfo;
 
-    @NotNull
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private ServiceInfo serviceInfo;
 
     private String allocateCnNssi;

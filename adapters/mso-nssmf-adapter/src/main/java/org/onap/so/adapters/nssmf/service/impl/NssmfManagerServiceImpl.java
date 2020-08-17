@@ -11,6 +11,7 @@ import org.onap.so.beans.nsmf.*;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.onap.so.db.request.data.repository.ResourceOperationStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Example;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;

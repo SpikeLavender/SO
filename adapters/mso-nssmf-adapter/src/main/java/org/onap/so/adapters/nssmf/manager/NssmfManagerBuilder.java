@@ -30,22 +30,27 @@ public class NssmfManagerBuilder {
 
         if (ExecutorType.INTERNAL.equals(executorType) && NetworkType.CORE.equals(networkType)) {
             this.nssmfManger = new InternalCnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
+            return;
         }
 
         if (ExecutorType.INTERNAL.equals(executorType) && NetworkType.TRANSPORT.equals(networkType)) {
             this.nssmfManger = new InternalTnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
+            return;
         }
 
         if (ExecutorType.INTERNAL.equals(executorType) && NetworkType.ACCESS.equals(networkType)) {
             this.nssmfManger =  new InternalAnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
+            return;
         }
 
         if (ExecutorType.EXTERNAL.equals(executorType) && NetworkType.CORE.equals(networkType)) {
             this.nssmfManger =  new ExternalCnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
+            return;
         }
 
         if (ExecutorType.EXTERNAL.equals(executorType) && NetworkType.ACCESS.equals(networkType)) {
             this.nssmfManger =  new ExternalAnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
+            return;
         }
 
         throw new ApplicationException(404, "invalid domain and simulator");

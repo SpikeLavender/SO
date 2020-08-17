@@ -15,60 +15,60 @@ public class NssmfAdapterConsts {
 
     public final static String CURRENT_INTERNAL_NSSMF_API_VERSION = "v1";
 
-    public static Map<String, NssmfUrlInfo> urlInfoMap = new HashMap<>();
+    private static Map<String, NssmfUrlInfo> urlInfoMap = new HashMap<>();
 
-    public static String EXTERNAL_CN_ALLOCATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles";
+    private final static String EXTERNAL_CN_ALLOCATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles";
 
-    public static String EXTERNAL_TN_ALLOCATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles";
+    private final static String EXTERNAL_TN_ALLOCATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles";
 
-    public static String EXTERNAL_AN_ALLOCATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles";
+    private final static String EXTERNAL_AN_ALLOCATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles";
 
-    public static String INTERNAL_ALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/allocate";
+    private final static String INTERNAL_ALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/allocate";
 
-    public static String EXTERNAL_CN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/{sliceProfileId}";
+    private final static String EXTERNAL_CN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/{sliceProfileId}";
 
-    public static String EXTERNAL_TN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/{sliceProfileId}";
+    private final static String EXTERNAL_TN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/{sliceProfileId}";
 
-    public static String EXTERNAL_AN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/{sliceProfileId}";
+    private final static String EXTERNAL_AN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/{sliceProfileId}";
 
-    public static String INTERNAL_DEALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deAllocate";
+    private final static String INTERNAL_DEALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deAllocate";
 
-    public static String EXTERNAL_CN_ACTIVATE_URL = "/api/rest/provMns/{apiVersion}/NSS/{snssai}/activation";
+    private final static String EXTERNAL_CN_ACTIVATE_URL = "/api/rest/provMns/{apiVersion}/NSS/{snssai}/activation";
 
-    public static String EXTERNAL_TN_ACTIVATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/{snssai}/activation";
+    private final static String EXTERNAL_TN_ACTIVATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/{snssai}/activation";
 
-    public static String EXTERNAL_AN_ACTIVATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/{snssai}/activations";
+    private final static String EXTERNAL_AN_ACTIVATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/{snssai}/activations";
 
-    public static String INTERNAL_ACTIVATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/activate";
+    private final static String INTERNAL_ACTIVATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/activate";
 
-    public static String EXTERNAL_CN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/NSS/{snssai}/deactivation";
+    private final static String EXTERNAL_CN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/NSS/{snssai}/deactivation";
 
-    public static String EXTERNAL_TN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/{snssai}/deactivation";
+    private final static String EXTERNAL_TN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/{snssai}/deactivation";
 
-    public static String EXTERNAL_AN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/{snssai}/deactivation";
+    private final static String EXTERNAL_AN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/{snssai}/deactivation";
 
-    public static String INTERNAL_DEACTIVATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deActivate";
-
-    //
-    public static String EXTERNAL_CN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/%s";
-
-    public static String EXTERNAL_TN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/%s";
-
-    public static String EXTERNAL_AN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/%s";
-
-    public static String INTERNAL_TERMINATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/terminate";
-    //
-
-    public static String EXTERNAL_CN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/%s";
-
-    public static String EXTERNAL_TN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/%s";
-
-    public static String EXTERNAL_AN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/%s";
-
-    public static String INTERNAL_MODIFY_URL = "/onap/so/infra/3gppservices/{apiVersion}/modify";
+    private final static String INTERNAL_DEACTIVATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deActivate";
 
     //
-    public static String EXTERNAL_QUERY_JOB_STATUS = "/api/rest/provMns/{apiVersion}/NSS/jobs/{jobId}?responseId={responseId}";
+    private final static String EXTERNAL_CN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/%s";
+
+    private final static String EXTERNAL_TN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/%s";
+
+    private final static String EXTERNAL_AN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/%s";
+
+    private final static String INTERNAL_TERMINATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/terminate";
+    //
+
+    private final static String EXTERNAL_CN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/%s";
+
+    private final static String EXTERNAL_TN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/%s";
+
+    private final static String EXTERNAL_AN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/%s";
+
+    private final static String INTERNAL_MODIFY_URL = "/onap/so/infra/3gppservices/{apiVersion}/modify";
+
+    //
+    private final static String EXTERNAL_QUERY_JOB_STATUS = "/api/rest/provMns/{apiVersion}/NSS/jobs/{jobId}?responseId={responseId}";
 
     /**
      * 写个方法获取 url 和 method
@@ -130,7 +130,11 @@ public class NssmfAdapterConsts {
                 new NssmfUrlInfo(INTERNAL_MODIFY_URL, HttpMethod.PUT));
 
 
-        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, null, ActionType.QUERY_JOB_STATUS),
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE, ActionType.QUERY_JOB_STATUS),
+                new NssmfUrlInfo(EXTERNAL_QUERY_JOB_STATUS, HttpMethod.GET));
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.ACCESS, ActionType.QUERY_JOB_STATUS),
+                new NssmfUrlInfo(EXTERNAL_QUERY_JOB_STATUS, HttpMethod.GET));
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.QUERY_JOB_STATUS),
                 new NssmfUrlInfo(EXTERNAL_QUERY_JOB_STATUS, HttpMethod.GET));
     }
 
