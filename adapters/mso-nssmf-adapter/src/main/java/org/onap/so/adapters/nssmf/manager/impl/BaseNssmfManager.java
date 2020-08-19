@@ -33,21 +33,21 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
     private static final Logger logger = LoggerFactory.getLogger(BaseNssmfManager.class);
 
-    private RestUtil restUtil;
+    protected RestUtil restUtil;
 
-    private ResourceOperationStatusRepository repository;
+    protected ResourceOperationStatusRepository repository;
 
     private ActionType actionType;
 
-    private EsrInfo esrInfo;
+    protected EsrInfo esrInfo;
 
-    private String nssmfUrl;
+    protected String nssmfUrl;
 
-    private HttpMethod httpMethod;
+    protected HttpMethod httpMethod;
 
     private ExecutorType executorType = ExecutorType.INTERNAL;
 
-    private ServiceInfo serviceInfo;
+    protected ServiceInfo serviceInfo;
 
     private Map<String, String> params = new HashMap<>();   //request params
 
@@ -79,11 +79,7 @@ public abstract class BaseNssmfManager implements NssmfManager {
         return restResponse;
     }
 
-    protected String wrapReqBody(Object object) throws ApplicationException {
-        NssmfRequest nssmfRequest = new NssmfRequest(serviceInfo, esrInfo.getNetworkType(), object);
-        return marshal(nssmfRequest);
-    }
-
+    protected abstract String wrapReqBody(Object object) throws ApplicationException;
 
     @Override
     public RestResponse activateNssi(NssmfAdapterNBIRequest nbiRequest, String snssai) throws ApplicationException {
@@ -104,21 +100,7 @@ public abstract class BaseNssmfManager implements NssmfManager {
         return activateNssi(nbiRequest, snssai);
     }
 
-    protected void createStatus(RestResponse restResponse, String nsiId, String nssiId) throws ApplicationException {
-        if (valueOf(restResponse.getStatus()).startsWith("2")) {
-            NssiResponse response = unMarshal(restResponse.getResponseContent(), NssiResponse.class);
-            nssiId = nssiId == null ? response.getNssiId() : nssiId;
-            ResourceOperationStatus status = new ResourceOperationStatus(nssiId, response.getJobId(), nsiId);
-            logger.info("save segment and operaton info -> begin");
-
-            updateDbStatus(status, restResponse.getStatus(), STARTED, ALLOCATE_NSS_SUCCESS);
-            logger.info("save segment and operaton info -> end");
-        }
-    }
-
-    protected void handleResponse(RestResponse restResponse, String nsiId, String nssiId) throws ApplicationException {
-        //内部的时候不走
-    }
+    protected abstract void handleResponse(RestResponse restResponse, String nsiId, String nssiId) throws ApplicationException;
 
     @Override
     public RestResponse queryJobStatus(JobStatusRequest jobReq, String jobId) throws ApplicationException {
@@ -140,63 +122,8 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
     protected abstract RestResponse doQueryJobStatus(ResourceOperationStatus status) throws ApplicationException;
 
-    protected RestResponse handleInnerStatus(ResourceOperationStatus status) throws ApplicationException {
-        ResponseDescriptor descriptor = new ResponseDescriptor();
-        if (status == null) {
-            descriptor.setProgress(0);
-            descriptor.setStatus(PROCESSING.name());
-            descriptor.setStatusDescription("Initiating Nssi Instance");
-            return restUtil.createResponse(200, marshal(descriptor));
-        }
-        descriptor.setStatus(status.getStatus());
-        descriptor.setStatusDescription(status.getStatusDescription());
-        descriptor.setProgress(Integer.parseInt(status.getProgress()));
-        //descriptor.setResponseId(status.getOperationId());
-        return restUtil.createResponse(200, marshal(descriptor));
-    }
 
-    protected RestResponse handleExtStatus(ResourceOperationStatus status) throws ApplicationException {
-        RestResponse restResponse = sendRequest(null);
-        ResponseDescriptor rspDesc =
-                unMarshal(restResponse.getResponseContent(), JobStatusResponse.class).getResponseDescriptor();
-        updateRequestDbJobStatus(rspDesc, status, restResponse);
-        return restResponse;
-    }
-
-    private void afterQueryJobStatus() {
-        //需要就去实现
-    }
-
-    private void updateDbStatus(ResourceOperationStatus status, int rspStatus, JobStatus jobStatus,
-                                String description) {
-        status.setErrorCode(valueOf(rspStatus));
-        status.setStatus(jobStatus.toString());
-        status.setStatusDescription(description);
-        logger.info("Updating DB status");
-        repository.save(status);
-        logger.info("Updating successful");
-    }
-
-    private void updateRequestDbJobStatus(ResponseDescriptor rspDesc, ResourceOperationStatus status, RestResponse rsp)
-            throws ApplicationException {
-
-        switch (fromString(rspDesc.getStatus())) {
-            case STARTED:
-                updateDbStatus(status, rsp.getStatus(), STARTED, QUERY_JOB_STATUS_SUCCESS);
-                break;
-            case PROCESSING:
-                updateDbStatus(status, rsp.getStatus(), PROCESSING, QUERY_JOB_STATUS_SUCCESS);
-                break;
-            case FINISHED:
-                if (rspDesc.getProgress() == 100) {
-                    updateDbStatus(status, rsp.getStatus(), FINISHED, QUERY_JOB_STATUS_SUCCESS);
-                }
-                break;
-            case ERROR:
-                updateDbStatus(status, rsp.getStatus(), ERROR, QUERY_JOB_STATUS_FAILED);
-                throw new ApplicationException(500, QUERY_JOB_STATUS_FAILED);
-        }
-    }
+    protected abstract void afterQueryJobStatus();
 
     private ResourceOperationStatus getOperationStatus(String nssiId, String jobId, String nsiId) throws ApplicationException {
         ResourceOperationStatus status = new ResourceOperationStatus(nssiId, jobId, nsiId);
@@ -206,29 +133,7 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
 
     //发送请求
-    protected RestResponse sendRequest(String content) throws ApplicationException {
-
-        return doSendRequest(content);
-    }
-
-    protected abstract RestResponse doSendRequest(String content) throws ApplicationException;
-
-    //internal
-    protected RestResponse sendInternalRequest(String content) {
-        //todo: read from config
-        Header header = new BasicHeader("X-Auth-Token", "");
-        this.nssmfUrl = "" + this.nssmfUrl;
-        return restUtil.send(this.nssmfUrl, this.httpMethod, content, header);
-    }
-
-    //external
-    protected RestResponse sendExternalRequest(String content) throws ApplicationException {
-        NssmfInfo nssmfInfo = restUtil.getNssmfHost(esrInfo);
-        Header header = new BasicHeader("X-Auth-Token", restUtil.getToken(nssmfInfo));
-        String nssmfUrl = nssmfInfo.getUrl() + this.nssmfUrl;
-        return restUtil.send(nssmfUrl, this.httpMethod, content, header);
-    }
-
+    protected abstract RestResponse sendRequest(String content) throws ApplicationException;
 
     private void urlHandler() {
         NssmfUrlInfo nssmfUrlInfo = NssmfAdapterConsts.getNssmfUrlInfo(this.executorType, this.esrInfo.getNetworkType(), actionType);
@@ -239,11 +144,6 @@ public abstract class BaseNssmfManager implements NssmfManager {
     }
 
     protected abstract String getApiVersion();
-
-    protected String getExtApiVersion() {
-        //todo: get from esrInfo
-        return "v1";
-    }
 
     public RestUtil getRestUtil() {
         return restUtil;
