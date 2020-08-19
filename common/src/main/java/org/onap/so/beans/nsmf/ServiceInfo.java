@@ -16,4 +16,6 @@ public class ServiceInfo implements Serializable {
     private String globalSubscriberId;
 
     private String serviceType;
+
+    private String nsiId;
 }

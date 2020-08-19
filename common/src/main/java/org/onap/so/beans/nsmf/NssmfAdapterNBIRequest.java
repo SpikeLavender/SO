@@ -17,13 +17,11 @@ public class NssmfAdapterNBIRequest implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private ServiceInfo serviceInfo;
 
-    private String allocateCnNssi;
+    private AllocateCnNssi allocateCnNssi;
 
-    private String allocateTnNssi;
+    private AllocateTnNssi allocateTnNssi;
 
-    private String allocateAnNssi;
-
-    private String nsiId;
+    private AllocateAnNssi allocateAnNssi;
 
     private ActDeActNssi actDeActNssi;
 

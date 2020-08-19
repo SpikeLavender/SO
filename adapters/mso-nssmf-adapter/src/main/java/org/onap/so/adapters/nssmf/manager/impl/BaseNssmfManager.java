@@ -58,7 +58,7 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
         String requestBody = wrapAllocateReqBody(nbiRequest);
         RestResponse restResponse = sendRequest(requestBody);
-        handleResponse(restResponse, nbiRequest.getNsiId(), null);
+        handleResponse(restResponse, serviceInfo.getNsiId(), null);
 
         return restResponse;
     }
