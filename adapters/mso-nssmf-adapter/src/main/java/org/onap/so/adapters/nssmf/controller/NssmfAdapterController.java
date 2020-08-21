@@ -54,4 +54,14 @@ public class NssmfAdapterController {
         return nssmfManagerService.modifyNssi(updateRequest, sliceId);
     }
 
+    @PostMapping(value = "/NSS/NSSISelectionCapability")
+    public ResponseEntity queryNSSISelectionCapability(@RequestBody NssmfAdapterNBIRequest nbiRequest) {
+        return nssmfManagerService.queryNSSISelectionCapability(nbiRequest);
+    }
+
+    @PostMapping(value = "/NSS/subnetCapabilityQuery")
+    public ResponseEntity querySubnetCapability(@RequestBody NssmfAdapterNBIRequest nbiRequest) {
+        return nssmfManagerService.querySubnetCapability(nbiRequest);
+    }
+
 }
