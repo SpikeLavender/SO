@@ -24,14 +24,11 @@ public class NssmfAdapterConsts {
 
     private final static String INTERNAL_ALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/allocate";
 
-    private final static String EXTERNAL_CN_DEALLOCATE_URL =
-            "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/{sliceProfileId}";
+    private final static String EXTERNAL_CN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/{sliceId}";
 
-    private final static String EXTERNAL_TN_DEALLOCATE_URL =
-            "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/{sliceProfileId}";
+    private final static String EXTERNAL_TN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/{sliceId}";
 
-    private final static String EXTERNAL_AN_DEALLOCATE_URL =
-            "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/{sliceProfileId}";
+    private final static String EXTERNAL_AN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/{sliceId}";
 
     private final static String INTERNAL_DEALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deAllocate";
 
@@ -45,11 +42,9 @@ public class NssmfAdapterConsts {
 
     private final static String EXTERNAL_CN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/NSS/{snssai}/deactivation";
 
-    private final static String EXTERNAL_TN_DEACTIVATE_URL =
-            "/api/rest/provMns/{apiVersion}/tn/NSS/{snssai}/deactivation";
+    private final static String EXTERNAL_TN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/{snssai}/deactivation";
 
-    private final static String EXTERNAL_AN_DEACTIVATE_URL =
-            "/api/rest/provMns/{apiVersion}/an/NSS/{snssai}/deactivation";
+    private final static String EXTERNAL_AN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/{snssai}/deactivation";
 
     private final static String INTERNAL_DEACTIVATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deActivate";
 

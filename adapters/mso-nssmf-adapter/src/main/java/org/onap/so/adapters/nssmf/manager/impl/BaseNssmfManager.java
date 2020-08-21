@@ -97,7 +97,7 @@ public abstract class BaseNssmfManager implements NssmfManager {
             throws ApplicationException;
 
     @Override
-    public RestResponse queryJobStatus(JobStatusRequest jobReq, String jobId) throws ApplicationException {
+    public RestResponse queryJobStatus(NssmfAdapterNBIRequest jobReq, String jobId) throws ApplicationException {
         this.params.clear();
         this.params.put("jobId", jobId);
         this.params.put("responseId", jobReq.getResponseId());

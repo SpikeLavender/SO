@@ -65,11 +65,10 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
     }
 
     @Override
-    public ResponseEntity queryJobStatus(JobStatusRequest jobReq, String jobId) {
-        EsrInfo esrInfo = jobReq.getEsrInfo();
+    public ResponseEntity queryJobStatus(NssmfAdapterNBIRequest jobReq, String jobId) {
         try {
             return buildResponse(
-                    buildNssmfManager(esrInfo, ActionType.QUERY_JOB_STATUS, null).queryJobStatus(jobReq, jobId));
+                    buildNssmfManager(jobReq, ActionType.QUERY_JOB_STATUS).queryJobStatus(jobReq, jobId));
         } catch (ApplicationException e) {
             return e.buildErrorResponse();
         }

@@ -19,33 +19,33 @@ public class NssmfAdapterController {
     private NssmfManagerService nssmfManagerService;
 
     @PostMapping(value = "/NSS/SliceProfiles")
-    public ResponseEntity allocateNssi(@RequestBody NssmfAdapterNBIRequest allocateRequest) {
-        return nssmfManagerService.allocateNssi(allocateRequest);
+    public ResponseEntity allocateNssi(@RequestBody NssmfAdapterNBIRequest nbiRequest) {
+        return nssmfManagerService.allocateNssi(nbiRequest);
     }
 
     @PostMapping(value = "/NSS/SliceProfiles/{sliceProfileId}")
-    public ResponseEntity deAllocateNssi(@RequestBody NssmfAdapterNBIRequest deAllocateRequest,
+    public ResponseEntity deAllocateNssi(@RequestBody NssmfAdapterNBIRequest nbiRequest,
             @PathVariable("sliceProfileId") final String sliceId) {
-        return nssmfManagerService.deAllocateNssi(deAllocateRequest, sliceId);
+        return nssmfManagerService.deAllocateNssi(nbiRequest, sliceId);
     }
 
 
     @PostMapping(value = "/NSS/{snssai}/activation")
-    public ResponseEntity activateNssi(@RequestBody NssmfAdapterNBIRequest actDeActRequest,
+    public ResponseEntity activateNssi(@RequestBody NssmfAdapterNBIRequest nbiRequest,
             @PathVariable("snssai") String snssai) {
-        return nssmfManagerService.activateNssi(actDeActRequest, snssai);
+        return nssmfManagerService.activateNssi(nbiRequest, snssai);
     }
 
     @PostMapping(value = "/NSS/{snssai}/deactivation")
-    public ResponseEntity deactivateNssi(@RequestBody NssmfAdapterNBIRequest deActRequest,
+    public ResponseEntity deactivateNssi(@RequestBody NssmfAdapterNBIRequest nbiRequest,
             @PathVariable("snssai") String snssai) {
-        return nssmfManagerService.deActivateNssi(deActRequest, snssai);
+        return nssmfManagerService.deActivateNssi(nbiRequest, snssai);
     }
 
     @PostMapping(value = "/NSS/jobs/{jobId}")
-    public ResponseEntity queryJobStatus(@RequestBody JobStatusRequest jobStatusReq,
+    public ResponseEntity queryJobStatus(@RequestBody NssmfAdapterNBIRequest nbiRequest,
             @PathVariable("jobId") String jobId) {
-        return nssmfManagerService.queryJobStatus(jobStatusReq, jobId);
+        return nssmfManagerService.queryJobStatus(nbiRequest, jobId);
     }
 
     @PutMapping(value = "/NSS/SliceProfiles/{sliceProfileId}")

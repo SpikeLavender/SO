@@ -11,14 +11,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.entity.NssmfInfo;
 import org.onap.so.adapters.nssmf.entity.TokenResponse;
 import org.onap.so.adapters.nssmf.enums.HttpMethod;
 import org.onap.so.adapters.nssmf.util.RestUtil;
 import org.onap.so.beans.nsmf.*;
+import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.onap.so.db.request.data.repository.ResourceOperationStatusRepository;
+import org.springframework.data.domain.Example;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 import java.io.ByteArrayInputStream;
@@ -26,6 +28,8 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -33,7 +37,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
-import static org.onap.so.adapters.nssmf.enums.ActionType.ALLOCATE;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.unMarshal;
 import static org.onap.so.beans.nsmf.NetworkType.CORE;
@@ -71,6 +74,9 @@ public class NssmfManagerServiceImplTest {
     private InputStream tokenStream;
 
     @Mock
+    private ResourceOperationStatus operationStatus;
+
+    @Mock
     private ResourceOperationStatusRepository repository;
 
     @Before
@@ -94,7 +100,8 @@ public class NssmfManagerServiceImplTest {
     }
 
     private void createCommonMock(int statusCode, NssmfInfo nssmf) throws Exception {
-
+//        when(nssiManagerService.createAllocateNssi(any(NssmfAdapterNBIRequest.class))).thenCallRealMethod();
+//        when(nssiManagerService.deAllocateNssi(any(NssmfAdapterNBIRequest.class), any(String.class))).thenCallRealMethod();
 
         when(restUtil.getToken(any(NssmfInfo.class))).thenReturn("7512eb3feb5249eca5ddd742fedddd39");
         when(restUtil.getHttpsClient()).thenReturn(httpClient);
@@ -123,11 +130,14 @@ public class NssmfManagerServiceImplTest {
             }
             return commonResponse;
         };
+
         doAnswer(answer).when(httpClient).execute(any(HttpRequestBase.class));
+
+        doAnswer(invocation -> operationStatus).when(repository).findOne(Example.of(any(ResourceOperationStatus.class)));
     }
 
     @Test
-    public void testAllocateNssi() throws Exception {
+    public void allocateNssi() throws Exception {
 
         NssmfInfo nssmf = new NssmfInfo();
         nssmf.setUserName("nssmf-user");
@@ -148,7 +158,8 @@ public class NssmfManagerServiceImplTest {
         tokenStream = new ByteArrayInputStream(marshal(token).getBytes(UTF_8));
 
         createCommonMock(200, nssmf);
-        NssmfAdapterNBIRequest nbiRequest = allocateNssi();
+
+        NssmfAdapterNBIRequest nbiRequest = createAllocateNssi();
         assertNotNull(nbiRequest);
         ResponseEntity res = nssiManagerService.allocateNssi(nbiRequest);
         assertNotNull(res);
@@ -162,7 +173,7 @@ public class NssmfManagerServiceImplTest {
 
 
 
-    public NssmfAdapterNBIRequest allocateNssi() throws Exception {
+    private NssmfAdapterNBIRequest createAllocateNssi() {
         CnSliceProfile sP = new CnSliceProfile();
         List<String> sns = new LinkedList<>();
         sns.add("001-100001");
@@ -196,6 +207,187 @@ public class NssmfManagerServiceImplTest {
         cnNssi.setScriptName("CN1");
         cnNssi.setSliceProfile(sP);
         cnNssi.setNsiInfo(nsiInfo);
+
+        NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
+        nbiRequest.setAllocateCnNssi(cnNssi);
+        //nbiRequest.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
+        return nbiRequest;
+    }
+
+    @Test
+    public void deAllocateNssi() throws Exception {
+        DeAllocateNssi deAllocateNssi = new DeAllocateNssi();
+        deAllocateNssi.setTerminateNssiOption(0);
+        List<String> snssai = new LinkedList<>();
+        snssai.add("001-100001");
+        deAllocateNssi.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
+        deAllocateNssi.setNssiId("NSSI-C-001-HDBNJ-NSSMF-01-A-ZX");
+        deAllocateNssi.setScriptName("CN1");
+        deAllocateNssi.setSnssaiList(snssai);
+
+        NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
+        nbiRequest.setDeAllocateNssi(deAllocateNssi);
+
+        NssmfInfo nssmf = new NssmfInfo();
+        nssmf.setUserName("nssmf-user");
+        nssmf.setPassword("nssmf-pass");
+        nssmf.setPort("8080");
+        nssmf.setIpAddress("127.0.0.1");
+
+        NssiResponse nssiRes = new NssiResponse();
+        nssiRes.setJobId("4b45d919816ccaa2b762df5120f72067");
+
+        TokenResponse token = new TokenResponse();
+        token.setAccessToken("7512eb3feb5249eca5ddd742fedddd39");
+        token.setExpires(1800);
+
+        postStream = new ByteArrayInputStream(marshal(nssiRes).getBytes(UTF_8));
+        tokenStream = new ByteArrayInputStream(marshal(token).getBytes(UTF_8));
+
+        createCommonMock(200, nssmf);
+        ResponseEntity res = nssiManagerService.deAllocateNssi(nbiRequest, "ab9af40f13f721b5f13539d87484098");
+        assertNotNull(res);
+        assertNotNull(res.getBody());
+        NssiResponse allRes = unMarshal(res.getBody().toString(), NssiResponse.class);
+        assertEquals(allRes.getJobId(), "4b45d919816ccaa2b762df5120f72067");
+        assertNotNull(res);
+        assertNotNull(res.getBody());
+    }
+
+    @Test
+    public void activateNssi() throws Exception {
+        NssmfInfo nssmf = new NssmfInfo();
+        nssmf.setUserName("nssmf-user");
+        nssmf.setPassword("nssmf-pass");
+        nssmf.setPort("8080");
+        nssmf.setIpAddress("127.0.0.1");
+
+        NssiResponse nssiRes = new NssiResponse();
+        nssiRes.setJobId("4b45d919816ccaa2b762df5120f72067");
+
+        TokenResponse token = new TokenResponse();
+        token.setAccessToken("7512eb3feb5249eca5ddd742fedddd39");
+        token.setExpires(1800);
+
+        postStream = new ByteArrayInputStream(marshal(nssiRes).getBytes(UTF_8));
+        tokenStream = new ByteArrayInputStream(marshal(token).getBytes(UTF_8));
+
+        ActDeActNssi act = new ActDeActNssi();
+        act.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
+        act.setNssiId("NSSI-C-001-HDBNJ-NSSMF-01-A-ZX");
+
+        NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
+        nbiRequest.setActDeActNssi(act);
+
+        createCommonMock(200, nssmf);
+        ResponseEntity res = nssiManagerService.activateNssi(nbiRequest, "001-100001");
+        assertNotNull(res);
+        assertNotNull(res.getBody());
+        NssiResponse allRes = unMarshal(res.getBody().toString(), NssiResponse.class);
+        assertEquals(allRes.getJobId(), "4b45d919816ccaa2b762df5120f72067");
+    }
+
+    @Test
+    public void deActivateNssi() throws Exception{
+        NssmfInfo nssmf = new NssmfInfo();
+        nssmf.setUserName("nssmf-user");
+        nssmf.setPassword("nssmf-pass");
+        nssmf.setPort("8080");
+        nssmf.setIpAddress("127.0.0.1");
+
+        NssiResponse nssiRes = new NssiResponse();
+        nssiRes.setJobId("4b45d919816ccaa2b762df5120f72067");
+
+        TokenResponse token = new TokenResponse();
+        token.setAccessToken("7512eb3feb5249eca5ddd742fedddd39");
+        token.setExpires(1800);
+
+        postStream = new ByteArrayInputStream(marshal(nssiRes).getBytes(UTF_8));
+        tokenStream = new ByteArrayInputStream(marshal(token).getBytes(UTF_8));
+
+        ActDeActNssi act = new ActDeActNssi();
+        act.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
+        act.setNssiId("NSSI-C-001-HDBNJ-NSSMF-01-A-ZX");
+
+        NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
+        nbiRequest.setActDeActNssi(act);
+
+        createCommonMock(200, nssmf);
+        ResponseEntity res = nssiManagerService.deActivateNssi(nbiRequest, "001-100001");
+        assertNotNull(res);
+        assertNotNull(res.getBody());
+        NssiResponse allRes = unMarshal(res.getBody().toString(), NssiResponse.class);
+        assertEquals(allRes.getJobId(), "4b45d919816ccaa2b762df5120f72067");
+    }
+
+    @Test
+    public void queryJobStatus() throws Exception{
+        NssmfInfo nssmf = new NssmfInfo();
+        nssmf.setUserName("nssmf-user");
+        nssmf.setPassword("nssmf-pass");
+        nssmf.setPort("8080");
+        nssmf.setIpAddress("127.0.0.1");
+
+        ResponseDescriptor descriptor = new ResponseDescriptor();
+        descriptor.setResponseId("7512eb3feb5249eca5ddd742fedddd39");
+        descriptor.setProgress(20);
+        descriptor.setStatusDescription("Initiating VNF Instance");
+        descriptor.setStatus("processing");
+
+        TokenResponse token = new TokenResponse();
+        token.setAccessToken("7512eb3feb5249eca5ddd742fedddd39");
+        token.setExpires(1800);
+
+        postStream = new ByteArrayInputStream(marshal(descriptor).getBytes(UTF_8));
+        tokenStream = new ByteArrayInputStream(marshal(token).getBytes(UTF_8));
+
+        operationStatus = new ResourceOperationStatus();
+        operationStatus.setJobId("4b45d919816ccaa2b762df5120f72067");
+        operationStatus.setResourceTemplateUUID("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
+
+        NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
+        nbiRequest.setResponseId("7512eb3feb5249eca5ddd742fedddd39");
+
+        createCommonMock(200, nssmf);
+
+        ResponseEntity res = nssiManagerService.queryJobStatus(nbiRequest, "4b45d919816ccaa2b762df5120f72067");
+        assertNotNull(res);
+        assertNotNull(res.getBody());
+    }
+
+    @Test
+    public void queryNSSISelectionCapability() throws Exception {
+
+        NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
+        ResponseEntity res = nssiManagerService.queryNSSISelectionCapability(nbiRequest);
+        assertNotNull(res);
+        assertNotNull(res.getBody());
+        Map allRes = unMarshal(res.getBody().toString(), Map.class);
+        assertEquals(allRes.get("selection"), "NSMF");
+
+        System.out.println(res);
+
+        nbiRequest.getEsrInfo().setVendor(NssmfAdapterConsts.ONAP_INTERNAL_TAG);
+        res = nssiManagerService.queryNSSISelectionCapability(nbiRequest);
+        assertNotNull(res);
+        assertNotNull(res.getBody());
+        allRes = unMarshal(res.getBody().toString(), Map.class);
+        assertEquals(allRes.get("selection"), "NSSMF");
+
+        System.out.println(res);
+
+        nbiRequest.getEsrInfo().setNetworkType(NetworkType.ACCESS);
+        res = nssiManagerService.queryNSSISelectionCapability(nbiRequest);
+        assertNotNull(res);
+        assertNotNull(res.getBody());
+        allRes = unMarshal(res.getBody().toString(), Map.class);
+        assertEquals(allRes.get("selection"), "NSSMF");
+
+        System.out.println(res);
+    }
+
+    private NssmfAdapterNBIRequest createNbiRequest() {
+        NssmfAdapterNBIRequest nbiRequest = new NssmfAdapterNBIRequest();
         EsrInfo esrInfo = new EsrInfo();
         esrInfo.setVendor("huawei");
         esrInfo.setNetworkType(CORE);
@@ -205,36 +397,18 @@ public class NssmfManagerServiceImplTest {
         serviceInfo.setGlobalSubscriberId("5GCustomer");
         serviceInfo.setServiceType("5G");
         serviceInfo.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
-
-        NssmfAdapterNBIRequest nbiRequest = new NssmfAdapterNBIRequest();
-        nbiRequest.setAllocateCnNssi(cnNssi);
         nbiRequest.setEsrInfo(esrInfo);
         nbiRequest.setServiceInfo(serviceInfo);
-        //nbiRequest.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
         return nbiRequest;
     }
 
     @Test
-    public void deAllocateNssi() {
-    }
-
-    @Test
-    public void activateNssi() {
-    }
-
-    @Test
-    public void deActivateNssi() {
-    }
-
-    @Test
-    public void queryJobStatus() {
-    }
-
-    @Test
-    public void queryNSSISelectionCapability() {
-    }
-
-    @Test
     public void querySubnetCapability() {
+        NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
+        //nbiRequest.getEsrInfo().setVendor();
+
+        String subnetCapabilityQuery = "\"subnetTypes\": [\"TN-FH\",\"TN-MH\",\"TN-BH\"]";
+        nbiRequest.setSubnetCapabilityQuery(subnetCapabilityQuery);
+        ResponseEntity responseEntity = nssiManagerService.queryNSSISelectionCapability(nbiRequest);
     }
 }

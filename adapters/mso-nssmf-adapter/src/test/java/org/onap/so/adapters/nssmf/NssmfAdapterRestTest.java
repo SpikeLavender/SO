@@ -132,7 +132,7 @@ public class NssmfAdapterRestTest {
                 .thenCallRealMethod();
         when(this.restUtil.createResponse(any(Integer.class), any(String.class))).thenCallRealMethod();
         when(nssmfRest.getNssmfMgr()).thenReturn(nssmfMgr);
-//        when(nssmfRest.allocateNssi(any(NssiAllocateRequest.class))).thenCallRealMethod();
+//        when(nssmfRest.createAllocateNssi(any(NssiAllocateRequest.class))).thenCallRealMethod();
 //        when(nssmfRest.deAllocateNssi(any(NssiDeAllocateRequest.class), any(String.class))).thenCallRealMethod();
 //        when(nssmfRest.activateNssi(any(NssiActDeActRequest.class), any(String.class))).thenCallRealMethod();
 //        when(nssmfRest.deactivateNssi(any(NssiActDeActRequest.class), any(String.class))).thenCallRealMethod();
@@ -192,8 +192,8 @@ public class NssmfAdapterRestTest {
 //        tokenStream = new ByteArrayInputStream(marshal(token).getBytes(UTF_8));
 //
 //        createCommonMock(200, nssmf);
-//        // assertEquals(prettyPrint(allocateNssi()), ALLOCATE);
-//        ResponseEntity res = nssmfRest.allocateNssi(allocateNssi());
+//        // assertEquals(prettyPrint(createAllocateNssi()), ALLOCATE);
+//        ResponseEntity res = nssmfRest.createAllocateNssi(createAllocateNssi());
 //        assertNotNull(res);
 //        assertNotNull(res.getBody());
 //        NssiResponse allRes = unMarshal(res.getBody().toString(), NssiResponse.class);

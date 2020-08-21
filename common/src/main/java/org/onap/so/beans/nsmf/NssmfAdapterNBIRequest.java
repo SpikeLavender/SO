@@ -29,4 +29,6 @@ public class NssmfAdapterNBIRequest implements Serializable {
     private ModifyAnNSSI modifyAnNSSI;
 
     private String subnetCapabilityQuery;
+
+    private String responseId;
 }

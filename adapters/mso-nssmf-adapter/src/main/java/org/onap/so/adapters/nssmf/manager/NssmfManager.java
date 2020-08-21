@@ -14,7 +14,7 @@ public interface NssmfManager {
 
     RestResponse deActivateNssi(NssmfAdapterNBIRequest nssmfRequest, String snssai) throws ApplicationException;
 
-    RestResponse queryJobStatus(JobStatusRequest jobReq, String jobId) throws ApplicationException;
+    RestResponse queryJobStatus(NssmfAdapterNBIRequest jobReq, String jobId) throws ApplicationException;
 
     RestResponse queryNSSISelectionCapability(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException;
 
