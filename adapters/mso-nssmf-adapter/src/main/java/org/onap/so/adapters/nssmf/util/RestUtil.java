@@ -107,7 +107,7 @@ public class RestUtil {
 
         throw new ApplicationException(BAD_REQUEST, "ESR information is improper");
     }
-    
+
 
     public String getToken(NssmfInfo nssmfInfo) throws ApplicationException {
 
@@ -126,7 +126,7 @@ public class RestUtil {
 
         return res.getAccessToken();
     }
-    
+
 
     public RestResponse send(String url, HttpMethod methodType, String content, Header header) {
 
@@ -242,7 +242,8 @@ public class RestUtil {
         return base;
     }
 
-    public RestResponse sendRequest(String allocateUrl, HttpMethod post, String allocateReq, EsrInfo esrInfo) throws ApplicationException {
+    public RestResponse sendRequest(String allocateUrl, HttpMethod post, String allocateReq, EsrInfo esrInfo)
+            throws ApplicationException {
         NssmfInfo nssmfInfo = getNssmfHost(esrInfo);
         Header header = new BasicHeader("X-Auth-Token", getToken(nssmfInfo));
         String nssmfUrl = nssmfInfo.getUrl() + allocateUrl;
@@ -291,7 +292,7 @@ public class RestUtil {
             // HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 
             SSLConnectionSocketFactory sslsf =
-                    new SSLConnectionSocketFactory(sc, new String[]{"TLSv1"}, null, (s, sslSession) -> true);
+                    new SSLConnectionSocketFactory(sc, new String[] {"TLSv1"}, null, (s, sslSession) -> true);
             return HttpClients.custom().setSSLSocketFactory(sslsf).build();
         } catch (Exception e) {
             throw new IllegalArgumentException(e);

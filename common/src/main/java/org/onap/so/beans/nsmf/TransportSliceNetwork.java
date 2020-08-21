@@ -1,7 +1,6 @@
 package org.onap.so.beans.nsmf;
 
 import lombok.Data;
-
 import java.io.Serializable;
 import java.util.List;
 

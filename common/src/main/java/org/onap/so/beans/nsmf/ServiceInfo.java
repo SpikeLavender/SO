@@ -1,7 +1,6 @@
 package org.onap.so.beans.nsmf;
 
 import lombok.Data;
-
 import java.io.Serializable;
 
 @Data
@@ -18,4 +17,6 @@ public class ServiceInfo implements Serializable {
     private String serviceType;
 
     private String nsiId;
+
+    private String nssiId;
 }

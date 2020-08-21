@@ -59,7 +59,7 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
         }
     }
 
-    @Override //wripro
+    @Override // wripro
     public ResponseEntity modifyNssi(NssmfAdapterNBIRequest nssiUpdate, String sliceId) {
         return null;
     }
@@ -68,7 +68,30 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
     public ResponseEntity queryJobStatus(JobStatusRequest jobReq, String jobId) {
         EsrInfo esrInfo = jobReq.getEsrInfo();
         try {
-            return buildResponse(buildNssmfManager(esrInfo, ActionType.QUERY_JOB_STATUS, null).queryJobStatus(jobReq, jobId));
+            return buildResponse(
+                    buildNssmfManager(esrInfo, ActionType.QUERY_JOB_STATUS, null).queryJobStatus(jobReq, jobId));
+        } catch (ApplicationException e) {
+            return e.buildErrorResponse();
+        }
+    }
+
+    @Override
+    public ResponseEntity queryNSSISelectionCapability(NssmfAdapterNBIRequest nbiRequest) {
+        EsrInfo esrInfo = nbiRequest.getEsrInfo();
+        try {
+            return buildResponse(buildNssmfManager(esrInfo, ActionType.QUERY_JOB_STATUS, null)
+                    .queryNSSISelectionCapability(nbiRequest));
+        } catch (ApplicationException e) {
+            return e.buildErrorResponse();
+        }
+    }
+
+    @Override
+    public ResponseEntity querySubnetCapability(NssmfAdapterNBIRequest nbiRequest) {
+        EsrInfo esrInfo = nbiRequest.getEsrInfo();
+        try {
+            return buildResponse(buildNssmfManager(esrInfo, ActionType.QUERY_JOB_STATUS, null)
+                    .querySubnetCapability(nbiRequest));
         } catch (ApplicationException e) {
             return e.buildErrorResponse();
         }
@@ -79,16 +102,14 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
     }
 
 
-    private NssmfManager buildNssmfManager(NssmfAdapterNBIRequest request, ActionType actionType) throws ApplicationException {
+    private NssmfManager buildNssmfManager(NssmfAdapterNBIRequest request, ActionType actionType)
+            throws ApplicationException {
         return buildNssmfManager(request.getEsrInfo(), actionType, request.getServiceInfo());
     }
 
-    private NssmfManager buildNssmfManager(EsrInfo esrInfo, ActionType actionType, ServiceInfo serviceInfo) throws ApplicationException {
-        return new NssmfManagerBuilder(esrInfo)
-                .setActionType(actionType)
-                .setRepository(repository)
-                .setRestUtil(restUtil)
-                .setServiceInfo(serviceInfo)
-                .build();
+    private NssmfManager buildNssmfManager(EsrInfo esrInfo, ActionType actionType, ServiceInfo serviceInfo)
+            throws ApplicationException {
+        return new NssmfManagerBuilder(esrInfo).setActionType(actionType).setRepository(repository)
+                .setRestUtil(restUtil).setServiceInfo(serviceInfo).build();
     }
 }

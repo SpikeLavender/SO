@@ -28,7 +28,7 @@ public class NssmfManagerBuilder {
 
     private ServiceInfo serviceInfo;
 
-    public NssmfManagerBuilder (EsrInfo esrInfo) throws ApplicationException {
+    public NssmfManagerBuilder(EsrInfo esrInfo) throws ApplicationException {
 
         ExecutorType executorType = getExecutorType(esrInfo);
         NetworkType networkType = esrInfo.getNetworkType();
@@ -44,17 +44,17 @@ public class NssmfManagerBuilder {
         }
 
         if (ExecutorType.INTERNAL.equals(executorType) && NetworkType.ACCESS.equals(networkType)) {
-            this.nssmfManger =  new InternalAnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
+            this.nssmfManger = new InternalAnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
             return;
         }
 
         if (ExecutorType.EXTERNAL.equals(executorType) && NetworkType.CORE.equals(networkType)) {
-            this.nssmfManger =  new ExternalCnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
+            this.nssmfManger = new ExternalCnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
             return;
         }
 
         if (ExecutorType.EXTERNAL.equals(executorType) && NetworkType.ACCESS.equals(networkType)) {
-            this.nssmfManger =  new ExternalAnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
+            this.nssmfManger = new ExternalAnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType);
             return;
         }
 
@@ -62,7 +62,7 @@ public class NssmfManagerBuilder {
     }
 
     private ExecutorType getExecutorType(EsrInfo esrInfo) {
-        if (NssmfAdapterConsts.ONAP_INTERNAL_TAG.equals(esrInfo.getVendor())){
+        if (NssmfAdapterConsts.ONAP_INTERNAL_TAG.equals(esrInfo.getVendor())) {
             return ExecutorType.INTERNAL;
         }
         return ExecutorType.EXTERNAL;
@@ -89,6 +89,7 @@ public class NssmfManagerBuilder {
     }
 
     public NssmfManager build() {
-        return this.nssmfManger.setRestUtil(restUtil).setRepository(repository).setActionType(actionType).setServiceInfo(serviceInfo);
+        return this.nssmfManger.setRestUtil(restUtil).setRepository(repository).setActionType(actionType)
+                .setServiceInfo(serviceInfo);
     }
 }

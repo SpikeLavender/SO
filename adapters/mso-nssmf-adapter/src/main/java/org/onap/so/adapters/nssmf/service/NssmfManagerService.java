@@ -17,4 +17,8 @@ public interface NssmfManagerService {
     ResponseEntity modifyNssi(NssmfAdapterNBIRequest nssiUpdate, String sliceId);
 
     ResponseEntity queryJobStatus(JobStatusRequest jobReq, String jobId);
+
+    ResponseEntity queryNSSISelectionCapability(NssmfAdapterNBIRequest nbiRequest);
+
+    ResponseEntity querySubnetCapability(NssmfAdapterNBIRequest nbiRequest);
 }

@@ -4,6 +4,7 @@ import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
+import org.onap.so.adapters.nssmf.enums.SelectionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
 import org.onap.so.beans.nsmf.NssmfRequest;
@@ -11,6 +12,7 @@ import org.onap.so.beans.nsmf.ResponseDescriptor;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import static org.onap.so.adapters.nssmf.enums.JobStatus.PROCESSING;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
@@ -39,13 +41,13 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
 
     @Override
     protected RestResponse sendRequest(String content) throws ApplicationException {
-        //todo: read from config
+        // todo: read from config
         return sendInternalRequest(content);
     }
 
     @Override
     protected void afterQueryJobStatus() {
-        //internal
+        // internal
     }
 
     private RestResponse handleInnerStatus(ResourceOperationStatus status) throws ApplicationException {
@@ -59,18 +61,18 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
         descriptor.setStatus(status.getStatus());
         descriptor.setStatusDescription(status.getStatusDescription());
         descriptor.setProgress(Integer.parseInt(status.getProgress()));
-        //descriptor.setResponseId(status.getOperationId());
+        // descriptor.setResponseId(status.getOperationId());
         return restUtil.createResponse(200, marshal(descriptor));
     }
 
     @Override
     protected void handleResponse(RestResponse restResponse, String nsiId, String nssiId) throws ApplicationException {
-        //不用处理
+        // 不用处理
     }
 
-    //internal
+    // internal
     private RestResponse sendInternalRequest(String content) {
-        //todo: read from config
+        // todo: read from config
         Header header = new BasicHeader("X-Auth-Token", "");
         this.nssmfUrl = "" + this.nssmfUrl;
         return restUtil.send(this.nssmfUrl, this.httpMethod, content, header);
@@ -79,5 +81,17 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
     @Override
     protected String getApiVersion() {
         return NssmfAdapterConsts.CURRENT_INTERNAL_NSSMF_API_VERSION;
+    }
+
+
+    @Override
+    protected SelectionType doQueryNSSISelectionCapability() {
+        return SelectionType.NSSMF;
+    }
+
+    @Override
+    protected RestResponse doQuerySubnetCapability() throws ApplicationException {
+        //handler
+        return null;
     }
 }

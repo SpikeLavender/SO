@@ -21,13 +21,11 @@ import org.onap.so.beans.nsmf.*;
 import org.onap.so.db.request.data.repository.ResourceOperationStatusRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.LinkedList;
 import java.util.List;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -88,7 +86,7 @@ public class NssmfManagerServiceImplTest {
         Field repository = nssiManagerService.getClass().getDeclaredField("repository");
         repository.setAccessible(true);
         repository.set(nssiManagerService, this.repository);
-       // nssiManagerService.setRestUtil(this.restUtil);
+        // nssiManagerService.setRestUtil(this.restUtil);
 
         when(this.restUtil.send(any(String.class), any(HttpMethod.class), any(String.class), any(Header.class)))
                 .thenCallRealMethod();
@@ -204,11 +202,13 @@ public class NssmfManagerServiceImplTest {
         serviceInfo.setServiceInvariantUuid("e75698d9-925a-4cdd-a6c0-edacbe6a0b51");
         serviceInfo.setGlobalSubscriberId("5GCustomer");
         serviceInfo.setServiceType("5G");
+        serviceInfo.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
+
         NssmfAdapterNBIRequest nbiRequest = new NssmfAdapterNBIRequest();
-        nbiRequest.setAllocateCnNssi(marshal(cnNssi));
+        nbiRequest.setAllocateCnNssi(cnNssi);
         nbiRequest.setEsrInfo(esrInfo);
         nbiRequest.setServiceInfo(serviceInfo);
-        nbiRequest.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
+        //nbiRequest.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
         return nbiRequest;
     }
 }

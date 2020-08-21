@@ -5,7 +5,6 @@ import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.enums.ExecutorType;
 import org.onap.so.adapters.nssmf.enums.HttpMethod;
 import org.onap.so.beans.nsmf.NetworkType;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,11 +24,14 @@ public class NssmfAdapterConsts {
 
     private final static String INTERNAL_ALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/allocate";
 
-    private final static String EXTERNAL_CN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/{sliceProfileId}";
+    private final static String EXTERNAL_CN_DEALLOCATE_URL =
+            "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/{sliceProfileId}";
 
-    private final static String EXTERNAL_TN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/{sliceProfileId}";
+    private final static String EXTERNAL_TN_DEALLOCATE_URL =
+            "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/{sliceProfileId}";
 
-    private final static String EXTERNAL_AN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/{sliceProfileId}";
+    private final static String EXTERNAL_AN_DEALLOCATE_URL =
+            "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/{sliceProfileId}";
 
     private final static String INTERNAL_DEALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deAllocate";
 
@@ -43,9 +45,11 @@ public class NssmfAdapterConsts {
 
     private final static String EXTERNAL_CN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/NSS/{snssai}/deactivation";
 
-    private final static String EXTERNAL_TN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/{snssai}/deactivation";
+    private final static String EXTERNAL_TN_DEACTIVATE_URL =
+            "/api/rest/provMns/{apiVersion}/tn/NSS/{snssai}/deactivation";
 
-    private final static String EXTERNAL_AN_DEACTIVATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/{snssai}/deactivation";
+    private final static String EXTERNAL_AN_DEACTIVATE_URL =
+            "/api/rest/provMns/{apiVersion}/an/NSS/{snssai}/deactivation";
 
     private final static String INTERNAL_DEACTIVATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deActivate";
 
@@ -70,6 +74,11 @@ public class NssmfAdapterConsts {
     //
     private final static String EXTERNAL_QUERY_JOB_STATUS = "/api/rest/provMns/{apiVersion}/NSS/jobs/{jobId}?responseId={responseId}";
 
+    //private final static String QUERY_SUB_NET_CAPABILITY = "/api/rest/provMns/{apiVersion}/NSS/subnetCapabilityQuery";
+
+    //private final static String QUERY_NSSI_SELECTION_CAPABILITY = "/api/rest/provMns/{apiVersion}/NSS/NSSISelectionCapability";
+
+
     /**
      * 写个方法获取 url 和 method
      */
@@ -79,7 +88,7 @@ public class NssmfAdapterConsts {
                 new NssmfUrlInfo(EXTERNAL_AN_ALLOCATE_URL, HttpMethod.POST));
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.ALLOCATE),
                 new NssmfUrlInfo(EXTERNAL_TN_ALLOCATE_URL, HttpMethod.POST));
-        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE ,ActionType.ALLOCATE),
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE, ActionType.ALLOCATE),
                 new NssmfUrlInfo(EXTERNAL_CN_ALLOCATE_URL, HttpMethod.POST));
         urlInfoMap.put(generateKey(ExecutorType.INTERNAL, null, ActionType.ALLOCATE),
                 new NssmfUrlInfo(INTERNAL_ALLOCATE_URL, HttpMethod.POST));
@@ -88,7 +97,7 @@ public class NssmfAdapterConsts {
                 new NssmfUrlInfo(EXTERNAL_AN_DEALLOCATE_URL, HttpMethod.DELETE));
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.DEALLOCATE),
                 new NssmfUrlInfo(EXTERNAL_TN_DEALLOCATE_URL, HttpMethod.DELETE));
-        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE ,ActionType.DEALLOCATE),
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE, ActionType.DEALLOCATE),
                 new NssmfUrlInfo(EXTERNAL_CN_DEALLOCATE_URL, HttpMethod.DELETE));
         urlInfoMap.put(generateKey(ExecutorType.INTERNAL, null, ActionType.DEALLOCATE),
                 new NssmfUrlInfo(INTERNAL_DEALLOCATE_URL, HttpMethod.DELETE));
@@ -97,7 +106,7 @@ public class NssmfAdapterConsts {
                 new NssmfUrlInfo(EXTERNAL_AN_ACTIVATE_URL, HttpMethod.PUT));
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.ACTIVATE),
                 new NssmfUrlInfo(EXTERNAL_TN_ACTIVATE_URL, HttpMethod.PUT));
-        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE ,ActionType.ACTIVATE),
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE, ActionType.ACTIVATE),
                 new NssmfUrlInfo(EXTERNAL_CN_ACTIVATE_URL, HttpMethod.PUT));
         urlInfoMap.put(generateKey(ExecutorType.INTERNAL, null, ActionType.ACTIVATE),
                 new NssmfUrlInfo(INTERNAL_ACTIVATE_URL, HttpMethod.PUT));
@@ -106,7 +115,7 @@ public class NssmfAdapterConsts {
                 new NssmfUrlInfo(EXTERNAL_AN_DEACTIVATE_URL, HttpMethod.PUT));
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.DEACTIVATE),
                 new NssmfUrlInfo(EXTERNAL_TN_DEACTIVATE_URL, HttpMethod.PUT));
-        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE ,ActionType.DEACTIVATE),
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE, ActionType.DEACTIVATE),
                 new NssmfUrlInfo(EXTERNAL_CN_DEACTIVATE_URL, HttpMethod.PUT));
         urlInfoMap.put(generateKey(ExecutorType.INTERNAL, null, ActionType.DEACTIVATE),
                 new NssmfUrlInfo(INTERNAL_DEACTIVATE_URL, HttpMethod.PUT));
@@ -115,7 +124,7 @@ public class NssmfAdapterConsts {
                 new NssmfUrlInfo(EXTERNAL_AN_TERMINATE_URL, HttpMethod.DELETE));
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.TERMINATE),
                 new NssmfUrlInfo(EXTERNAL_TN_TERMINATE_URL, HttpMethod.DELETE));
-        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE ,ActionType.TERMINATE),
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE, ActionType.TERMINATE),
                 new NssmfUrlInfo(EXTERNAL_CN_TERMINATE_URL, HttpMethod.DELETE));
         urlInfoMap.put(generateKey(ExecutorType.INTERNAL, null, ActionType.TERMINATE),
                 new NssmfUrlInfo(INTERNAL_TERMINATE_URL, HttpMethod.DELETE));
@@ -124,7 +133,7 @@ public class NssmfAdapterConsts {
                 new NssmfUrlInfo(EXTERNAL_AN_MODIFY_URL, HttpMethod.PUT));
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.MODIFY),
                 new NssmfUrlInfo(EXTERNAL_TN_MODIFY_URL, HttpMethod.PUT));
-        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE ,ActionType.MODIFY),
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE, ActionType.MODIFY),
                 new NssmfUrlInfo(EXTERNAL_CN_MODIFY_URL, HttpMethod.PUT));
         urlInfoMap.put(generateKey(ExecutorType.INTERNAL, null, ActionType.MODIFY),
                 new NssmfUrlInfo(INTERNAL_MODIFY_URL, HttpMethod.PUT));
@@ -136,9 +145,11 @@ public class NssmfAdapterConsts {
                 new NssmfUrlInfo(EXTERNAL_QUERY_JOB_STATUS, HttpMethod.GET));
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.QUERY_JOB_STATUS),
                 new NssmfUrlInfo(EXTERNAL_QUERY_JOB_STATUS, HttpMethod.GET));
+
     }
 
-    public static NssmfUrlInfo getNssmfUrlInfo(ExecutorType executorType, NetworkType networkType, ActionType actionType) {
+    public static NssmfUrlInfo getNssmfUrlInfo(ExecutorType executorType, NetworkType networkType,
+            ActionType actionType) {
 
         return urlInfoMap.get(generateKey(executorType, networkType, actionType));
     }

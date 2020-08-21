@@ -21,7 +21,6 @@
 package org.onap.so.beans.nsmf;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import java.io.Serializable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

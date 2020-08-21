@@ -17,5 +17,9 @@ public enum ActionType {
 
     MODIFY_BY_ID,
 
-    MODIFY
+    MODIFY,
+
+    QUERY_NSSI_SELECTION_CAPABILITY,
+
+    QUERY_SUB_NET_CAPABILITY
 }

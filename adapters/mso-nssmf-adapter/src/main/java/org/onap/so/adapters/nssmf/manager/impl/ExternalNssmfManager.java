@@ -5,6 +5,7 @@ import org.apache.http.message.BasicHeader;
 import org.onap.so.adapters.nssmf.entity.NssmfInfo;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.enums.JobStatus;
+import org.onap.so.adapters.nssmf.enums.SelectionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.beans.nsmf.JobStatusResponse;
 import org.onap.so.beans.nsmf.NssiResponse;
@@ -13,7 +14,6 @@ import org.onap.so.beans.nsmf.ResponseDescriptor;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import static java.lang.String.valueOf;
 import static org.onap.so.adapters.nssmf.enums.JobStatus.*;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.*;
@@ -81,7 +81,7 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
         return restResponse;
     }
 
-    //external
+    // external
     private RestResponse sendExternalRequest(String content) throws ApplicationException {
         NssmfInfo nssmfInfo = restUtil.getNssmfHost(esrInfo);
         Header header = new BasicHeader("X-Auth-Token", restUtil.getToken(nssmfInfo));
@@ -111,12 +111,21 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
     }
 
     private void updateDbStatus(ResourceOperationStatus status, int rspStatus, JobStatus jobStatus,
-                                String description) {
+            String description) {
         status.setErrorCode(valueOf(rspStatus));
         status.setStatus(jobStatus.toString());
         status.setStatusDescription(description);
         logger.info("Updating DB status");
         repository.save(status);
         logger.info("Updating successful");
+    }
+
+
+    @Override
+    protected abstract SelectionType doQueryNSSISelectionCapability();
+
+    @Override
+    protected RestResponse doQuerySubnetCapability() throws ApplicationException {
+        return null;
     }
 }
