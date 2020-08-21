@@ -74,7 +74,7 @@ public class NssmfAdapterConsts {
     //
     private final static String EXTERNAL_QUERY_JOB_STATUS = "/api/rest/provMns/{apiVersion}/NSS/jobs/{jobId}?responseId={responseId}";
 
-    //private final static String QUERY_SUB_NET_CAPABILITY = "/api/rest/provMns/{apiVersion}/NSS/subnetCapabilityQuery";
+    private final static String INTERNAL_QUERY_SUB_NET_CAPABILITY = "/onap/so/infra/3gppservices/{apiVersion}/subnetCapabilityQuery";
 
     //private final static String QUERY_NSSI_SELECTION_CAPABILITY = "/api/rest/provMns/{apiVersion}/NSS/NSSISelectionCapability";
 
@@ -146,6 +146,8 @@ public class NssmfAdapterConsts {
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.QUERY_JOB_STATUS),
                 new NssmfUrlInfo(EXTERNAL_QUERY_JOB_STATUS, HttpMethod.GET));
 
+        urlInfoMap.put(generateKey(ExecutorType.INTERNAL, null, ActionType.QUERY_SUB_NET_CAPABILITY),
+                new NssmfUrlInfo(INTERNAL_QUERY_SUB_NET_CAPABILITY, HttpMethod.POST));
     }
 
     public static NssmfUrlInfo getNssmfUrlInfo(ExecutorType executorType, NetworkType networkType,

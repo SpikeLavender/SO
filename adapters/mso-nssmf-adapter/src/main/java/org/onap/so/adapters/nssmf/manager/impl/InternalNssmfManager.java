@@ -90,8 +90,8 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
     }
 
     @Override
-    protected RestResponse doQuerySubnetCapability() throws ApplicationException {
+    protected RestResponse doQuerySubnetCapability(String req) throws ApplicationException {
         //handler
-        return null;
+        return sendRequest(req);
     }
 }

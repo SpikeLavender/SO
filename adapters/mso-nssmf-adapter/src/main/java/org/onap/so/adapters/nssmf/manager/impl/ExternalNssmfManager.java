@@ -125,7 +125,10 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
     protected abstract SelectionType doQueryNSSISelectionCapability();
 
     @Override
-    protected RestResponse doQuerySubnetCapability() throws ApplicationException {
-        return null;
+    protected RestResponse doQuerySubnetCapability(String req) throws ApplicationException {
+        RestResponse response = new RestResponse();
+        response.setStatus(200);
+        response.setResponseContent(null);
+        return response;
     }
 }

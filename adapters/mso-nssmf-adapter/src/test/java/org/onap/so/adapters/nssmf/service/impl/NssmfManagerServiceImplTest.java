@@ -160,6 +160,8 @@ public class NssmfManagerServiceImplTest {
         System.out.println(res);
     }
 
+
+
     public NssmfAdapterNBIRequest allocateNssi() throws Exception {
         CnSliceProfile sP = new CnSliceProfile();
         List<String> sns = new LinkedList<>();
@@ -210,5 +212,29 @@ public class NssmfManagerServiceImplTest {
         nbiRequest.setServiceInfo(serviceInfo);
         //nbiRequest.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
         return nbiRequest;
+    }
+
+    @Test
+    public void deAllocateNssi() {
+    }
+
+    @Test
+    public void activateNssi() {
+    }
+
+    @Test
+    public void deActivateNssi() {
+    }
+
+    @Test
+    public void queryJobStatus() {
+    }
+
+    @Test
+    public void queryNSSISelectionCapability() {
+    }
+
+    @Test
+    public void querySubnetCapability() {
     }
 }

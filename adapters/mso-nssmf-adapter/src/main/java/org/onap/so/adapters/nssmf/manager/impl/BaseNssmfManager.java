@@ -140,10 +140,13 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
     @Override
     public RestResponse querySubnetCapability(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
-        return doQuerySubnetCapability();
+        this.params.clear();
+        this.urlHandler();
+
+        return doQuerySubnetCapability(nbiRequest.getSubnetCapabilityQuery());
     }
 
-    protected abstract RestResponse doQuerySubnetCapability() throws ApplicationException;
+    protected abstract RestResponse doQuerySubnetCapability(String req) throws ApplicationException;
 
     // 发送请求
     protected abstract RestResponse sendRequest(String content) throws ApplicationException;
