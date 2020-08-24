@@ -3,6 +3,10 @@ package org.onap.so.adapters.nssmf.manager.impl.internal;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.manager.impl.InternalNssmfManager;
 import org.onap.so.beans.nsmf.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 
 
@@ -11,7 +15,25 @@ public class InternalAnNssmfManager extends InternalNssmfManager {
     @Override
     protected String doWrapAllocateReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
         ServiceInfo serviceInfo = nbiRequest.getServiceInfo();
-        return marshal(new NssmfRequest(serviceInfo, nbiRequest.getEsrInfo().getNetworkType(),
-                nbiRequest.getAllocateAnNssi()));
+        NssmfRequest request = new NssmfRequest(serviceInfo, nbiRequest.getEsrInfo().getNetworkType(),
+                nbiRequest.getAllocateAnNssi());
+        request.setName(nbiRequest.getAllocateAnNssi().getNssiName());
+        return marshal(request);
+    }
+
+    @Override
+    protected String doWrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
+        ServiceInfo serviceInfo = nbiRequest.getServiceInfo();
+        Map<String,Object> additional = new HashMap<>();
+        additional.put("modifyAction", "allocate");
+        additional.put("snssaiList", nbiRequest.getAllocateAnNssi().getSliceProfile().getSNSSAIList());
+        additional.put("sliceProfileId", nbiRequest.getAllocateAnNssi().getSliceProfile().getSliceProfileId());
+        additional.put("nsiInfo",nbiRequest.getAllocateAnNssi().getNsiInfo());
+        additional.put("scriptName",nbiRequest.getAllocateAnNssi().getScriptName());
+        NssmfRequest request = new NssmfRequest(serviceInfo, nbiRequest.getEsrInfo().getNetworkType(),
+                additional);
+        request.setName(nbiRequest.getAllocateAnNssi().getNssiName());
+        request.setServiceInstanceId(nbiRequest.getServiceInfo().getNssiId());
+        return marshal(request);
     }
 }

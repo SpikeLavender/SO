@@ -2,18 +2,23 @@ package org.onap.so.adapters.nssmf.manager.impl;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
+import org.onap.aai.domain.yang.ServiceInstance;
 import org.onap.so.adapters.nssmf.entity.NssmfInfo;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
+import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.enums.JobStatus;
 import org.onap.so.adapters.nssmf.enums.SelectionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
-import org.onap.so.beans.nsmf.JobStatusResponse;
-import org.onap.so.beans.nsmf.NssiResponse;
-import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
-import org.onap.so.beans.nsmf.ResponseDescriptor;
+import org.onap.so.adapters.nssmf.extclients.aai.AaiServiceProvider;
+import org.onap.so.beans.nsmf.*;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import static java.lang.String.valueOf;
 import static org.onap.so.adapters.nssmf.enums.JobStatus.*;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.*;
@@ -24,22 +29,60 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ExternalNssmfManager.class);
 
+    @Autowired
+    private AaiServiceProvider aaiSvcProv;
+
     @Override
     protected String wrapAllocateReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
         return doWrapExtAllocateReqBody(nbiRequest);
     }
 
     @Override
-    protected void afterQueryJobStatus() {
+    protected String wrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
+        return doWrapModifyReqBody(nbiRequest);
+    }
+
+    protected abstract String doWrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException;
+
+    @Override
+    protected String wrapDeAllocateReqBody(DeAllocateNssi deAllocateNssi) throws ApplicationException{
+        return doWrapDeAllocateReqBody(deAllocateNssi);
+    }
+
+    protected abstract String doWrapDeAllocateReqBody(DeAllocateNssi deAllocateNssi) throws ApplicationException;
+
+    @Override
+    protected void afterQueryJobStatus(NssmfAdapterNBIRequest jobReq, ResourceOperationStatus status) {
+        if(Integer.getInteger(status.getProgress())== 100){
+            ServiceInfo serviceInfo = jobReq.getServiceInfo();
+            EsrInfo esrInfo = jobReq.getEsrInfo();
+            org.onap.aai.domain.yang.ServiceInstance nssiInstance = new ServiceInstance();
+            nssiInstance.setServiceInstanceId(serviceInfo.getNssiId());
+            nssiInstance.setServiceInstanceName(serviceInfo.getNssiName());
+            nssiInstance.setServiceType(serviceInfo.getSST());
+            nssiInstance.setOrchestrationStatus(getInitalStatus());
+            nssiInstance.setModelInvariantId(serviceInfo.getServiceInvariantUuid());
+            nssiInstance.setModelVersionId(serviceInfo.getServiceUuid());
+            nssiInstance.setServiceInstanceLocationId(serviceInfo.getPLMNIdList());
+            nssiInstance.setEnvironmentContext(esrInfo.getNetworkType().getNetworkType());
+            nssiInstance.setServiceRole("nssi");
+
+            aaiSvcProv.invokeCreateServiceInstance(nssiInstance, serviceInfo.getGlobalSubscriberId(), serviceInfo.getSubscriptionServiceType(), serviceInfo.getNssiId());
+        }
 
     }
 
     protected abstract String doWrapExtAllocateReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException;
 
     @Override
-    protected RestResponse doQueryJobStatus(ResourceOperationStatus status) throws ApplicationException {
-        return handleExtStatus(status);
+    protected String wrapActDeActReqBody(ActDeActNssi actDeActNssi) throws ApplicationException {
+        return marshal(actDeActNssi);
     }
+
+    protected RestResponse doQueryJobStatus(ResourceOperationStatus status) throws ApplicationException{
+        return doResponseStatus(status);
+    }
+    protected abstract RestResponse doResponseStatus(ResourceOperationStatus status) throws ApplicationException;
 
     @Override
     protected String wrapReqBody(Object object) throws ApplicationException {
@@ -52,15 +95,15 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
     }
 
     @Override
-    protected void handleResponse(RestResponse restResponse, String nsiId, String nssiId) throws ApplicationException {
-        createStatus(restResponse, nsiId, nssiId);
+    protected void handleResponse(RestResponse restResponse, String nsiId, String nsstId) throws ApplicationException {
+        createStatus(restResponse, nsiId, nsstId);
     }
 
-    private void createStatus(RestResponse restResponse, String nsiId, String nssiId) throws ApplicationException {
+    private void createStatus(RestResponse restResponse, String nsiId, String nsstId) throws ApplicationException {
         if (valueOf(restResponse.getStatus()).startsWith("2")) {
             NssiResponse response = unMarshal(restResponse.getResponseContent(), NssiResponse.class);
-            nssiId = nssiId == null ? response.getNssiId() : nssiId;
-            ResourceOperationStatus status = new ResourceOperationStatus(nssiId, response.getJobId(), nsiId);
+            ResourceOperationStatus status = new ResourceOperationStatus(nsiId, response.getJobId(), nsstId);
+            status.setResourceInstanceID(response.getNssiId());
             logger.info("save segment and operaton info -> begin");
 
             updateDbStatus(status, restResponse.getStatus(), STARTED, ALLOCATE_NSS_SUCCESS);
@@ -73,44 +116,16 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
         return "v1";
     }
 
-    private RestResponse handleExtStatus(ResourceOperationStatus status) throws ApplicationException {
-        RestResponse restResponse = sendRequest(null);
-        ResponseDescriptor rspDesc =
-                unMarshal(restResponse.getResponseContent(), JobStatusResponse.class).getResponseDescriptor();
-        updateRequestDbJobStatus(rspDesc, status, restResponse);
-        return restResponse;
-    }
 
     // external
-    private RestResponse sendExternalRequest(String content) throws ApplicationException {
+    protected RestResponse sendExternalRequest(String content) throws ApplicationException {
         NssmfInfo nssmfInfo = restUtil.getNssmfHost(esrInfo);
         Header header = new BasicHeader("X-Auth-Token", restUtil.getToken(nssmfInfo));
         String nssmfUrl = nssmfInfo.getUrl() + this.nssmfUrl;
         return restUtil.send(nssmfUrl, this.httpMethod, content, header);
     }
 
-    private void updateRequestDbJobStatus(ResponseDescriptor rspDesc, ResourceOperationStatus status, RestResponse rsp)
-            throws ApplicationException {
-
-        switch (fromString(rspDesc.getStatus())) {
-            case STARTED:
-                updateDbStatus(status, rsp.getStatus(), STARTED, QUERY_JOB_STATUS_SUCCESS);
-                break;
-            case PROCESSING:
-                updateDbStatus(status, rsp.getStatus(), PROCESSING, QUERY_JOB_STATUS_SUCCESS);
-                break;
-            case FINISHED:
-                if (rspDesc.getProgress() == 100) {
-                    updateDbStatus(status, rsp.getStatus(), FINISHED, QUERY_JOB_STATUS_SUCCESS);
-                }
-                break;
-            case ERROR:
-                updateDbStatus(status, rsp.getStatus(), ERROR, QUERY_JOB_STATUS_FAILED);
-                throw new ApplicationException(500, QUERY_JOB_STATUS_FAILED);
-        }
-    }
-
-    private void updateDbStatus(ResourceOperationStatus status, int rspStatus, JobStatus jobStatus,
+    protected void updateDbStatus(ResourceOperationStatus status, int rspStatus, JobStatus jobStatus,
             String description) {
         status.setErrorCode(valueOf(rspStatus));
         status.setStatus(jobStatus.toString());
@@ -119,10 +134,6 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
         repository.save(status);
         logger.info("Updating successful");
     }
-
-
-    @Override
-    protected abstract SelectionType doQueryNSSISelectionCapability();
 
     @Override
     protected RestResponse doQuerySubnetCapability(String req) throws ApplicationException {

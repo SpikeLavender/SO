@@ -33,9 +33,9 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
     }
 
     @Override
-    public ResponseEntity deAllocateNssi(NssmfAdapterNBIRequest request, String sliceId) {
+    public ResponseEntity deAllocateNssi(NssmfAdapterNBIRequest request, String sliceProfileId) {
         try {
-            return buildResponse(buildNssmfManager(request, ActionType.DEALLOCATE).deAllocateNssi(request, sliceId));
+            return buildResponse(buildNssmfManager(request, ActionType.DEALLOCATE).deAllocateNssi(request, sliceProfileId));
         } catch (ApplicationException e) {
             return e.buildErrorResponse();
         }
@@ -57,11 +57,6 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
         } catch (ApplicationException e) {
             return e.buildErrorResponse();
         }
-    }
-
-    @Override // wripro
-    public ResponseEntity modifyNssi(NssmfAdapterNBIRequest nssiUpdate, String sliceId) {
-        return null;
     }
 
     @Override

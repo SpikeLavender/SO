@@ -20,6 +20,8 @@ public class NssmfRequest implements Serializable {
 
     private String serviceInstanceId;
 
+    private String subscriptionServiceType;
+
     private NetworkType networkType;
 
     private Object additionalProperties;
@@ -30,6 +32,7 @@ public class NssmfRequest implements Serializable {
         this.modelInvariantUuid = serviceInfo.getServiceInvariantUuid();
         this.modelUuid = serviceInfo.getServiceUuid();
         this.globalSubscriberId = serviceInfo.getGlobalSubscriberId();
+        this.subscriptionServiceType = serviceInfo.getSubscriptionServiceType();
         this.networkType = networkType;
         this.additionalProperties = additionalProperties;
     }

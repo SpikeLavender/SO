@@ -2,6 +2,7 @@ package org.onap.so.beans.nsmf;
 
 import lombok.Data;
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public class ServiceInfo implements Serializable {
@@ -14,9 +15,17 @@ public class ServiceInfo implements Serializable {
 
     private String globalSubscriberId;
 
+    private String subscriptionServiceType;
+
     private String serviceType;
 
     private String nsiId;
 
     private String nssiId;
+
+    private String sST;
+
+    private String nssiName;
+
+    private String pLMNIdList;
 }

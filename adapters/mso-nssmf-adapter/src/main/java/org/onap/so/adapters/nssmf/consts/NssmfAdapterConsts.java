@@ -20,15 +20,15 @@ public class NssmfAdapterConsts {
 
     private final static String EXTERNAL_TN_ALLOCATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles";
 
-    private final static String EXTERNAL_AN_ALLOCATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles";
+    private final static String EXTERNAL_AN_ALLOCATE_URL = "/ObjectManagement/NSS/SliceProfiles";
 
     private final static String INTERNAL_ALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/allocate";
 
-    private final static String EXTERNAL_CN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/{sliceId}";
+    private final static String EXTERNAL_CN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/{sliceProfileId}";
 
-    private final static String EXTERNAL_TN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/{sliceId}";
+    private final static String EXTERNAL_TN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/{sliceProfileId}";
 
-    private final static String EXTERNAL_AN_DEALLOCATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/{sliceId}";
+    private final static String EXTERNAL_AN_DEALLOCATE_URL = "/ObjectManagement/NSS/SliceProfiles/{SliceProfileId}";
 
     private final static String INTERNAL_DEALLOCATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deAllocate";
 
@@ -57,11 +57,6 @@ public class NssmfAdapterConsts {
 
     private final static String INTERNAL_TERMINATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/terminate";
     //
-
-    private final static String EXTERNAL_CN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/%s";
-
-    private final static String EXTERNAL_TN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/%s";
-
     private final static String EXTERNAL_AN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/%s";
 
     private final static String INTERNAL_MODIFY_URL = "/onap/so/infra/3gppservices/{apiVersion}/modify";
@@ -126,10 +121,6 @@ public class NssmfAdapterConsts {
 
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.ACCESS, ActionType.MODIFY),
                 new NssmfUrlInfo(EXTERNAL_AN_MODIFY_URL, HttpMethod.PUT));
-        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.TRANSPORT, ActionType.MODIFY),
-                new NssmfUrlInfo(EXTERNAL_TN_MODIFY_URL, HttpMethod.PUT));
-        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE, ActionType.MODIFY),
-                new NssmfUrlInfo(EXTERNAL_CN_MODIFY_URL, HttpMethod.PUT));
         urlInfoMap.put(generateKey(ExecutorType.INTERNAL, null, ActionType.MODIFY),
                 new NssmfUrlInfo(INTERNAL_MODIFY_URL, HttpMethod.PUT));
 

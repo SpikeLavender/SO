@@ -25,8 +25,8 @@ public class NssmfAdapterController {
 
     @PostMapping(value = "/NSS/SliceProfiles/{sliceProfileId}")
     public ResponseEntity deAllocateNssi(@RequestBody NssmfAdapterNBIRequest nbiRequest,
-            @PathVariable("sliceProfileId") final String sliceId) {
-        return nssmfManagerService.deAllocateNssi(nbiRequest, sliceId);
+            @PathVariable("sliceProfileId") final String sliceProfileId) {
+        return nssmfManagerService.deAllocateNssi(nbiRequest, sliceProfileId);
     }
 
 
@@ -46,12 +46,6 @@ public class NssmfAdapterController {
     public ResponseEntity queryJobStatus(@RequestBody NssmfAdapterNBIRequest nbiRequest,
             @PathVariable("jobId") String jobId) {
         return nssmfManagerService.queryJobStatus(nbiRequest, jobId);
-    }
-
-    @PutMapping(value = "/NSS/SliceProfiles/{sliceProfileId}")
-    public ResponseEntity modifyNssi(@RequestBody NssmfAdapterNBIRequest updateRequest,
-            @PathVariable("sliceProfileId") String sliceId) {
-        return nssmfManagerService.modifyNssi(updateRequest, sliceId);
     }
 
     @PostMapping(value = "/NSS/NSSISelectionCapability")

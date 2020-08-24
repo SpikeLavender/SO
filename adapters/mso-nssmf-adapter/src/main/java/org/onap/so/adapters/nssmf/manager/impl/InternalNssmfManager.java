@@ -4,15 +4,17 @@ import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
+import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.enums.SelectionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
-import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
-import org.onap.so.beans.nsmf.NssmfRequest;
-import org.onap.so.beans.nsmf.ResponseDescriptor;
+import org.onap.so.beans.nsmf.*;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.onap.so.adapters.nssmf.enums.JobStatus.PROCESSING;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
@@ -34,9 +36,31 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
         return marshal(nssmfRequest);
     }
 
+
+    @Override
+    protected String wrapActDeActReqBody(ActDeActNssi actDeActNssi) throws ApplicationException {
+        Map<String,String> additional = new HashMap<>();
+        additional.put("nsiId", actDeActNssi.getNsiId());
+        NssmfRequest nssmfRequest = new NssmfRequest(serviceInfo, esrInfo.getNetworkType(), additional);
+        nssmfRequest.setServiceInstanceId(actDeActNssi.getNssiId());
+        return marshal(nssmfRequest);
+    }
+
+    @Override
+    protected String wrapDeAllocateReqBody(DeAllocateNssi deAllocateNssi) throws ApplicationException {
+        Map<String,Object> additional = new HashMap<>();
+        additional.put("nsiId", deAllocateNssi.getNsiId());
+        additional.put("scriptName", deAllocateNssi.getScriptName());
+        additional.put("snssaiList", deAllocateNssi.getSnssaiList());
+        NssmfRequest nssmfRequest = new NssmfRequest(serviceInfo, esrInfo.getNetworkType(), additional);
+        nssmfRequest.setServiceInstanceId(deAllocateNssi.getNssiId());
+        return marshal(nssmfRequest);
+    }
+
+
     @Override
     protected RestResponse doQueryJobStatus(ResourceOperationStatus status) throws ApplicationException {
-        return handleInnerStatus(status);
+        return responseDBStatus(status);
     }
 
     @Override
@@ -46,24 +70,11 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
     }
 
     @Override
-    protected void afterQueryJobStatus() {
-        // internal
+    protected void afterQueryJobStatus(NssmfAdapterNBIRequest jobReq, ResourceOperationStatus status) {
+        //internal
     }
 
-    private RestResponse handleInnerStatus(ResourceOperationStatus status) throws ApplicationException {
-        ResponseDescriptor descriptor = new ResponseDescriptor();
-        if (status == null) {
-            descriptor.setProgress(0);
-            descriptor.setStatus(PROCESSING.name());
-            descriptor.setStatusDescription("Initiating Nssi Instance");
-            return restUtil.createResponse(200, marshal(descriptor));
-        }
-        descriptor.setStatus(status.getStatus());
-        descriptor.setStatusDescription(status.getStatusDescription());
-        descriptor.setProgress(Integer.parseInt(status.getProgress()));
-        // descriptor.setResponseId(status.getOperationId());
-        return restUtil.createResponse(200, marshal(descriptor));
-    }
+
 
     @Override
     protected void handleResponse(RestResponse restResponse, String nsiId, String nssiId) throws ApplicationException {
@@ -90,8 +101,21 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
     }
 
     @Override
+    protected String wrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
+        this.setActionType(ActionType.MODIFY);
+        return doWrapModifyReqBody(nbiRequest);
+    }
+
+    protected abstract String doWrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException;
+
+    @Override
     protected RestResponse doQuerySubnetCapability(String req) throws ApplicationException {
         //handler
         return sendRequest(req);
+    }
+
+    @Override
+    protected String getInitalStatus() {
+        return "deactivated";
     }
 }

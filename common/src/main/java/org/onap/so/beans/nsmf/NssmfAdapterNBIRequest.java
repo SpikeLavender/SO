@@ -26,8 +26,6 @@ public class NssmfAdapterNBIRequest implements Serializable {
 
     private DeAllocateNssi deAllocateNssi;
 
-    private ModifyAnNSSI modifyAnNSSI;
-
     private String subnetCapabilityQuery;
 
     private String responseId;
