@@ -35,10 +35,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
-import org.onap.aai.domain.yang.EsrSystemInfo;
-import org.onap.aai.domain.yang.EsrSystemInfoList;
-import org.onap.aai.domain.yang.EsrThirdpartySdnc;
-import org.onap.aai.domain.yang.EsrThirdpartySdncList;
+import org.onap.aai.domain.yang.*;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.extclients.aai.AaiServiceProvider;
 import org.onap.so.adapters.nssmf.entity.TokenRequest;
@@ -47,6 +44,7 @@ import org.onap.so.adapters.nssmf.enums.HttpMethod;
 import org.onap.so.adapters.nssmf.entity.NssmfInfo;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.beans.nsmf.EsrInfo;
+import org.onap.so.beans.nsmf.ServiceInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +71,11 @@ public class RestUtil {
 
     @Autowired
     private AaiServiceProvider aaiSvcProv;
+
+    public void createServiceInstance(ServiceInstance serviceInstance, ServiceInfo serviceInfo) {
+        aaiSvcProv.invokeCreateServiceInstance(serviceInstance, serviceInfo.getGlobalSubscriberId(),
+                serviceInfo.getSubscriptionServiceType(), serviceInfo.getNssiId());
+    }
 
     public NssmfInfo getNssmfHost(EsrInfo esrInfo) throws ApplicationException {
         EsrThirdpartySdncList sdncList = aaiSvcProv.invokeGetThirdPartySdncList();

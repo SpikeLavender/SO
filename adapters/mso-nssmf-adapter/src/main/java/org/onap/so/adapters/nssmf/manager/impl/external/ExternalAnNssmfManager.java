@@ -1,3 +1,23 @@
+/*-
+ * ============LICENSE_START=======================================================
+ * ONAP - SO
+ * ================================================================================
+ # Copyright (c) 2020, CMCC Technologies Co., Ltd.
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License")
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #       http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ * ============LICENSE_END=========================================================
+ */
+
 package org.onap.so.adapters.nssmf.manager.impl.external;
 
 import org.onap.so.adapters.nssmf.entity.RestResponse;
@@ -6,9 +26,7 @@ import org.onap.so.adapters.nssmf.enums.SelectionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.manager.impl.ExternalNssmfManager;
 import org.onap.so.beans.nsmf.DeAllocateNssi;
-import org.onap.so.beans.nsmf.NssiResponse;
 import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
-import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,10 +34,6 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.lang.String.valueOf;
-import static org.onap.so.adapters.nssmf.enums.JobStatus.FINISHED;
-import static org.onap.so.adapters.nssmf.enums.JobStatus.STARTED;
-import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.ALLOCATE_NSS_SUCCESS;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.unMarshal;
 
@@ -27,46 +41,28 @@ import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.unMarshal;
 public class ExternalAnNssmfManager extends ExternalNssmfManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ExternalAnNssmfManager.class);
-	
-    @Override
-    protected String getInitalStatus() {
-        return "activated";
-    }
-   
+
     @Override
     protected String doWrapExtAllocateReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
         return marshal(nbiRequest.getAllocateAnNssi().getSliceProfile());
     }
 
     @Override
-    protected RestResponse sendRequest(String content) throws ApplicationException {
-        RestResponse restResponse = sendExternalRequest(content);
-        Map<String,String> response = unMarshal(restResponse.getResponseContent(), Map.class);
-
-        RestResponse returnRsp = new RestResponse();
-        Map<String,String> rsp = new HashMap<>();
-        rsp.put("nSSId",response.get("nSSId"));
-        rsp.put("jobId",response.get("nSSId"));
-        returnRsp.setStatus(200);
-        returnRsp.setResponseContent(marshal(rsp));
-        return returnRsp;
-    }
-
-
-    @Override
-    protected void handleResponse(RestResponse restResponse, String nsiId, String nsstId) throws ApplicationException {
-        if (valueOf(restResponse.getStatus()).startsWith("2")) {
+    protected void afterRequest() throws ApplicationException {
+        if (ActionType.ALLOCATE.equals(actionType) || ActionType.DEALLOCATE.equals(actionType)) {
+            @SuppressWarnings("unchecked")
             Map<String,String> response = unMarshal(restResponse.getResponseContent(), Map.class);
-            String nssiId = response.get("nSSId");
-            ResourceOperationStatus status = new ResourceOperationStatus(nsiId, response.get("nSSId"), nsstId);
-            status.setResourceInstanceID(nssiId);
-            logger.info("save segment and operaton info -> begin");
 
-            updateDbStatus(status, restResponse.getStatus(), FINISHED, ALLOCATE_NSS_SUCCESS);
-            logger.info("save segment and operaton info -> end");
+            RestResponse returnRsp = new RestResponse();
+            Map<String,String> rsp = new HashMap<>();
+            rsp.put("nSSId",response.get("nSSId"));
+            rsp.put("jobId",response.get("nSSId"));
+            returnRsp.setStatus(202);
+            returnRsp.setResponseContent(marshal(rsp));
+            restResponse = returnRsp;
         }
+        //todo
     }
-
 
     @Override
     protected String doWrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
@@ -77,7 +73,7 @@ public class ExternalAnNssmfManager extends ExternalNssmfManager {
     @Override
     protected String doWrapDeAllocateReqBody(DeAllocateNssi deAllocateNssi) throws ApplicationException{
         Map<String,String> request = new HashMap<>();
-        request.put("nSSId",deAllocateNssi.getNssiId());
+        request.put("nSSId", deAllocateNssi.getNssiId());
         return marshal(request);
     }
 
@@ -91,11 +87,6 @@ public class ExternalAnNssmfManager extends ExternalNssmfManager {
     public RestResponse activateNssi(NssmfAdapterNBIRequest nbiRequest, String snssai) throws ApplicationException {
         //TODO
         return null;
-    }
-
-    @Override
-    protected RestResponse doResponseStatus(ResourceOperationStatus status) throws ApplicationException {
-        return responseDBStatus(status);
     }
 
     @Override

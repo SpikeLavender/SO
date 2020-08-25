@@ -35,6 +35,8 @@ public class NssmfRequest implements Serializable {
         this.subscriptionServiceType = serviceInfo.getSubscriptionServiceType();
         this.networkType = networkType;
         this.additionalProperties = additionalProperties;
+        this.serviceInstanceId = serviceInfo.getNssiId();
+        this.name = serviceInfo.getNssiName();
     }
 
 }

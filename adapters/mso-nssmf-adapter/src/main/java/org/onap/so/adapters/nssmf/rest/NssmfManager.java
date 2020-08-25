@@ -204,6 +204,7 @@ public class NssmfManager {
         return rsp;
     }
 
+    @Deprecated
     public RestResponse deAllocateNssi(NssiDeAllocateRequest nssiDeallocate, String sliceId)
             throws ApplicationException {
 

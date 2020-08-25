@@ -49,15 +49,16 @@ public class NssmfAdapterConsts {
     private final static String INTERNAL_DEACTIVATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/deActivate";
 
     //
-    private final static String EXTERNAL_CN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/%s";
+    private final static String EXTERNAL_CN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/NSS/SliceProfiles/{SliceProfileId}";
 
-    private final static String EXTERNAL_TN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/%s";
+    private final static String EXTERNAL_TN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/tn/NSS/SliceProfiles/{SliceProfileId}";
 
-    private final static String EXTERNAL_AN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/%s";
+    private final static String EXTERNAL_AN_TERMINATE_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/{SliceProfileId}";
 
     private final static String INTERNAL_TERMINATE_URL = "/onap/so/infra/3gppservices/{apiVersion}/terminate";
+
     //
-    private final static String EXTERNAL_AN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/%s";
+    private final static String EXTERNAL_AN_MODIFY_URL = "/api/rest/provMns/{apiVersion}/an/NSS/SliceProfiles/{SliceProfileId}";
 
     private final static String INTERNAL_MODIFY_URL = "/onap/so/infra/3gppservices/{apiVersion}/modify";
 
@@ -68,6 +69,7 @@ public class NssmfAdapterConsts {
 
     //private final static String QUERY_NSSI_SELECTION_CAPABILITY = "/api/rest/provMns/{apiVersion}/NSS/NSSISelectionCapability";
 
+    //todo:
 
     /**
      * 写个方法获取 url 和 method
@@ -121,6 +123,8 @@ public class NssmfAdapterConsts {
 
         urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.ACCESS, ActionType.MODIFY),
                 new NssmfUrlInfo(EXTERNAL_AN_MODIFY_URL, HttpMethod.PUT));
+        urlInfoMap.put(generateKey(ExecutorType.EXTERNAL, NetworkType.CORE, ActionType.MODIFY),
+                new NssmfUrlInfo(EXTERNAL_CN_ALLOCATE_URL, HttpMethod.PUT));
         urlInfoMap.put(generateKey(ExecutorType.INTERNAL, null, ActionType.MODIFY),
                 new NssmfUrlInfo(INTERNAL_MODIFY_URL, HttpMethod.PUT));
 

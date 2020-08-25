@@ -1,3 +1,23 @@
+/*-
+ * ============LICENSE_START=======================================================
+ * ONAP - SO
+ * ================================================================================
+ # Copyright (c) 2020, CMCC Technologies Co., Ltd.
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License")
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #       http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ * ============LICENSE_END=========================================================
+ */
+
 package org.onap.so.adapters.nssmf.service.impl;
 
 
@@ -26,9 +46,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
@@ -74,9 +92,6 @@ public class NssmfManagerServiceImplTest {
     private InputStream tokenStream;
 
     @Mock
-    private ResourceOperationStatus operationStatus;
-
-    @Mock
     private ResourceOperationStatusRepository repository;
 
     @Before
@@ -94,7 +109,7 @@ public class NssmfManagerServiceImplTest {
         repository.set(nssiManagerService, this.repository);
         // nssiManagerService.setRestUtil(this.restUtil);
 
-        when(this.restUtil.send(any(String.class), any(HttpMethod.class), any(String.class), any(Header.class)))
+        when(this.restUtil.send(any(String.class), any(HttpMethod.class), any(), any(Header.class)))
                 .thenCallRealMethod();
         when(this.restUtil.createResponse(any(Integer.class), any(String.class))).thenCallRealMethod();
     }
@@ -133,7 +148,7 @@ public class NssmfManagerServiceImplTest {
 
         doAnswer(answer).when(httpClient).execute(any(HttpRequestBase.class));
 
-        doAnswer(invocation -> operationStatus).when(repository).findOne(Example.of(any(ResourceOperationStatus.class)));
+        //doAnswer(invocation -> operationStatus).when(repository).findOne(Example.of(any(ResourceOperationStatus.class)));
     }
 
     @Test
@@ -328,31 +343,44 @@ public class NssmfManagerServiceImplTest {
         nssmf.setPort("8080");
         nssmf.setIpAddress("127.0.0.1");
 
+        JobStatusResponse jobStatusResponse = new JobStatusResponse();
         ResponseDescriptor descriptor = new ResponseDescriptor();
         descriptor.setResponseId("7512eb3feb5249eca5ddd742fedddd39");
         descriptor.setProgress(20);
         descriptor.setStatusDescription("Initiating VNF Instance");
         descriptor.setStatus("processing");
+        jobStatusResponse.setResponseDescriptor(descriptor);
 
         TokenResponse token = new TokenResponse();
         token.setAccessToken("7512eb3feb5249eca5ddd742fedddd39");
         token.setExpires(1800);
 
-        postStream = new ByteArrayInputStream(marshal(descriptor).getBytes(UTF_8));
+        postStream = new ByteArrayInputStream(marshal(jobStatusResponse).getBytes(UTF_8));
         tokenStream = new ByteArrayInputStream(marshal(token).getBytes(UTF_8));
 
-        operationStatus = new ResourceOperationStatus();
-        operationStatus.setJobId("4b45d919816ccaa2b762df5120f72067");
-        operationStatus.setResourceTemplateUUID("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
+        ResourceOperationStatus operationStatus = new ResourceOperationStatus();
+        operationStatus.setOperationId("4b45d919816ccaa2b762df5120f72067");
+        operationStatus.setResourceTemplateUUID("8ee5926d-720b-4bb2-86f9-d20e921c143b");
+        operationStatus.setServiceId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
 
         NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
         nbiRequest.setResponseId("7512eb3feb5249eca5ddd742fedddd39");
+        Optional<ResourceOperationStatus> optional = Optional.of(operationStatus);
+
+        doAnswer(invocation -> optional).when(repository).findOne(any());
 
         createCommonMock(200, nssmf);
 
         ResponseEntity res = nssiManagerService.queryJobStatus(nbiRequest, "4b45d919816ccaa2b762df5120f72067");
         assertNotNull(res);
         assertNotNull(res.getBody());
+        JobStatusResponse allRes = unMarshal(res.getBody().toString(), JobStatusResponse.class);
+        assertEquals(allRes.getResponseDescriptor().getProgress(), 20);
+        assertEquals(allRes.getResponseDescriptor().getStatus(), "processing");
+        assertEquals(allRes.getResponseDescriptor().getResponseId(), "7512eb3feb5249eca5ddd742fedddd39");
+
+        System.out.println(res);
+
     }
 
     @Test

@@ -1,6 +1,25 @@
+/*-
+ * ============LICENSE_START=======================================================
+ * ONAP - SO
+ * ================================================================================
+ # Copyright (c) 2020, CMCC Technologies Co., Ltd.
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License")
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #       http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ * ============LICENSE_END=========================================================
+ */
+
 package org.onap.so.adapters.nssmf.manager.impl;
 
-import org.apache.commons.lang3.StringUtils;
 import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.entity.NssmfUrlInfo;
 import org.onap.so.adapters.nssmf.enums.ActionType;
@@ -19,8 +38,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Example;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
-import static org.onap.so.adapters.nssmf.enums.JobStatus.PROCESSING;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 
 public abstract class BaseNssmfManager implements NssmfManager {
@@ -31,7 +50,7 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
     protected ResourceOperationStatusRepository repository;
 
-    private ActionType actionType;
+    protected ActionType actionType;
 
     protected EsrInfo esrInfo;
 
@@ -39,23 +58,29 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
     protected HttpMethod httpMethod;
 
-    private ExecutorType executorType = ExecutorType.INTERNAL;
+    protected String initStatus;
 
     protected ServiceInfo serviceInfo;
+
+    protected RestResponse restResponse;
+
+    private ExecutorType executorType = ExecutorType.INTERNAL;
 
     private Map<String, String> params = new HashMap<>(); // request params
 
     @Override
     public RestResponse allocateNssi(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
-        if(StringUtils.isNotBlank(nbiRequest.getServiceInfo().getNssiId())){
-           modifyNssi(nbiRequest);
-        }
 
         this.params.clear();
         this.urlHandler();
         String requestBody = wrapAllocateReqBody(nbiRequest);
-        RestResponse restResponse = sendRequest(requestBody);
-        handleResponse(restResponse, serviceInfo.getNsiId(), serviceInfo.getServiceUuid());
+
+        this.restResponse = sendRequest(requestBody);
+
+        //todo: 后置处理
+        this.afterRequest();
+
+        handleResponse(restResponse, serviceInfo.getNsiId());
 
         return restResponse;
     }
@@ -67,28 +92,33 @@ public abstract class BaseNssmfManager implements NssmfManager {
         this.params.clear();
         this.urlHandler();
         String requestBody = wrapModifyReqBody(modifyRequest);
-        RestResponse restResponse = sendRequest(requestBody);
-        handleResponse(restResponse, serviceInfo.getNsiId(), serviceInfo.getServiceUuid());
+
+        this.restResponse = sendRequest(requestBody);
+
+        this.afterRequest();
+
+        handleResponse(restResponse, serviceInfo.getNsiId());
 
         return restResponse;
     }
 
     protected abstract String wrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException;
 
-
-
     @Override
     public RestResponse deAllocateNssi(NssmfAdapterNBIRequest nbiRequest, String sliceId) throws ApplicationException {
         // url处理
         this.params.clear();
-        this.params.put("sliceId", sliceId);
+        this.params.put("sliceProfileId", sliceId);
 
         this.urlHandler();
 
         String reqBody = wrapDeAllocateReqBody(nbiRequest.getDeAllocateNssi());
-        RestResponse restResponse = sendRequest(reqBody);
-        handleResponse(restResponse, nbiRequest.getDeAllocateNssi().getNsiId(),
-                nbiRequest.getDeAllocateNssi().getNssiId());
+
+        this.restResponse = sendRequest(reqBody);
+
+        this.afterRequest();
+
+        handleResponse(restResponse, nbiRequest.getDeAllocateNssi().getNsiId());
         return restResponse;
     }
 
@@ -104,9 +134,16 @@ public abstract class BaseNssmfManager implements NssmfManager {
         this.urlHandler();
 
         String reqBody = wrapActDeActReqBody(nbiRequest.getActDeActNssi());
-        RestResponse restResponse = sendRequest(reqBody);
 
-        handleResponse(restResponse, nbiRequest.getActDeActNssi().getNsiId(), nbiRequest.getActDeActNssi().getNssiId());
+        this.restResponse = sendRequest(reqBody);
+
+        /**
+         * 后置处理
+         */
+        this.afterRequest();
+
+        handleResponse(restResponse, nbiRequest.getActDeActNssi().getNsiId());
+
         return restResponse;
     }
 
@@ -117,8 +154,7 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
     protected abstract String wrapActDeActReqBody(ActDeActNssi actDeActNssi) throws ApplicationException;
 
-    protected abstract void handleResponse(RestResponse restResponse, String nsiId, String nssiId)
-            throws ApplicationException;
+    protected abstract void handleResponse(RestResponse restResponse, String nsiId) throws ApplicationException;
 
     @Override
     public RestResponse queryJobStatus(NssmfAdapterNBIRequest jobReq, String jobId) throws ApplicationException {
@@ -127,44 +163,38 @@ public abstract class BaseNssmfManager implements NssmfManager {
         this.params.put("responseId", jobReq.getResponseId());
         this.urlHandler();
 
-        String nsstId = jobReq.getServiceInfo().getServiceUuid();
-        String nsiId = jobReq.getServiceInfo().getNsiId();
-        ResourceOperationStatus status = getOperationStatus(nsiId, jobId, nsstId);
+        /**
+         * find by jobId and nsiId
+         * jobId -> OperationId
+         * nsiId -> ServiceId
+         * serviceUuid -> resourceTemplateUUID
+         */
+        ResourceOperationStatus status = getOperationStatus(serviceInfo.getNsiId(), jobId, serviceInfo.getServiceUuid());
         /**
          * 内部的则查询状态，如果成功，没有查到就返回 “0” 外部的则查询并更新，在 aai 创建实例，没有查到就返回 “0” 如果失败的话 jobid
          */
-        RestResponse res = doQueryJobStatus(status);
-        afterQueryJobStatus(jobReq, status);
-        return res;
+
+        this.restResponse = doQueryJobStatus(status);
+
+        this.afterRequest();
+
+        afterQueryJobStatus(status);
+        return restResponse;
     }
 
     protected abstract RestResponse doQueryJobStatus(ResourceOperationStatus status) throws ApplicationException;
 
 
-    protected abstract void afterQueryJobStatus(NssmfAdapterNBIRequest jobReq, ResourceOperationStatus status);
+    protected abstract void afterQueryJobStatus(ResourceOperationStatus status);
 
-    private ResourceOperationStatus getOperationStatus(String nsiId, String jobId, String nsstId)
-            throws ApplicationException {
-        ResourceOperationStatus status = new ResourceOperationStatus(nsiId, jobId, nsstId);
-        return repository.findOne(Example.of(status))
-                .orElseThrow(() -> new ApplicationException(404, "Cannot Find Operation Status"));
+    private ResourceOperationStatus getOperationStatus(String nsiId, String jobId, String serviceUuid) {
+
+        ResourceOperationStatus status = new ResourceOperationStatus(nsiId, jobId, serviceUuid);
+
+        Optional<ResourceOperationStatus> optional = repository.findOne(Example.of(status));
+
+        return optional.orElse(null);
     }
-
-    protected RestResponse responseDBStatus(ResourceOperationStatus status) throws ApplicationException {
-        ResponseDescriptor descriptor = new ResponseDescriptor();
-        if (status == null) {
-            descriptor.setProgress(0);
-            descriptor.setStatus(PROCESSING.name());
-            descriptor.setStatusDescription("Initiating Nssi Instance");
-            return restUtil.createResponse(200, marshal(descriptor));
-        }
-        descriptor.setStatus(status.getStatus());
-        descriptor.setStatusDescription(status.getStatusDescription());
-        descriptor.setProgress(Integer.parseInt(status.getProgress()));
-        // descriptor.setResponseId(status.getOperationId());
-        return restUtil.createResponse(200, marshal(descriptor));
-    }
-
 
     @Override
     public RestResponse queryNSSISelectionCapability(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
@@ -200,7 +230,8 @@ public abstract class BaseNssmfManager implements NssmfManager {
         this.nssmfUrl = nssmfUrl.replaceAll("\\{apiVersion}", getApiVersion());
         this.params.forEach((k, v) -> this.nssmfUrl = this.nssmfUrl.replaceAll("\\{" + k + "}", v));
     }
-    protected abstract String getInitalStatus();
+
+    protected abstract void afterRequest() throws ApplicationException;
 
     protected abstract String getApiVersion();
 
@@ -235,6 +266,11 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
     public BaseNssmfManager setServiceInfo(ServiceInfo serviceInfo) {
         this.serviceInfo = serviceInfo;
+        return this;
+    }
+
+    public BaseNssmfManager setInitStatus(String initStatus) {
+        this.initStatus = initStatus;
         return this;
     }
 }

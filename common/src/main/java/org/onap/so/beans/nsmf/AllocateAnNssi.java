@@ -25,6 +25,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AllocateAnNssi {
 
+    @Deprecated
+    public final static String URL = "/api/rest/provMns/v1/an/NSS" + "/SliceProfiles";
+
     private String nsstId;
 
     private String nssiId;
