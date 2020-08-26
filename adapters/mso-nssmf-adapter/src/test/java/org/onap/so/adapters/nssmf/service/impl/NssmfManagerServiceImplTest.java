@@ -40,14 +40,12 @@ import org.onap.so.adapters.nssmf.util.RestUtil;
 import org.onap.so.beans.nsmf.*;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.onap.so.db.request.data.repository.ResourceOperationStatusRepository;
-import org.springframework.data.domain.Example;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.*;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -115,9 +113,6 @@ public class NssmfManagerServiceImplTest {
     }
 
     private void createCommonMock(int statusCode, NssmfInfo nssmf) throws Exception {
-//        when(nssiManagerService.createAllocateNssi(any(NssmfAdapterNBIRequest.class))).thenCallRealMethod();
-//        when(nssiManagerService.deAllocateNssi(any(NssmfAdapterNBIRequest.class), any(String.class))).thenCallRealMethod();
-
         when(restUtil.getToken(any(NssmfInfo.class))).thenReturn("7512eb3feb5249eca5ddd742fedddd39");
         when(restUtil.getHttpsClient()).thenReturn(httpClient);
 
@@ -148,7 +143,6 @@ public class NssmfManagerServiceImplTest {
 
         doAnswer(answer).when(httpClient).execute(any(HttpRequestBase.class));
 
-        //doAnswer(invocation -> operationStatus).when(repository).findOne(Example.of(any(ResourceOperationStatus.class)));
     }
 
     @Test
@@ -227,7 +221,6 @@ public class NssmfManagerServiceImplTest {
 
         NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
         nbiRequest.setAllocateCnNssi(cnNssi);
-        //nbiRequest.setNsiId("NSI-M-001-HDBNJ-NSMF-01-A-ZX");
         return nbiRequest;
     }
 
@@ -261,7 +254,7 @@ public class NssmfManagerServiceImplTest {
         postStream = new ByteArrayInputStream(marshal(nssiRes).getBytes(UTF_8));
         tokenStream = new ByteArrayInputStream(marshal(token).getBytes(UTF_8));
 
-        createCommonMock(200, nssmf);
+        createCommonMock(202, nssmf);
         ResponseEntity res = nssiManagerService.deAllocateNssi(nbiRequest, "ab9af40f13f721b5f13539d87484098");
         assertNotNull(res);
         assertNotNull(res.getBody());
@@ -305,7 +298,7 @@ public class NssmfManagerServiceImplTest {
     }
 
     @Test
-    public void deActivateNssi() throws Exception{
+    public void deActivateNssi() throws Exception {
         NssmfInfo nssmf = new NssmfInfo();
         nssmf.setUserName("nssmf-user");
         nssmf.setPassword("nssmf-pass");
@@ -338,7 +331,7 @@ public class NssmfManagerServiceImplTest {
     }
 
     @Test
-    public void queryJobStatus() throws Exception{
+    public void queryJobStatus() throws Exception {
         NssmfInfo nssmf = new NssmfInfo();
         nssmf.setUserName("nssmf-user");
         nssmf.setPassword("nssmf-pass");
@@ -435,10 +428,11 @@ public class NssmfManagerServiceImplTest {
     @Test
     public void querySubnetCapability() {
         NssmfAdapterNBIRequest nbiRequest = createNbiRequest();
-        //nbiRequest.getEsrInfo().setVendor();
 
         String subnetCapabilityQuery = "\"subnetTypes\": [\"TN-FH\",\"TN-MH\",\"TN-BH\"]";
         nbiRequest.setSubnetCapabilityQuery(subnetCapabilityQuery);
-        ResponseEntity responseEntity = nssiManagerService.queryNSSISelectionCapability(nbiRequest);
+        ResponseEntity res = nssiManagerService.queryNSSISelectionCapability(nbiRequest);
+        assertNotNull(res);
+        assertNotNull(res.getBody());
     }
 }

@@ -52,8 +52,7 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
     public ResponseEntity allocateNssi(NssmfAdapterNBIRequest request) {
         try {
 
-            if (StringUtils.isNotBlank(
-                    request.getServiceInfo().getNssiId())) {
+            if (StringUtils.isNotBlank(request.getServiceInfo().getNssiId())) {
                 return buildResponse(buildNssmfManager(request, ActionType.MODIFY).modifyNssi(request));
             }
 
@@ -67,7 +66,8 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
     @Override
     public ResponseEntity deAllocateNssi(NssmfAdapterNBIRequest request, String sliceProfileId) {
         try {
-            return buildResponse(buildNssmfManager(request, ActionType.DEALLOCATE).deAllocateNssi(request, sliceProfileId));
+            return buildResponse(
+                    buildNssmfManager(request, ActionType.DEALLOCATE).deAllocateNssi(request, sliceProfileId));
         } catch (ApplicationException e) {
             return e.buildErrorResponse();
         }
@@ -94,8 +94,7 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
     @Override
     public ResponseEntity queryJobStatus(NssmfAdapterNBIRequest jobReq, String jobId) {
         try {
-            return buildResponse(
-                    buildNssmfManager(jobReq, ActionType.QUERY_JOB_STATUS).queryJobStatus(jobReq, jobId));
+            return buildResponse(buildNssmfManager(jobReq, ActionType.QUERY_JOB_STATUS).queryJobStatus(jobReq, jobId));
         } catch (ApplicationException e) {
             return e.buildErrorResponse();
         }
@@ -116,8 +115,8 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
     public ResponseEntity querySubnetCapability(NssmfAdapterNBIRequest nbiRequest) {
         EsrInfo esrInfo = nbiRequest.getEsrInfo();
         try {
-            return buildResponse(buildNssmfManager(esrInfo, ActionType.QUERY_JOB_STATUS, null)
-                    .querySubnetCapability(nbiRequest));
+            return buildResponse(
+                    buildNssmfManager(esrInfo, ActionType.QUERY_JOB_STATUS, null).querySubnetCapability(nbiRequest));
         } catch (ApplicationException e) {
             return e.buildErrorResponse();
         }
@@ -136,12 +135,7 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
     private NssmfManager buildNssmfManager(EsrInfo esrInfo, ActionType actionType, ServiceInfo serviceInfo)
             throws ApplicationException {
 
-        return new NssmfManagerBuilder(esrInfo)
-                .setActionType(actionType)
-                .setRepository(repository)
-                .setRestUtil(restUtil)
-                .setAdapterConfig(nssmfAdapterConfig)
-                .setServiceInfo(serviceInfo)
-                .build();
+        return new NssmfManagerBuilder(esrInfo).setActionType(actionType).setRepository(repository)
+                .setRestUtil(restUtil).setAdapterConfig(nssmfAdapterConfig).setServiceInfo(serviceInfo).build();
     }
 }

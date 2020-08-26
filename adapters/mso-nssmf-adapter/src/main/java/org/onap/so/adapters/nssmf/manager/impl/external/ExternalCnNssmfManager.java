@@ -51,8 +51,4 @@ public class ExternalCnNssmfManager extends ExternalNssmfManager {
         return SelectionType.NSMF;
     }
 
-    @Override
-    protected void afterRequest() {
-        //
-    }
 }

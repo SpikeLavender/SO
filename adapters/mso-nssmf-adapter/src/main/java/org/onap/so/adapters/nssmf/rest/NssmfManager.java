@@ -133,18 +133,17 @@ public class NssmfManager {
             case TRANSPORT:
                 AllocateTnNssi tn = nssmiAllocate.getAllocateTnNssi();
                 assertObjectNotNull(tn);
-//                assertObjectNotNull(tn.getNsiInfo());
-//                assertObjectNotNull(tn.getNsiInfo().getNsiId());
-//                nsiId = tn.getNsiInfo().getNsiId();
+                // assertObjectNotNull(tn.getNsiInfo());
+                // assertObjectNotNull(tn.getNsiInfo().getNsiId());
+                // nsiId = tn.getNsiInfo().getNsiId();
                 allocateReq = marshal(tn);
-//                allocateUrl = AllocateTnNssi.URL;
+                // allocateUrl = AllocateTnNssi.URL;
                 break;
 
         }
 
         /**
-         * 内部的，调用 workflow
-         * 外部的，访问第三方api
+         * 内部的，调用 workflow 外部的，访问第三方api
          */
         RestResponse rsp = restUtil.sendRequest(allocateUrl, POST, allocateReq, nssmiAllocate.getEsrInfo());
         assertObjectNotNull(rsp);
@@ -160,7 +159,6 @@ public class NssmfManager {
         }
         return rsp;
     }
-
 
 
 

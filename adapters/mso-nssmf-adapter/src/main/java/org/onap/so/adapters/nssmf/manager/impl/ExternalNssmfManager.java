@@ -27,11 +27,11 @@ import org.onap.so.adapters.nssmf.entity.NssmfInfo;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.enums.JobStatus;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
+import org.onap.so.adapters.nssmf.util.NssmfAdapterUtil;
 import org.onap.so.beans.nsmf.*;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import static java.lang.String.valueOf;
 import static org.onap.so.adapters.nssmf.enums.JobStatus.*;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.*;
@@ -57,7 +57,7 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
     protected abstract String doWrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException;
 
     @Override
-    protected String wrapDeAllocateReqBody(DeAllocateNssi deAllocateNssi) throws ApplicationException{
+    protected String wrapDeAllocateReqBody(DeAllocateNssi deAllocateNssi) throws ApplicationException {
         return doWrapDeAllocateReqBody(deAllocateNssi);
     }
 
@@ -65,13 +65,13 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
 
     @Override
     protected void afterQueryJobStatus(ResourceOperationStatus status) {
-        if(Integer.parseInt(status.getProgress()) == 100){
+        if (Integer.parseInt(status.getProgress()) == 100) {
 
             ServiceInstance nssiInstance = new ServiceInstance();
             nssiInstance.setServiceInstanceId(serviceInfo.getNssiId());
             nssiInstance.setServiceInstanceName(serviceInfo.getNssiName());
             nssiInstance.setServiceType(serviceInfo.getSST());
-            //todo: 状态
+
             nssiInstance.setOrchestrationStatus(initStatus);
             nssiInstance.setModelInvariantId(serviceInfo.getServiceInvariantUuid());
             nssiInstance.setModelVersionId(serviceInfo.getServiceUuid());
@@ -90,7 +90,7 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
         return marshal(actDeActNssi);
     }
 
-    protected RestResponse doQueryJobStatus(ResourceOperationStatus status) throws ApplicationException{
+    protected RestResponse doQueryJobStatus(ResourceOperationStatus status) throws ApplicationException {
         return doResponseStatus(status);
     }
 
@@ -112,19 +112,15 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
         return sendExternalRequest(content);
     }
 
-    @Override
-    protected void handleResponse(RestResponse restResponse, String nsiId) throws ApplicationException {
-        createStatus(restResponse, nsiId, serviceInfo.getServiceUuid());
-    }
-
-    private void createStatus(RestResponse restResponse, String nsiId, String serviceUuid) throws ApplicationException {
+    protected void createStatus(JobStatus jobStatus) throws ApplicationException {
         if (valueOf(restResponse.getStatus()).startsWith("2")) {
             logger.info("save segment and operaton info -> begin");
             NssiResponse response = unMarshal(restResponse.getResponseContent(), NssiResponse.class);
-            ResourceOperationStatus status = new ResourceOperationStatus(nsiId, response.getJobId(), serviceUuid);
+            ResourceOperationStatus status = new ResourceOperationStatus(serviceInfo.getNsiId(),
+                    response.getJobId(), serviceInfo.getServiceUuid());
             status.setResourceInstanceID(response.getNssiId());
 
-            updateDbStatus(status, restResponse.getStatus(), STARTED, ALLOCATE_NSS_SUCCESS);
+            updateDbStatus(status, restResponse.getStatus(), jobStatus, NssmfAdapterUtil.getStatusDesc(actionType));
             logger.info("save segment and operaton info -> end");
         }
     }
@@ -164,8 +160,8 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
         }
     }
 
-    private void updateDbStatus(ResourceOperationStatus status, int rspStatus, JobStatus jobStatus,
-                                String description) {
+    protected void updateDbStatus(ResourceOperationStatus status, int rspStatus, JobStatus jobStatus,
+            String description) {
         status.setErrorCode(valueOf(rspStatus));
         status.setStatus(jobStatus.toString());
         status.setStatusDescription(description);
@@ -180,5 +176,26 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
         response.setStatus(200);
         response.setResponseContent(null);
         return response;
+    }
+
+    /**
+     * after request, if response code is 2XX, continue handle, else return
+     */
+    @Override
+    protected void afterRequest() throws ApplicationException {
+        if (valueOf(restResponse.getStatus()).startsWith("2")) {
+            doAfterRequest();
+        }
+    }
+
+
+    protected void doAfterRequest() throws ApplicationException {
+        //
+        NssiResponse response = unMarshal(restResponse.getResponseContent(), NssiResponse.class);
+        ResourceOperationStatus status = new ResourceOperationStatus(serviceInfo.getNsiId(),
+                response.getJobId(), serviceInfo.getServiceUuid());
+        status.setResourceInstanceID(response.getNssiId());
+
+        updateDbStatus(status, restResponse.getStatus(), STARTED, NssmfAdapterUtil.getStatusDesc(actionType));
     }
 }

@@ -72,17 +72,13 @@ public class NssmfManagerBuilder {
         }
 
         if (ExecutorType.EXTERNAL.equals(executorType) && NetworkType.CORE.equals(networkType)) {
-            this.nssmfManger = new ExternalCnNssmfManager()
-                    .setEsrInfo(esrInfo)
-                    .setExecutorType(executorType)
+            this.nssmfManger = new ExternalCnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType)
                     .setInitStatus("deactivated");
             return;
         }
 
         if (ExecutorType.EXTERNAL.equals(executorType) && NetworkType.ACCESS.equals(networkType)) {
-            this.nssmfManger = new ExternalAnNssmfManager()
-                    .setEsrInfo(esrInfo)
-                    .setExecutorType(executorType)
+            this.nssmfManger = new ExternalAnNssmfManager().setEsrInfo(esrInfo).setExecutorType(executorType)
                     .setInitStatus("activated");
             return;
         }
@@ -123,10 +119,7 @@ public class NssmfManagerBuilder {
     }
 
     public NssmfManager build() {
-        return this.nssmfManger.setRestUtil(restUtil)
-                .setAdapterConfig(adapterConfig)
-                .setRepository(repository)
-                .setActionType(actionType)
-                .setServiceInfo(serviceInfo);
+        return this.nssmfManger.setRestUtil(restUtil).setAdapterConfig(adapterConfig).setRepository(repository)
+                .setActionType(actionType).setServiceInfo(serviceInfo);
     }
 }

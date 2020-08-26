@@ -22,16 +22,15 @@ package org.onap.so.adapters.nssmf.manager.impl;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
-import org.onap.so.adapters.nssmf.config.NssmfAdapterConfig;
 import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
+import org.onap.so.adapters.nssmf.enums.JobStatus;
 import org.onap.so.adapters.nssmf.enums.SelectionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.beans.nsmf.*;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import static org.onap.so.adapters.nssmf.enums.JobStatus.PROCESSING;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 
@@ -87,8 +86,7 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
     }
 
     @Override
-    protected RestResponse sendRequest(String content) throws ApplicationException {
-        // todo: read from config
+    protected RestResponse sendRequest(String content) {
         return sendInternalRequest(content);
     }
 
@@ -99,17 +97,11 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
 
     @Override
     protected void afterQueryJobStatus(ResourceOperationStatus status) {
-        //internal
-    }
-
-    @Override
-    protected void handleResponse(RestResponse restResponse, String nsiId) throws ApplicationException {
-        // 不用处理
+        // internal
     }
 
     // internal
     private RestResponse sendInternalRequest(String content) {
-        // todo: read from config
         Header header = new BasicHeader("X-Auth-Token", adapterConfig.getInfraAuth());
         this.nssmfUrl = adapterConfig.getInfraEndpoint() + this.nssmfUrl;
         return restUtil.send(this.nssmfUrl, this.httpMethod, content, header);
@@ -135,7 +127,7 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
 
     @Override
     protected RestResponse doQuerySubnetCapability(String req) throws ApplicationException {
-        //handler
+        // handler
         return sendRequest(req);
     }
 }

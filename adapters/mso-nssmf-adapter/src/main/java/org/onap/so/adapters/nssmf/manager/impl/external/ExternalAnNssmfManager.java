@@ -22,18 +22,19 @@ package org.onap.so.adapters.nssmf.manager.impl.external;
 
 import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.enums.ActionType;
+import org.onap.so.adapters.nssmf.enums.JobStatus;
 import org.onap.so.adapters.nssmf.enums.SelectionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.manager.impl.ExternalNssmfManager;
+import org.onap.so.adapters.nssmf.util.NssmfAdapterUtil;
 import org.onap.so.beans.nsmf.DeAllocateNssi;
+import org.onap.so.beans.nsmf.NssiResponse;
 import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
+import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-
 import java.util.HashMap;
 import java.util.Map;
-
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.unMarshal;
 
@@ -48,44 +49,55 @@ public class ExternalAnNssmfManager extends ExternalNssmfManager {
     }
 
     @Override
-    protected void afterRequest() throws ApplicationException {
+    protected void doAfterRequest() throws ApplicationException {
         if (ActionType.ALLOCATE.equals(actionType) || ActionType.DEALLOCATE.equals(actionType)) {
             @SuppressWarnings("unchecked")
-            Map<String,String> response = unMarshal(restResponse.getResponseContent(), Map.class);
+            Map<String, String> response = unMarshal(restResponse.getResponseContent(), Map.class);
+
+            String nssiId = response.get("nSSId");
+
+            NssiResponse resp = new NssiResponse();
+            resp.setJobId(nssiId);
+            resp.setNssiId(nssiId);
 
             RestResponse returnRsp = new RestResponse();
-            Map<String,String> rsp = new HashMap<>();
-            rsp.put("nSSId",response.get("nSSId"));
-            rsp.put("jobId",response.get("nSSId"));
+
             returnRsp.setStatus(202);
-            returnRsp.setResponseContent(marshal(rsp));
+            returnRsp.setResponseContent(marshal(resp));
             restResponse = returnRsp;
+
+            ResourceOperationStatus status = new ResourceOperationStatus(serviceInfo.getNsiId(),
+                    nssiId, serviceInfo.getServiceUuid());
+            status.setResourceInstanceID(nssiId);
+
+            updateDbStatus(status, restResponse.getStatus(), JobStatus.FINISHED, NssmfAdapterUtil.getStatusDesc(actionType));
         }
-        //todo
+        // todo
     }
 
     @Override
     protected String doWrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
-        //TODO
+        // TODO
         return null;
     }
 
     @Override
-    protected String doWrapDeAllocateReqBody(DeAllocateNssi deAllocateNssi) throws ApplicationException{
-        Map<String,String> request = new HashMap<>();
+    protected String doWrapDeAllocateReqBody(DeAllocateNssi deAllocateNssi) throws ApplicationException {
+        Map<String, String> request = new HashMap<>();
         request.put("nSSId", deAllocateNssi.getNssiId());
         return marshal(request);
     }
 
 
     @Override
-    public RestResponse modifyNssi(NssmfAdapterNBIRequest modifyRequest) throws ApplicationException{
-        //TODO
+    public RestResponse modifyNssi(NssmfAdapterNBIRequest modifyRequest) throws ApplicationException {
+        // TODO
         return null;
     }
+
     @Override
     public RestResponse activateNssi(NssmfAdapterNBIRequest nbiRequest, String snssai) throws ApplicationException {
-        //TODO
+        // TODO
         return null;
     }
 

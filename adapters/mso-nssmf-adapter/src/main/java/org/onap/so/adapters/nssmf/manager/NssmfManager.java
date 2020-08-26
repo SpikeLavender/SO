@@ -40,5 +40,5 @@ public interface NssmfManager {
 
     RestResponse querySubnetCapability(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException;
 
-    RestResponse modifyNssi(NssmfAdapterNBIRequest modifyRequest) throws ApplicationException;;
+    RestResponse modifyNssi(NssmfAdapterNBIRequest modifyRequest) throws ApplicationException;
 }

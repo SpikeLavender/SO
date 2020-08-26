@@ -23,10 +23,8 @@ package org.onap.so.adapters.nssmf.manager.impl.internal;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.manager.impl.InternalNssmfManager;
 import org.onap.so.beans.nsmf.*;
-
 import java.util.HashMap;
 import java.util.Map;
-
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 
 
@@ -34,8 +32,8 @@ public class InternalAnNssmfManager extends InternalNssmfManager {
 
     @Override
     protected String doWrapAllocateReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
-        NssmfRequest request = new NssmfRequest(serviceInfo, nbiRequest.getEsrInfo().getNetworkType(),
-                nbiRequest.getAllocateAnNssi());
+        NssmfRequest request =
+                new NssmfRequest(serviceInfo, nbiRequest.getEsrInfo().getNetworkType(), nbiRequest.getAllocateAnNssi());
         request.setName(nbiRequest.getAllocateAnNssi().getNssiName());
         return marshal(request);
     }
@@ -44,7 +42,7 @@ public class InternalAnNssmfManager extends InternalNssmfManager {
     protected String doWrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
         AllocateAnNssi allocateAnNssi = nbiRequest.getAllocateAnNssi();
         AnSliceProfile sliceProfile = allocateAnNssi.getSliceProfile();
-        Map<String,Object> additional = new HashMap<>();
+        Map<String, Object> additional = new HashMap<>();
         additional.put("modifyAction", "allocate");
         additional.put("snssaiList", sliceProfile.getSNSSAIList());
         additional.put("sliceProfileId", sliceProfile.getSliceProfileId());
