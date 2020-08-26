@@ -21,6 +21,7 @@
 package org.onap.so.adapters.nssmf.service.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.onap.so.adapters.nssmf.config.NssmfAdapterConfig;
 import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.manager.NssmfManagerBuilder;
@@ -43,6 +44,9 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
 
     @Autowired
     private ResourceOperationStatusRepository repository;
+
+    @Autowired
+    private NssmfAdapterConfig nssmfAdapterConfig;
 
     @Override
     public ResponseEntity allocateNssi(NssmfAdapterNBIRequest request) {
@@ -131,7 +135,13 @@ public class NssmfManagerServiceImpl implements NssmfManagerService {
 
     private NssmfManager buildNssmfManager(EsrInfo esrInfo, ActionType actionType, ServiceInfo serviceInfo)
             throws ApplicationException {
-        return new NssmfManagerBuilder(esrInfo).setActionType(actionType).setRepository(repository)
-                .setRestUtil(restUtil).setServiceInfo(serviceInfo).build();
+
+        return new NssmfManagerBuilder(esrInfo)
+                .setActionType(actionType)
+                .setRepository(repository)
+                .setRestUtil(restUtil)
+                .setAdapterConfig(nssmfAdapterConfig)
+                .setServiceInfo(serviceInfo)
+                .build();
     }
 }

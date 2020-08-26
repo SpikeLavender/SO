@@ -174,8 +174,10 @@ public class NssmfManagerServiceImplTest {
 
         createCommonMock(200, nssmf);
 
+
         NssmfAdapterNBIRequest nbiRequest = createAllocateNssi();
         assertNotNull(nbiRequest);
+        System.out.println(marshal(nbiRequest));
         ResponseEntity res = nssiManagerService.allocateNssi(nbiRequest);
         assertNotNull(res);
         assertNotNull(res.getBody());

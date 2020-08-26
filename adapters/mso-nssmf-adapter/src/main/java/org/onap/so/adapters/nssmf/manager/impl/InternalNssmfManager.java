@@ -22,6 +22,7 @@ package org.onap.so.adapters.nssmf.manager.impl;
 
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
+import org.onap.so.adapters.nssmf.config.NssmfAdapterConfig;
 import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.enums.SelectionType;
@@ -109,8 +110,8 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
     // internal
     private RestResponse sendInternalRequest(String content) {
         // todo: read from config
-        Header header = new BasicHeader("X-Auth-Token", "");
-        this.nssmfUrl = "" + this.nssmfUrl;
+        Header header = new BasicHeader("X-Auth-Token", adapterConfig.getInfraAuth());
+        this.nssmfUrl = adapterConfig.getInfraEndpoint() + this.nssmfUrl;
         return restUtil.send(this.nssmfUrl, this.httpMethod, content, header);
     }
 

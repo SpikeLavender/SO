@@ -20,6 +20,7 @@
 
 package org.onap.so.adapters.nssmf.manager;
 
+import org.onap.so.adapters.nssmf.config.NssmfAdapterConfig;
 import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.enums.ExecutorType;
@@ -47,6 +48,8 @@ public class NssmfManagerBuilder {
     private ResourceOperationStatusRepository repository;
 
     private ServiceInfo serviceInfo;
+
+    private NssmfAdapterConfig adapterConfig;
 
     public NssmfManagerBuilder(EsrInfo esrInfo) throws ApplicationException {
 
@@ -114,8 +117,16 @@ public class NssmfManagerBuilder {
         return this;
     }
 
+    public NssmfManagerBuilder setAdapterConfig(NssmfAdapterConfig adapterConfig) {
+        this.adapterConfig = adapterConfig;
+        return this;
+    }
+
     public NssmfManager build() {
-        return this.nssmfManger.setRestUtil(restUtil).setRepository(repository).setActionType(actionType)
+        return this.nssmfManger.setRestUtil(restUtil)
+                .setAdapterConfig(adapterConfig)
+                .setRepository(repository)
+                .setActionType(actionType)
                 .setServiceInfo(serviceInfo);
     }
 }

@@ -20,6 +20,7 @@
 
 package org.onap.so.adapters.nssmf.manager.impl;
 
+import org.onap.so.adapters.nssmf.config.NssmfAdapterConfig;
 import org.onap.so.adapters.nssmf.consts.NssmfAdapterConsts;
 import org.onap.so.adapters.nssmf.entity.NssmfUrlInfo;
 import org.onap.so.adapters.nssmf.enums.ActionType;
@@ -49,6 +50,8 @@ public abstract class BaseNssmfManager implements NssmfManager {
     protected RestUtil restUtil;
 
     protected ResourceOperationStatusRepository repository;
+
+    protected NssmfAdapterConfig adapterConfig;
 
     protected ActionType actionType;
 
@@ -271,6 +274,11 @@ public abstract class BaseNssmfManager implements NssmfManager {
 
     public BaseNssmfManager setInitStatus(String initStatus) {
         this.initStatus = initStatus;
+        return this;
+    }
+
+    public BaseNssmfManager setAdapterConfig(NssmfAdapterConfig adapterConfig) {
+        this.adapterConfig = adapterConfig;
         return this;
     }
 }
