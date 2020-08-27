@@ -20,11 +20,13 @@
 
 package org.onap.so.adapters.nssmf.service;
 
+import org.onap.so.adapters.nssmf.annotation.NssmfLogger;
 import org.onap.so.beans.nsmf.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
+@NssmfLogger
 public interface NssmfManagerService {
     ResponseEntity allocateNssi(NssmfAdapterNBIRequest allocateRequest);
 
