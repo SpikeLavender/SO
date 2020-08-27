@@ -21,16 +21,18 @@
 package org.onap.so.adapters.nssmf.service.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.onap.so.adapters.nssmf.annotation.NssmfLogger;
+import org.onap.so.adapters.nssmf.annotation.ServiceLogger;
 import org.onap.so.adapters.nssmf.config.NssmfAdapterConfig;
+import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
-import org.onap.so.adapters.nssmf.manager.NssmfManagerBuilder;
-import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.manager.NssmfManager;
+import org.onap.so.adapters.nssmf.manager.NssmfManagerBuilder;
 import org.onap.so.adapters.nssmf.service.NssmfManagerService;
 import org.onap.so.adapters.nssmf.util.RestUtil;
-import org.onap.so.beans.nsmf.*;
+import org.onap.so.beans.nsmf.EsrInfo;
+import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
+import org.onap.so.beans.nsmf.ServiceInfo;
 import org.onap.so.db.request.data.repository.ResourceOperationStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +40,7 @@ import org.springframework.stereotype.Service;
 
 
 @Service
-@NssmfLogger
+@ServiceLogger
 public class NssmfManagerServiceImpl implements NssmfManagerService {
 
     @Autowired

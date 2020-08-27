@@ -20,10 +20,6 @@
 
 package org.onap.so.adapters.nssmf.util;
 
-import javax.net.ssl.*;
-import javax.ws.rs.core.UriBuilder;
-import java.net.SocketTimeoutException;
-import java.net.URI;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -36,25 +32,31 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.onap.aai.domain.yang.*;
-import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
-import org.onap.so.adapters.nssmf.extclients.aai.AaiServiceProvider;
+import org.onap.so.adapters.nssmf.entity.NssmfInfo;
+import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.entity.TokenRequest;
 import org.onap.so.adapters.nssmf.entity.TokenResponse;
 import org.onap.so.adapters.nssmf.enums.HttpMethod;
-import org.onap.so.adapters.nssmf.entity.NssmfInfo;
-import org.onap.so.adapters.nssmf.entity.RestResponse;
+import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
+import org.onap.so.adapters.nssmf.extclients.aai.AaiServiceProvider;
 import org.onap.so.beans.nsmf.EsrInfo;
 import org.onap.so.beans.nsmf.ServiceInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.core.UriBuilder;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
-import static org.onap.so.adapters.nssmf.enums.HttpMethod.POST;
-import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.BAD_REQUEST;
-import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
-import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.unMarshal;
 import static org.onap.logging.filter.base.ErrorCode.AvailabilityError;
+import static org.onap.so.adapters.nssmf.enums.HttpMethod.POST;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.*;
 import static org.onap.so.logger.LoggingAnchor.FOUR;
 import static org.onap.so.logger.MessageEnum.RA_NS_EXC;
 
@@ -204,7 +206,7 @@ public class RestUtil {
     }
 
     private HttpRequestBase getHttpReq(String url, HttpMethod method, Header header, RequestConfig config,
-            String content) throws ApplicationException {
+                                       String content) throws ApplicationException {
         HttpRequestBase base;
         switch (method) {
             case POST:

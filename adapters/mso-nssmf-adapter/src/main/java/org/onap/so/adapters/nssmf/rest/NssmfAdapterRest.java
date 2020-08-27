@@ -22,11 +22,7 @@ package org.onap.so.adapters.nssmf.rest;
 
 import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
-import org.onap.so.beans.nsmf.JobStatusRequest;
-import org.onap.so.beans.nsmf.NssiActDeActRequest;
-import org.onap.so.beans.nsmf.NssiAllocateRequest;
 import org.onap.so.beans.nsmf.NssiCreateRequest;
-import org.onap.so.beans.nsmf.NssiDeAllocateRequest;
 import org.onap.so.beans.nsmf.NssiTerminateRequest;
 import org.onap.so.beans.nsmf.NssiUpdateRequest;
 import org.onap.so.beans.nsmf.NssiUpdateRequestById;
@@ -35,12 +31,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
+
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.assertObjectNotNull;
 

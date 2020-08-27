@@ -25,6 +25,7 @@ import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.enums.ExecutorType;
 import org.onap.so.adapters.nssmf.enums.HttpMethod;
 import org.onap.so.beans.nsmf.NetworkType;
+
 import java.util.HashMap;
 import java.util.Map;
 

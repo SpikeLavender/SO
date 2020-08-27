@@ -18,27 +18,19 @@
  * ============LICENSE_END=========================================================
  */
 
-package org.onap.so.adapters.nssmf.manager.impl.internal;
+package org.onap.so.adapters.nssmf.annotation;
 
-import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
-import org.onap.so.adapters.nssmf.manager.impl.InternalNssmfManager;
-import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
-import org.onap.so.beans.nsmf.NssmfRequest;
 
-import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class InternalTnNssmfManager extends InternalNssmfManager {
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface ServiceLogger {
 
-    @Override
-    protected String doWrapAllocateReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
+    String value() default "";
 
-        return marshal(new NssmfRequest(serviceInfo, nbiRequest.getEsrInfo().getNetworkType(),
-                nbiRequest.getAllocateTnNssi()));
-    }
-
-    @Override
-    protected String doWrapModifyReqBody(NssmfAdapterNBIRequest nbiRequest) throws ApplicationException {
-        // TODO
-        return null;
-    }
+    boolean ignore() default false;
 }

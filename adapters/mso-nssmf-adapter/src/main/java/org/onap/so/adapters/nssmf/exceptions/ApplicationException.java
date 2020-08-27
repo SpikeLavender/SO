@@ -22,6 +22,7 @@ package org.onap.so.adapters.nssmf.exceptions;
 
 import org.onap.so.adapters.nssmf.entity.ErrorResponse;
 import org.springframework.http.ResponseEntity;
+
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 
 public class ApplicationException extends Exception {
