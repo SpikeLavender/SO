@@ -20,9 +20,9 @@
 
 package org.onap.so.adapters.nssmf.manager;
 
-import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
-import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
+import org.onap.so.adapters.nssmf.entity.RestResponse;
+import org.onap.so.beans.nsmf.*;
 
 public interface NssmfManager {
 

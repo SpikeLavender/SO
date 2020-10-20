@@ -27,10 +27,12 @@ import org.onap.aai.domain.yang.ServiceInstance
 import org.onap.so.bpmn.common.scripts.AbstractServiceTaskProcessor
 import org.onap.so.bpmn.common.scripts.ExceptionUtil
 import org.onap.so.bpmn.core.json.JsonUtils
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.AAIResourcesClient
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.AAIResourcesClient
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -123,12 +125,7 @@ class DoCreateCommunicationService extends AbstractServiceTaskProcessor{
 
             execution.setVariable("communicationServiceInstanceProfile", csp)
 
-            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.COMMUNICATION_SERVICE_PROFILE,
-                    globalSubscriberId,
-                    subscriptionServiceType,
-                    serviceInstanceId,
-                    profileId
-            )
+            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business().customer(globalSubscriberId).serviceSubscription(subscriptionServiceType).serviceInstance(serviceInstanceId).communicationServiceProfile(profileId))
             client.create(uri, csp)
 
 
@@ -158,11 +155,11 @@ class DoCreateCommunicationService extends AbstractServiceTaskProcessor{
             String sNSSAI_id = generateNSSAI(serviceInstanceId)
 
             execution.setVariable("sNSSAI_id", sNSSAI_id)
-            // 创建service
+            // create communication service
             String serviceInstanceName = execution.getVariable("serviceInstanceName")
             String subscriptionServiceType = execution.getVariable("subscriptionServiceType")
             String csServiceType = execution.getVariable("csServiceType")
-            String aaiServiceRole = "communication-service" //待确定
+            String aaiServiceRole = "communication-service"
 
             String oStatus = "processing"
             String uuiRequest = execution.getVariable("uuiRequest")
@@ -188,7 +185,7 @@ class DoCreateCommunicationService extends AbstractServiceTaskProcessor{
 
             execution.setVariable("communicationServiceInstance", csi)
 
-            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE, globalSubscriberId, subscriptionServiceType, serviceInstanceId)
+            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business().customer(globalSubscriberId).serviceSubscription(subscriptionServiceType).serviceInstance(serviceInstanceId))
             client.create(uri, csi)
 
         } catch (BpmnError e) {

@@ -26,6 +26,13 @@ import org.camunda.bpm.engine.delegate.BpmnError
 import org.camunda.bpm.engine.delegate.DelegateExecution
 import org.json.JSONArray
 import org.json.JSONObject
+import org.onap.aaiclient.client.aai.*
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper
+import org.onap.aaiclient.client.aai.entities.Relationships
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 import org.onap.appc.client.lcm.model.Action
 import org.onap.appc.client.lcm.model.ActionIdentifiers
 import org.onap.appc.client.lcm.model.Flags
@@ -39,11 +46,6 @@ import org.onap.so.bpmn.core.domain.ModelInfo
 import org.onap.so.bpmn.core.domain.ServiceDecomposition
 import org.onap.so.bpmn.core.domain.VnfResource
 import org.onap.so.bpmn.core.json.JsonUtils
-import org.onap.so.client.aai.*
-import org.onap.so.client.aai.entities.AAIResultWrapper
-import org.onap.so.client.aai.entities.Relationships
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
 import org.onap.so.client.appc.ApplicationControllerClient
 import org.onap.so.client.appc.ApplicationControllerSupport
 import org.onap.so.logger.MessageEnum
@@ -217,7 +219,7 @@ public abstract class VnfCmBase extends AbstractServiceTaskProcessor {
             logger.debug("cloudRegionId is: {}", cloudRegionId)
 			
 			AAIResourcesClient client = new AAIResourcesClient()
-			AAIResourceUri genericVnfUri = AAIUriFactory.createResourceUri(AAIObjectType.GENERIC_VNF, vnfId)
+			AAIResourceUri genericVnfUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf(vnfId))
 			// Check if this VNF exists
 			if (!client.exists(genericVnfUri)) {
                 logger.debug("VNF with vnfId {} does not exist in A&AI", vnfId)
@@ -242,13 +244,13 @@ public abstract class VnfCmBase extends AbstractServiceTaskProcessor {
 				Relationships relationships = aaiRW.getRelationships().get()
 				if (relationships != null) {
 						
-					List<AAIResourceUri> vserverUris = relationships.getRelatedAAIUris(AAIObjectType.VSERVER)
+					List<AAIResourceUri> vserverUris = relationships.getRelatedUris(Types.VSERVER)
 					JSONArray vserverIds = new JSONArray()
 					JSONArray vserverSelfLinks = new JSONArray()
 				
 					for (AAIResourceUri j in vserverUris) {
 						
-						String vserverId = j.getURIKeys().get('vserver-id')
+						String vserverId = j.getURIKeys().get(AAIFluentTypeBuilder.Types.VSERVER.getUriParams().vserverId)
 						String vserverJson = client.get(j).getJson()
                         logger.debug("Retrieved vserverJson from AAI: {}", vserverJson)
 						String vserverSelfLink = jsonUtils.getJsonValue(vserverJson, "vserver-selflink")
@@ -435,7 +437,7 @@ public abstract class VnfCmBase extends AbstractServiceTaskProcessor {
 			def vnfId = execution.getVariable("vnfId")
             logger.debug("vnfId is: {}", vnfId)
 			AAIResourcesClient client = new AAIResourcesClient()
-			AAIResourceUri genericVnfUri = AAIUriFactory.createResourceUri(AAIObjectType.GENERIC_VNF, vnfId)
+			AAIResourceUri genericVnfUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf(vnfId))
 			AAIResultWrapper aaiRW = client.get(genericVnfUri)
 			Map<String, Object> result = aaiRW.asMap()
 			boolean isClosedLoopDisabled = result.getOrDefault("is-closed-loop-disabled", false)
@@ -487,7 +489,7 @@ public abstract class VnfCmBase extends AbstractServiceTaskProcessor {
 			def transactionLoggingUuid = UUID.randomUUID().toString()
 			def vnfId = execution.getVariable("vnfId")
 			AAIResourcesClient client = new AAIResourcesClient()
-			AAIResourceUri genericVnfUri = AAIUriFactory.createResourceUri(AAIObjectType.GENERIC_VNF, vnfId)
+			AAIResourceUri genericVnfUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf(vnfId))
 			
 			Map<String, Boolean> request = new HashMap<>()
 			request.put("is-closed-loop-disabled", setDisabled)

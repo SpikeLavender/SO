@@ -25,7 +25,6 @@ import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.manager.impl.ExternalNssmfManager;
 import org.onap.so.beans.nsmf.DeAllocateNssi;
 import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
-
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 
 public class ExternalCnNssmfManager extends ExternalNssmfManager {

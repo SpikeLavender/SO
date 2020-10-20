@@ -133,7 +133,6 @@ public class OrchestrationRequestsTest extends BaseTest {
         testResponse.getRequest().setRequestProcessingData(new ArrayList<RequestProcessingData>());
         RequestProcessingData e = new RequestProcessingData();
         e.setGroupingId("7d2e8c07-4d10-456d-bddc-37abf38ca714");
-        e.setTag("pincFabricConfigRequest");
         List<HashMap<String, String>> data = new ArrayList<HashMap<String, String>>();
         HashMap<String, String> data1 = new HashMap<String, String>();
         data1.put("requestAction", "assign");
@@ -210,7 +209,6 @@ public class OrchestrationRequestsTest extends BaseTest {
         testResponse.getRequest().setRequestProcessingData(new ArrayList<RequestProcessingData>());
         RequestProcessingData e = new RequestProcessingData();
         e.setGroupingId("7d2e8c07-4d10-456d-bddc-37abf38ca714");
-        e.setTag("pincFabricConfigRequest");
         List<HashMap<String, String>> data = new ArrayList<HashMap<String, String>>();
         HashMap<String, String> data1 = new HashMap<String, String>();
         data1.put("requestAction", "assign");
@@ -256,7 +254,6 @@ public class OrchestrationRequestsTest extends BaseTest {
         testResponse.getRequest().setRequestProcessingData(new ArrayList<RequestProcessingData>());
         RequestProcessingData e = new RequestProcessingData();
         e.setGroupingId("7d2e8c07-4d10-456d-bddc-37abf38ca714");
-        e.setTag("pincFabricConfigRequest");
         List<HashMap<String, String>> data = new ArrayList<HashMap<String, String>>();
         HashMap<String, String> data1 = new HashMap<String, String>();
         data1.put("requestAction", "assign");
@@ -338,7 +335,6 @@ public class OrchestrationRequestsTest extends BaseTest {
 
         Map<String, List<String>> orchestrationMap = new HashMap<>();
         orchestrationMap.put("modelType", values);
-        List<GetOrchestrationResponse> testResponses = new ArrayList<>();
 
         List<InfraActiveRequests> requests = requestsDbClient.getOrchestrationFiltersFromInfraActive(orchestrationMap);
         HttpHeaders headers = new HttpHeaders();
@@ -430,7 +426,6 @@ public class OrchestrationRequestsTest extends BaseTest {
     public void testUnlockOrchestrationRequest_Valid_Status()
             throws JsonParseException, JsonMappingException, IOException, ValidationException {
         setupTestUnlockOrchestrationRequest_Valid_Status("5ffbabd6-b793-4377-a1ab-082670fbc7ac", "PENDING");
-        ObjectMapper mapper = new ObjectMapper();
         String requestJSON =
                 new String(Files.readAllBytes(Paths.get("src/test/resources/OrchestrationRequest/Request.json")));
         HttpHeaders headers = new HttpHeaders();
@@ -463,13 +458,11 @@ public class OrchestrationRequestsTest extends BaseTest {
         HashMap<String, String> secondExpectedMap = new HashMap<>();
         List<RequestProcessingData> expectedDataList = new ArrayList<>();
         entry.setGroupingId("7d2e8c07-4d10-456d-bddc-37abf38ca714");
-        entry.setTag("pincFabricConfigRequest");
         expectedMap.put("requestAction", "assign");
-        expectedMap.put("pincFabricId", "testId");
+        expectedMap.put("fabricId", "testId");
         expectedList.add(expectedMap);
         entry.setDataPairs(expectedList);
         secondEntry.setGroupingId("7d2e8c07-4d10-456d-bddc-37abf38ca715");
-        secondEntry.setTag("pincFabricConfig");
         secondExpectedMap.put("requestAction", "unassign");
         secondExpectedList.add(secondExpectedMap);
         secondEntry.setDataPairs(secondExpectedList);
@@ -485,7 +478,6 @@ public class OrchestrationRequestsTest extends BaseTest {
         actualProcessingData = orchReq.mapRequestProcessingData(processingData);
         assertThat(actualProcessingData, sameBeanAs(expectedDataList));
     }
-
 
     public void setupTestGetOrchestrationRequest() throws Exception {
         // For testGetOrchestrationRequest

@@ -30,6 +30,9 @@ import org.camunda.bpm.engine.delegate.BpmnError;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.onap.aai.domain.yang.LInterface;
 import org.onap.aai.domain.yang.Vserver;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types;
+import org.onap.aaiclient.client.graphinventory.GraphInventoryCommonObjectMapperProvider;
+import org.onap.logging.filter.base.ErrorCode;
 import org.onap.logging.filter.base.ONAPComponents;
 import org.onap.logging.filter.base.ONAPComponentsList;
 import org.onap.so.bpmn.common.BuildingBlockExecution;
@@ -38,13 +41,11 @@ import org.onap.so.bpmn.core.WorkflowException;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.VfModule;
 import org.onap.so.bpmn.servicedecomposition.entities.ResourceKey;
 import org.onap.so.bpmn.servicedecomposition.tasks.ExtractPojosForBB;
-import org.onap.so.client.aai.AAIObjectType;
-import org.onap.so.client.graphinventory.GraphInventoryCommonObjectMapperProvider;
-import org.onap.logging.filter.base.ErrorCode;
 import org.onap.so.logger.LoggingAnchor;
 import org.onap.so.logger.MessageEnum;
 import org.onap.so.objects.audit.AAIObjectAudit;
 import org.onap.so.objects.audit.AAIObjectAuditList;
+import org.onap.so.utils.Components;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -79,7 +80,7 @@ public class ExceptionBuilder {
             }
 
             logger.error(LoggingAnchor.FIVE, MessageEnum.BPMN_GENERAL_EXCEPTION_ARG.toString(), msg, "BPMN",
-                    ErrorCode.UnknownError.getValue(), msg.toString());
+                    ErrorCode.UnknownError.getValue(), msg);
             execution.setVariable(errorVariable, exception.getMessage());
         } catch (Exception ex) {
             // log trace, allow process to complete gracefully
@@ -112,7 +113,7 @@ public class ExceptionBuilder {
             }
 
             logger.error("{} {} {} {} {}", MessageEnum.BPMN_GENERAL_EXCEPTION_ARG.toString(), msg, "BPMN",
-                    ErrorCode.UnknownError.getValue(), msg.toString());
+                    ErrorCode.UnknownError.getValue(), msg);
             execution.setVariable(errorVariable, exception.getMessage());
         } catch (Exception ex) {
             // log trace, allow process to complete gracefully
@@ -143,7 +144,7 @@ public class ExceptionBuilder {
                 }
             }
             logger.error(LoggingAnchor.FIVE, MessageEnum.BPMN_GENERAL_EXCEPTION_ARG.toString(), msg, "BPMN",
-                    ErrorCode.UnknownError.getValue(), msg.toString());
+                    ErrorCode.UnknownError.getValue(), msg);
             execution.setVariable(errorVariable, exception.getMessage());
         } catch (Exception ex) {
             // log trace, allow process to complete gracefully
@@ -175,7 +176,7 @@ public class ExceptionBuilder {
                 }
             }
             logger.error("{} {} {} {} {}", MessageEnum.BPMN_GENERAL_EXCEPTION_ARG.toString(), msg, "BPMN",
-                    ErrorCode.UnknownError.getValue(), msg.toString());
+                    ErrorCode.UnknownError.getValue(), msg);
             execution.setVariable(errorVariable, exception.getMessage());
         } catch (Exception ex) {
             // log trace, allow process to complete gracefully
@@ -207,26 +208,26 @@ public class ExceptionBuilder {
     }
 
     public void buildAndThrowWorkflowException(DelegateExecution execution, int errorCode, String errorMessage) {
+
+        buildWorkflowException(execution, errorCode, errorMessage);
+        logger.info("Throwing MSOWorkflowException");
+        throw new BpmnError("MSOWorkflowException");
+    }
+
+    public void buildWorkflowException(DelegateExecution execution, int errorCode, String errorMessage) {
         String processKey = getProcessKey(execution);
-        logger.info("Building a WorkflowException for Subflow");
+        logger.info("Building a WorkflowException");
 
         WorkflowException exception = new WorkflowException(processKey, errorCode, errorMessage);
         execution.setVariable("WorkflowException", exception);
         execution.setVariable("WorkflowExceptionErrorMessage", errorMessage);
         logger.info("Outgoing WorkflowException is {}", exception);
-        logger.info("Throwing MSOWorkflowException");
-        throw new BpmnError("MSOWorkflowException");
     }
 
     public void buildAndThrowWorkflowException(DelegateExecution execution, int errorCode, String errorMessage,
             ONAPComponentsList extSystemErrorSource) {
-        String processKey = getProcessKey(execution);
-        logger.info("Building a WorkflowException for Subflow");
 
-        WorkflowException exception = new WorkflowException(processKey, errorCode, errorMessage, extSystemErrorSource);
-        execution.setVariable("WorkflowException", exception);
-        execution.setVariable("WorkflowExceptionErrorMessage", errorMessage);
-        logger.info("Outgoing WorkflowException is {}", exception);
+        buildWorkflowException(execution, errorCode, errorMessage, extSystemErrorSource);
         logger.info("Throwing MSOWorkflowException");
         throw new BpmnError("MSOWorkflowException");
     }
@@ -259,7 +260,7 @@ public class ExceptionBuilder {
 
     public void processAuditException(DelegateExecutionImpl execution, boolean flowShouldContinue) {
         logger.debug("Processing Audit Results");
-        String auditListString = (String) execution.getVariable("auditInventoryResult");
+        String auditListString = execution.getVariable("auditInventoryResult");
         String processKey = getProcessKey(execution.getDelegateExecution());
         if (auditListString != null) {
             StringBuilder errorMessage = new StringBuilder();
@@ -279,20 +280,19 @@ public class ExceptionBuilder {
                         + auditList.getAuditType() + "d in AAI: ");
 
                 Stream<AAIObjectAudit> vServerLInterfaceAuditStream = auditList.getAuditList().stream()
-                        .filter(auditObject -> auditObject.getAaiObjectType().equals(AAIObjectType.VSERVER.typeName())
-                                || auditObject.getAaiObjectType().equals(AAIObjectType.L_INTERFACE.typeName()));
+                        .filter(auditObject -> auditObject.getAaiObjectType().equals(Types.VSERVER.typeName())
+                                || auditObject.getAaiObjectType().equals(Types.L_INTERFACE.typeName()));
                 List<AAIObjectAudit> filteredAuditStream =
                         vServerLInterfaceAuditStream.filter(a -> !a.isDoesObjectExist()).collect(Collectors.toList());
 
                 for (AAIObjectAudit object : filteredAuditStream) {
-                    if (object.getAaiObjectType().equals(AAIObjectType.L_INTERFACE.typeName())) {
+                    if (object.getAaiObjectType().equals(Types.L_INTERFACE.typeName())) {
                         LInterface li = objectMapper.getMapper().convertValue(object.getAaiObject(), LInterface.class);
-                        errorMessage = errorMessage
-                                .append(AAIObjectType.L_INTERFACE.typeName() + " " + li.getInterfaceId() + ", ");
+                        errorMessage =
+                                errorMessage.append(Types.L_INTERFACE.typeName() + " " + li.getInterfaceId() + ", ");
                     } else {
                         Vserver vs = objectMapper.getMapper().convertValue(object.getAaiObject(), Vserver.class);
-                        errorMessage =
-                                errorMessage.append(AAIObjectType.VSERVER.typeName() + " " + vs.getVserverId() + ", ");
+                        errorMessage = errorMessage.append(Types.VSERVER.typeName() + " " + vs.getVserverId() + ", ");
                     }
                 }
 
@@ -303,6 +303,7 @@ public class ExceptionBuilder {
 
             } catch (IOException | BBObjectNotFoundException e) {
                 errorMessage = errorMessage.append("process objects in AAI. ");
+                logger.error("Exception occurred in processAuditException", e);
             }
 
             if (flowShouldContinue) {
@@ -313,7 +314,7 @@ public class ExceptionBuilder {
                 execution.setVariable("WorkflowException", exception);
                 execution.setVariable("WorkflowExceptionErrorMessage", errorMessage.toString());
                 logger.info("Outgoing WorkflowException is {}", exception);
-                logger.info("Throwing MSOWorkflowException");
+                logger.info("Throwing AAIInventoryFailure");
                 throw new BpmnError("AAIInventoryFailure");
             }
 
@@ -323,9 +324,42 @@ public class ExceptionBuilder {
             execution.setVariable("WorkflowException", exception);
             execution.setVariable("WorkflowExceptionErrorMessage", errorMessage);
             logger.info("Outgoing WorkflowException is {}", exception);
-            logger.info("Throwing MSOWorkflowException");
+            logger.info("Throwing AAIInventoryFailure");
             throw new BpmnError("AAIInventoryFailure");
         }
+    }
+
+    public void processOpenstackAdapterException(DelegateExecution execution) {
+        StringBuilder workflowExceptionMessage = new StringBuilder();
+        logger.debug("Processing Vnf Adapter Exception");
+        try {
+            String errorMessage = (String) execution.getVariable("openstackAdapterErrorMessage");
+            boolean openstackRollbackPollSuccess = (boolean) execution.getVariable("OpenstackPollSuccess");
+            boolean rollbackPerformed = (boolean) execution.getVariable("rollbackPerformed");
+            boolean openstackRollbackSuccess = (boolean) execution.getVariable("OpenstackRollbackSuccess");
+            boolean pollRollbackStatus = (boolean) execution.getVariable("PollRollbackStatus");
+
+            workflowExceptionMessage.append("Exception occured during vnf adapter: " + errorMessage + ".");
+
+            boolean rollbackCompleted = false;
+            if (rollbackPerformed) {
+                if (openstackRollbackSuccess && !pollRollbackStatus) {
+                    rollbackCompleted = true;
+                } else if (openstackRollbackSuccess && pollRollbackStatus) {
+                    if (openstackRollbackPollSuccess) {
+                        rollbackCompleted = true;
+                    }
+                }
+                workflowExceptionMessage
+                        .append(" The resource was rollbacked in openstack: " + rollbackCompleted + ".");
+            }
+        } catch (Exception e) {
+            logger.debug("Error while Processing Vnf Adapter Exception", e);
+        }
+        buildWorkflowException(execution, 500, workflowExceptionMessage.toString(), Components.OPENSTACK);
+        throw new BpmnError("MSOWorkflowException");
+
+
     }
 
 }

@@ -41,10 +41,12 @@ import org.onap.so.bpmn.common.scripts.ExceptionUtil
 import org.onap.so.bpmn.common.scripts.ExternalAPIUtil
 import org.onap.so.bpmn.core.json.JsonUtils
 import org.onap.so.bpmn.core.UrnPropertiesReader
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.AAIResourcesClient
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.AAIResourcesClient
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -473,7 +475,7 @@ public class Delete3rdONAPE2EServiceInstance extends AbstractServiceTaskProcesso
 		String id = execution.getVariable(Prefix + "SppartnerId")
 
 		AAIResourcesClient client = new AAIResourcesClient()
-		AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.SP_PARTNER, id)
+		AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business().spPartner(id))
 		SpPartner sp = client.get(uri).asBean(SpPartner.class).get()
 
 		logger.debug("GET sppartner Received a Good Response")
@@ -508,7 +510,7 @@ public class Delete3rdONAPE2EServiceInstance extends AbstractServiceTaskProcesso
 		String sppartnerId = execution.getVariable(Prefix + "SppartnerId")
 
 		AAIResourcesClient client = new AAIResourcesClient()
-		AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.SP_PARTNER, sppartnerId)
+		AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business().spPartner(sppartnerId))
 		client.delete(uri)
 		logger.debug("Delete sppartner Received a Good Response")
 		execution.setVariable(Prefix + "SuccessIndicator", true)

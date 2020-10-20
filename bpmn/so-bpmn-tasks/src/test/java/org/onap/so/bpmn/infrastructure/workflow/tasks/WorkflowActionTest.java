@@ -34,15 +34,15 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -77,6 +77,12 @@ import org.onap.aai.domain.yang.ServiceInstances;
 import org.onap.aai.domain.yang.VfModule;
 import org.onap.aai.domain.yang.VfModules;
 import org.onap.aai.domain.yang.VolumeGroup;
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper;
+import org.onap.aaiclient.client.aai.entities.Relationships;
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri;
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types;
 import org.onap.so.bpmn.BaseTaskTest;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Collection;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Configuration;
@@ -84,11 +90,6 @@ import org.onap.so.bpmn.servicedecomposition.entities.BuildingBlock;
 import org.onap.so.bpmn.servicedecomposition.entities.ExecuteBuildingBlock;
 import org.onap.so.bpmn.servicedecomposition.entities.WorkflowResourceIds;
 import org.onap.so.bpmn.servicedecomposition.tasks.exceptions.DuplicateNameException;
-import org.onap.so.client.aai.AAIObjectType;
-import org.onap.so.client.aai.entities.AAIResultWrapper;
-import org.onap.so.client.aai.entities.Relationships;
-import org.onap.so.client.aai.entities.uri.AAIResourceUri;
-import org.onap.so.client.aai.entities.uri.AAIUriFactory;
 import org.onap.so.client.orchestration.AAIEntityNotFoundException;
 import org.onap.so.db.catalog.beans.CollectionNetworkResourceCustomization;
 import org.onap.so.db.catalog.beans.CollectionResource;
@@ -115,6 +116,15 @@ import org.springframework.core.env.Environment;
 
 public class WorkflowActionTest extends BaseTaskTest {
 
+    private static final String MACRO_ACTIVATE_DELETE_UNASSIGN_JSON = "Macro/ServiceMacroActivateDeleteUnassign.json";
+    private static final String MACRO_ASSIGN_JSON = "Macro/ServiceMacroAssign.json";
+    private static final String MACRO_ASSIGN_NO_CLOUD_JSON = "Macro/ServiceMacroAssignNoCloud.json";
+    private static final String VF_MODULE_CREATE_WITH_FABRIC_JSON = "VfModuleCreateWithFabric.json";
+    private static final String VF_MODULE_REPLACE_REBUILD_VOLUME_GROUPS_JSON =
+            "VfModuleReplaceRebuildVolumeGroups.json";
+    private static final String MACRO_CREATE_NETWORK_COLLECTION_JSON = "Macro/CreateNetworkCollection.json";
+    private static final String MACRO_VNF_MACRO_REPLACE_JSON = "Macro/VnfMacroReplace.json";
+
     @Mock
     protected Environment environment;
     @InjectMocks
@@ -139,6 +149,11 @@ public class WorkflowActionTest extends BaseTaskTest {
             "DeleteVfModuleATTBB", "DeactivateVolumeGroupBB", "DeleteVolumeGroupBB", "UnassignVolumeGroupBB",
             "AssignVolumeGroupBB", "ChangeModelVfModuleBB", "CreateVolumeGroupBB", "ActivateVolumeGroupBB",
             "CreateVfModuleBB", "ActivateVfModuleBB", "ChangeModelVnfBB", "ChangeModelServiceInstanceBB");
+    private List<OrchestrationFlow> replaceVfModuleWithFabricOrchFlows = createFlowList("DeleteFabricConfigurationBB",
+            "DeactivateVfModuleBB", "DeleteVfModuleATTBB", "DeactivateVolumeGroupBB", "DeleteVolumeGroupBB",
+            "UnassignVFModuleBB", "UnassignVolumeGroupBB", "AssignVolumeGroupBB", "AssignVfModuleBB",
+            "CreateVfModuleBB", "ActivateVfModuleBB", "AddFabricConfigurationBB", "CreateVolumeGroupBB",
+            "ActivateVolumeGroupBB", "ChangeModelVnfBB", "ChangeModelServiceInstanceBB");
 
     @Before
     public void before() throws Exception {
@@ -157,13 +172,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteNetworkCreateTest() throws Exception {
         String gAction = "createInstance";
         String resource = "Network";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroAssign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri", "v6/networks/123");
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
@@ -182,13 +192,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteNetworkDeleteTest() throws Exception {
         String gAction = "deleteInstance";
         String resource = "Network";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroAssign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri", "v6/networks/123");
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
@@ -207,13 +212,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteServiceCreateTest() throws Exception {
         String gAction = "createInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroAssign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
 
 
@@ -229,87 +229,11 @@ public class WorkflowActionTest extends BaseTaskTest {
     }
 
     @Test
-    public void selectExecutionListExceptionAlreadyBuiltTest() throws Exception {
-        DelegateExecution delegateExecution = new DelegateExecutionFake();
-        String gAction = "deleteInstance";
-        String resource = "VfModule";
-        delegateExecution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        delegateExecution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        delegateExecution.setVariable("bpmnRequest", bpmnRequest);
-        delegateExecution.setVariable("aLaCarte", true);
-        delegateExecution.setVariable("apiVersion", "7");
-        delegateExecution.setVariable("requestUri",
-                "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules");
-
-        NorthBoundRequest northBoundRequest = new NorthBoundRequest();
-        List<OrchestrationFlow> orchFlows = createFlowList("DeactivateVfModuleBB", "DeleteVfModuleBB",
-                "UnassignVfModuleBB", "DeactivateFabricConfigurationBB", "UnassignFabricConfigurationBB");
-        northBoundRequest.setOrchestrationFlowList(orchFlows);
-
-        when(catalogDbClient.getNorthBoundRequestByActionAndIsALaCarteAndRequestScopeAndCloudOwner(gAction, resource,
-                true, "my-custom-cloud-owner")).thenReturn(northBoundRequest);
-
-        doAnswer(invocation -> {
-            DelegateExecutionFake execution = invocation.getArgument(0);
-            execution.setVariable("WorkflowException", "exception");
-            execution.setVariable("WorkflowExceptionErrorMessage", "errorMessage");
-            throw new BpmnError("WorkflowException");
-        }).when(exceptionUtil).buildAndThrowWorkflowException(delegateExecution, 7000,
-                "Exception in getConfigBuildingBlock: Multiple relationships exist from VNFC testVnfcName to Configurations");
-
-
-        org.onap.aai.domain.yang.GenericVnf vnf = new org.onap.aai.domain.yang.GenericVnf();
-        vnf.setVnfId("vnf0");
-        vnf.setModelCustomizationId("modelCustomizationId");
-        when(bbSetupUtils.getAAIGenericVnf(any())).thenReturn(vnf);
-
-        org.onap.aai.domain.yang.VfModule vfModule = new org.onap.aai.domain.yang.VfModule();
-        vfModule.setModelCustomizationId("modelCustomizationId");
-        when(bbSetupUtils.getAAIVfModule(any(), any())).thenReturn(vfModule);
-
-        List<org.onap.aai.domain.yang.Vnfc> vnfcs = new ArrayList<org.onap.aai.domain.yang.Vnfc>();
-        org.onap.aai.domain.yang.Vnfc vnfc = new org.onap.aai.domain.yang.Vnfc();
-        vnfc.setModelInvariantId("modelInvariantId");
-        vnfc.setVnfcName("testVnfcName");
-        vnfcs.add(vnfc);
-        doReturn(vnfcs).when(SPY_workflowAction).getRelatedResourcesInVfModule(any(), any(), any(), any());
-
-        List<org.onap.aai.domain.yang.Configuration> configurations =
-                new ArrayList<org.onap.aai.domain.yang.Configuration>();
-        org.onap.aai.domain.yang.Configuration configuration = new org.onap.aai.domain.yang.Configuration();
-        configuration.setConfigurationId("configurationId");
-        configuration.setModelCustomizationId("modelCustimizationId");
-        configuration.setConfigurationName("testConfigurationName");
-        configurations.add(configuration);
-        org.onap.aai.domain.yang.Configuration configuration1 = new org.onap.aai.domain.yang.Configuration();
-        configuration1.setConfigurationId("configurationId");
-        configuration1.setModelCustomizationId("modelCustimizationId");
-        configuration1.setConfigurationName("testConfigurationName");
-        configurations.add(configuration1);
-        doReturn(configurations).when(SPY_workflowAction).getRelatedResourcesInVnfc(any(), any(), any());
-
-        doReturn("testName").when(SPY_workflowAction).getVnfcNameForConfiguration(any());
-
-        thrown.expect(BpmnError.class);
-        SPY_workflowAction.selectExecutionList(delegateExecution);
-        assertEquals(
-                "Exception in getConfigBuildingBlock: Multiple relationships exist from VNFC testVnfcName to Configurations",
-                delegateExecution.getVariable("WorkflowException"));
-    }
-
-    @Test
     public void selectExecutionListDuplicateNameExceptionTest() throws Exception {
         String gAction = "createInstance";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroAssign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri", "v6/serviceInstances");
-        execution.setVariable("requestAction", gAction);
 
         doThrow(new DuplicateNameException(
                 "serviceInstance with name (instanceName) and different version id (3c40d244-808e-42ca-b09a-256d83d19d0a) already exists. The name must be unique."))
@@ -328,15 +252,9 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListServiceMacroAssignTest() throws Exception {
         String gAction = "assignInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroAssign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("AssignServiceInstanceBB", "AssignNetworkBB", "AssignVnfBB",
@@ -382,15 +300,9 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListServiceMacroAssignNoCloudTest() throws Exception {
         String gAction = "assignInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(
-                Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroAssignNoCloud.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ASSIGN_NO_CLOUD_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("AssignServiceInstanceBB", "AssignNetworkBB", "AssignVnfBB",
@@ -437,15 +349,9 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListServiceMacroActivateTest() throws Exception {
         String gAction = "activateInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(Files
-                .readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroActivateDeleteUnassign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/si0");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows =
@@ -460,7 +366,6 @@ public class WorkflowActionTest extends BaseTaskTest {
         org.onap.so.bpmn.servicedecomposition.bbobjects.GenericVnf vnf =
                 new org.onap.so.bpmn.servicedecomposition.bbobjects.GenericVnf();
         vnf.setVnfId("vnf0");
-
 
         org.onap.so.bpmn.servicedecomposition.bbobjects.VfModule vfModule = buildVfModule();
         vnf.getVfModules().add(vfModule);
@@ -491,22 +396,15 @@ public class WorkflowActionTest extends BaseTaskTest {
         assertEquals("testVfModuleId2", ebbs.get(5).getWorkflowResourceIds().getVfModuleId());
         assertEquals("vnf0", ebbs.get(6).getWorkflowResourceIds().getVnfId());
         assertEquals("si0", ebbs.get(7).getWorkflowResourceIds().getServiceInstanceId());
-
     }
 
     @Test
     public void selectExecutionListServiceMacroDeactivateTest() throws Exception {
         String gAction = "deactivateInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(Files
-                .readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroActivateDeleteUnassign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("DeactivateServiceInstanceBB");
@@ -523,15 +421,9 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListServiceMacroEmptyServiceTest() throws Exception {
         String gAction = "createInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(Files
-                .readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroActivateDeleteUnassign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         northBoundRequest.setIsToplevelflow(true);
@@ -555,15 +447,9 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListServiceMacroCreateJustNetworkTest() throws Exception {
         String gAction = "createInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(Files
-                .readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroActivateDeleteUnassign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         northBoundRequest.setIsToplevelflow(true);
@@ -591,15 +477,9 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListServiceMacroCreateWithNetworkCollectionTest() throws Exception {
         String gAction = "createInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(Files
-                .readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroActivateDeleteUnassign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         northBoundRequest.setIsToplevelflow(true);
@@ -686,15 +566,9 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListServiceMacroCreateWithUserParams() throws Exception {
         String gAction = "createInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroAssign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("AssignServiceInstanceBB", "CreateNetworkCollectionBB",
@@ -768,21 +642,16 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListServiceMacroDeleteTest() throws Exception {
         String gAction = "deleteInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(Files
-                .readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroActivateDeleteUnassign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("DeactivateVfModuleBB", "DeleteVfModuleBB",
-                "DeactivateVolumeGroupBB", "DeleteVolumeGroupBB", "DeactivateVnfBB", "DeactivateNetworkBB",
-                "DeleteNetworkBB", "DeleteNetworkCollectionBB", "DeactivateServiceInstanceBB", "UnassignVfModuleBB",
-                "UnassignVolumeGroupBB", "UnassignVnfBB", "UnassignNetworkBB", "UnassignServiceInstanceBB");
+                "DeactivateVolumeGroupBB", "DeleteVolumeGroupBB", "DeactivateVnfBB", "DeactivatePnfBB",
+                "DeactivateNetworkBB", "DeleteNetworkBB", "DeleteNetworkCollectionBB", "DeactivateServiceInstanceBB",
+                "UnassignVfModuleBB", "UnassignVolumeGroupBB", "UnassignVnfBB", "UnassignNetworkBB",
+                "UnassignServiceInstanceBB");
         northBoundRequest.setOrchestrationFlowList(orchFlows);
 
         ServiceInstance serviceInstanceAAI = new ServiceInstance();
@@ -791,7 +660,10 @@ public class WorkflowActionTest extends BaseTaskTest {
                 new org.onap.so.bpmn.servicedecomposition.bbobjects.ServiceInstance();
         org.onap.so.bpmn.servicedecomposition.bbobjects.GenericVnf vnf =
                 new org.onap.so.bpmn.servicedecomposition.bbobjects.GenericVnf();
+        org.onap.so.bpmn.servicedecomposition.bbobjects.Pnf pnf =
+                new org.onap.so.bpmn.servicedecomposition.bbobjects.Pnf();
         vnf.setVnfId("vnfId123");
+        pnf.setPnfId("pnfId123");
 
         org.onap.so.bpmn.servicedecomposition.bbobjects.VfModule vfModule = buildVfModule();
         vnf.getVfModules().add(vfModule);
@@ -804,6 +676,7 @@ public class WorkflowActionTest extends BaseTaskTest {
         vnf.getVolumeGroups().add(volumeGroup);
 
         serviceInstanceMSO.getVnfs().add(vnf);
+        serviceInstanceMSO.getPnfs().add(pnf);
 
         doReturn(serviceInstanceAAI).when(bbSetupUtils).getAAIServiceInstanceById("123");
         doReturn(serviceInstanceMSO).when(bbInputSetup).getExistingServiceInstance(serviceInstanceAAI);
@@ -813,23 +686,52 @@ public class WorkflowActionTest extends BaseTaskTest {
         List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
         assertEqualsBulkFlowName(ebbs, "DeactivateVfModuleBB", "DeactivateVfModuleBB", "DeleteVfModuleBB",
                 "DeleteVfModuleBB", "DeactivateVolumeGroupBB", "DeleteVolumeGroupBB", "DeactivateVnfBB",
-                "DeactivateServiceInstanceBB", "UnassignVfModuleBB", "UnassignVfModuleBB", "UnassignVolumeGroupBB",
-                "UnassignVnfBB", "UnassignServiceInstanceBB");
+                "DeactivatePnfBB", "DeactivateServiceInstanceBB", "UnassignVfModuleBB", "UnassignVfModuleBB",
+                "UnassignVolumeGroupBB", "UnassignVnfBB", "UnassignServiceInstanceBB");
+    }
+
+    @Test
+    public void selectExecutionListServiceMacroDeleteWithPnfTest() throws Exception {
+        String gAction = "deleteInstance";
+        String resource = "Service";
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
+        execution.setVariable("requestUri", "v6/serviceInstances/123");
+
+        NorthBoundRequest northBoundRequest = new NorthBoundRequest();
+        List<OrchestrationFlow> orchFlows = createFlowList("DeactivateVfModuleBB", "DeleteVfModuleBB",
+                "DeactivateVolumeGroupBB", "DeleteVolumeGroupBB", "DeactivateVnfBB", "DeactivatePnfBB",
+                "DeactivateNetworkBB", "DeleteNetworkBB", "DeleteNetworkCollectionBB", "DeactivateServiceInstanceBB",
+                "UnassignVfModuleBB", "UnassignVolumeGroupBB", "UnassignVnfBB", "UnassignNetworkBB",
+                "UnassignServiceInstanceBB");
+        northBoundRequest.setOrchestrationFlowList(orchFlows);
+
+        ServiceInstance serviceInstanceAAI = new ServiceInstance();
+        serviceInstanceAAI.setServiceInstanceId("aaisi123");
+        org.onap.so.bpmn.servicedecomposition.bbobjects.ServiceInstance serviceInstanceMSO =
+                new org.onap.so.bpmn.servicedecomposition.bbobjects.ServiceInstance();
+        org.onap.so.bpmn.servicedecomposition.bbobjects.Pnf pnf =
+                new org.onap.so.bpmn.servicedecomposition.bbobjects.Pnf();
+        pnf.setPnfId("pnfId123");
+
+        serviceInstanceMSO.getPnfs().add(pnf);
+
+        doReturn(serviceInstanceAAI).when(bbSetupUtils).getAAIServiceInstanceById("123");
+        doReturn(serviceInstanceMSO).when(bbInputSetup).getExistingServiceInstance(serviceInstanceAAI);
+        when(catalogDbClient.getNorthBoundRequestByActionAndIsALaCarteAndRequestScopeAndCloudOwner(gAction, resource,
+                false, "my-custom-cloud-owner")).thenReturn(northBoundRequest);
+        workflowAction.selectExecutionList(execution);
+        List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
+        assertEqualsBulkFlowName(ebbs, "DeactivatePnfBB", "DeactivateServiceInstanceBB", "UnassignServiceInstanceBB");
     }
 
     @Test
     public void selectExecutionListServiceMacroUnassignTest() throws Exception {
         String gAction = "unassignInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(Files
-                .readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroActivateDeleteUnassign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("UnassignVfModuleBB", "UnassignVolumeGroupBB",
@@ -870,15 +772,9 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListServiceMacroDeleteNetworkCollectionTest() throws Exception {
         String gAction = "deleteInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(Files
-                .readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroActivateDeleteUnassign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("DeactivateVfModuleBB", "DeleteVfModuleBB",
@@ -919,13 +815,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListVnfMacroRecreateTest() throws Exception {
         String gAction = "recreateInstance";
         String resource = "Vnf";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/VnfMacroReplace.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_VNF_MACRO_REPLACE_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v7/serviceInstances/123/vnfs/1234/recreate");
         execution.setVariable("serviceInstanceId", "123");
         execution.setVariable("vnfId", "1234");
@@ -973,13 +864,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListVnfMacroReplaceTest() throws Exception {
         String gAction = "replaceInstance";
         String resource = "Vnf";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/VnfMacroReplace.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_VNF_MACRO_REPLACE_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v7/serviceInstances/123/vnfs/1234/replace");
         execution.setVariable("serviceInstanceId", "123");
         execution.setVariable("vnfId", "1234");
@@ -1046,15 +932,9 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListNetworkCollectionMacroCreate() throws Exception {
         String gAction = "createInstance";
         String resource = "NetworkCollection";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(
-                Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/CreateNetworkCollection.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_CREATE_NETWORK_COLLECTION_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123/networkCollections/123");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("CreateNetworkCollectionBB", "AssignNetworkBB",
@@ -1083,13 +963,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListNetworkCollectionMacroDelete() throws Exception {
         String gAction = "deleteInstance";
         String resource = "NetworkCollection";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(
-                Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/CreateNetworkCollection.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_CREATE_NETWORK_COLLECTION_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123/networkCollections/123");
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
@@ -1118,16 +993,10 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleNoFabricCreateTest() throws Exception {
         String gAction = "createInstance";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules");
-
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("AssignVfModuleBB", "CreateVfModuleBB", "ActivateVfModuleBB",
@@ -1145,13 +1014,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleFabricCreateTest() throws Exception {
         String gAction = "createInstance";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules");
 
@@ -1204,13 +1068,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleNoVolumeGroupReplaceTest() throws Exception {
         String gAction = "replaceInstance";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
 
@@ -1230,13 +1089,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleNoVolumeGroupReplaceRetainAssignmentsTest() throws Exception {
         String gAction = "replaceInstanceRetainAssignments";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
 
@@ -1255,13 +1109,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleVolumeGroupToNoVolumeGroupReplaceTest() throws Exception {
         String gAction = "replaceInstance";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
         execution.setVariable("vnfId", "b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
@@ -1288,13 +1137,8 @@ public class WorkflowActionTest extends BaseTaskTest {
             throws Exception {
         String gAction = "replaceInstanceRetainAssignments";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
         execution.setVariable("vnfId", "b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
@@ -1321,13 +1165,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleKeepVolumeGroupReplaceTest() throws Exception {
         String gAction = "replaceInstance";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
         execution.setVariable("vnfId", "b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
@@ -1359,16 +1198,69 @@ public class WorkflowActionTest extends BaseTaskTest {
     }
 
     @Test
+    public void selectExecutionListALaCarteVfModuleWithFabricKeepVolumeGroupReplaceTest() throws Exception {
+        String gAction = "replaceInstance";
+        String resource = "VfModule";
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
+        execution.setVariable("requestUri",
+                "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
+        execution.setVariable("vnfId", "b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
+        execution.setVariable("vfModuleId", "1234");
+
+        org.onap.aai.domain.yang.GenericVnf vnf = new org.onap.aai.domain.yang.GenericVnf();
+        vnf.setVnfId("b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
+        vnf.setModelCustomizationId("modelCustomizationId");
+        when(bbSetupUtils.getAAIGenericVnf(any())).thenReturn(vnf);
+
+        org.onap.aai.domain.yang.VfModule vfModuleFromAAI = new org.onap.aai.domain.yang.VfModule();
+        vfModuleFromAAI.setModelCustomizationId("modelCustomizationId");
+        vfModuleFromAAI.setVfModuleId("1234");
+        when(bbSetupUtils.getAAIVfModule(any(), any())).thenReturn(vfModuleFromAAI);
+
+        VolumeGroup volumeGroup = new VolumeGroup();
+        volumeGroup.setVolumeGroupId("volumeGroupId");
+        doReturn(Optional.of(volumeGroup)).when(bbSetupUtils)
+                .getRelatedVolumeGroupFromVfModule("b80b16a5-f80d-4ffa-91c8-bd47c7438a3d", "1234");
+
+        VfModuleCustomization vfModuleCustomization = new VfModuleCustomization();
+        vfModuleCustomization.setVolumeHeatEnv(new HeatEnvironment());
+        org.onap.so.db.catalog.beans.VfModule vfModule = new org.onap.so.db.catalog.beans.VfModule();
+        vfModule.setVolumeHeatTemplate(new HeatTemplate());
+        vfModuleCustomization.setVfModule(vfModule);
+        when(catalogDbClient.getVfModuleCustomizationByModelCuztomizationUUID("9a6d01fd-19a7-490a-9800-460830a12e0b"))
+                .thenReturn(vfModuleCustomization);
+        List<org.onap.aai.domain.yang.Vnfc> vnfcs = new ArrayList<org.onap.aai.domain.yang.Vnfc>();
+        org.onap.aai.domain.yang.Vnfc vnfc = new org.onap.aai.domain.yang.Vnfc();
+        vnfc.setModelInvariantId("modelInvariantId");
+        vnfc.setVnfcName("testVnfcName");
+        vnfcs.add(vnfc);
+        doReturn(vnfcs).when(SPY_workflowAction).getRelatedResourcesInVfModule(any(), any(), any(), any());
+
+        org.onap.aai.domain.yang.Configuration configuration = new org.onap.aai.domain.yang.Configuration();
+        configuration.setConfigurationId("configurationId");
+        configuration.setModelCustomizationId("modelCustimizationId");
+        configuration.setConfigurationName("testConfigurationName");
+        doReturn(configuration).when(SPY_workflowAction).getRelatedResourcesInVnfc(any(), any(), any());
+
+        NorthBoundRequest northBoundRequest = new NorthBoundRequest();
+        northBoundRequest.setOrchestrationFlowList(replaceVfModuleWithFabricOrchFlows);
+        when(catalogDbClient.getNorthBoundRequestByActionAndIsALaCarteAndRequestScopeAndCloudOwner(gAction, resource,
+                true, "my-custom-cloud-owner")).thenReturn(northBoundRequest);
+        SPY_workflowAction.selectExecutionList(execution);
+        List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
+
+        assertEqualsBulkFlowName(ebbs, "DeleteFabricConfigurationBB", "DeactivateVfModuleBB", "DeleteVfModuleATTBB",
+                "UnassignVFModuleBB", "AssignVfModuleBB", "CreateVfModuleBB", "ActivateVfModuleBB",
+                "AddFabricConfigurationBB", "ChangeModelVnfBB", "ChangeModelServiceInstanceBB");
+    }
+
+    @Test
     public void selectExecutionListALaCarteVfModuleKeepVolumeGroupReplaceRetainAssignmentsTest() throws Exception {
         String gAction = "replaceInstanceRetainAssignments";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
         execution.setVariable("vnfId", "b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
@@ -1402,13 +1294,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleNoVolumeGroupToVolumeGroupReplaceTest() throws Exception {
         String gAction = "replaceInstance";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
         execution.setVariable("vnfId", "b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
@@ -1439,13 +1326,8 @@ public class WorkflowActionTest extends BaseTaskTest {
             throws Exception {
         String gAction = "replaceInstanceRetainAssignments";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
         execution.setVariable("vnfId", "b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
@@ -1475,13 +1357,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleRebuildVolumeGroupReplaceTest() throws Exception {
         String gAction = "replaceInstance";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(
-                Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleReplaceRebuildVolumeGroups.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_REPLACE_REBUILD_VOLUME_GROUPS_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
         execution.setVariable("vnfId", "b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
@@ -1517,13 +1394,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleRebuildVolumeGroupReplaceRetainAssignmentsTest() throws Exception {
         String gAction = "replaceInstanceRetainAssignments";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest = new String(
-                Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleReplaceRebuildVolumeGroups.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_REPLACE_REBUILD_VOLUME_GROUPS_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules/1234");
         execution.setVariable("vnfId", "b80b16a5-f80d-4ffa-91c8-bd47c7438a3d");
@@ -1560,13 +1432,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListALaCarteVfModuleFabricDeleteTest() throws Exception {
         String gAction = "deleteInstance";
         String resource = "VfModule";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules");
 
@@ -1595,17 +1462,12 @@ public class WorkflowActionTest extends BaseTaskTest {
         doReturn(vnfcs).when(SPY_workflowAction).getRelatedResourcesInVfModule(anyObject(), anyObject(), anyObject(),
                 anyObject());
 
-        List<org.onap.aai.domain.yang.Configuration> configurations =
-                new ArrayList<org.onap.aai.domain.yang.Configuration>();
         org.onap.aai.domain.yang.Configuration configuration = new org.onap.aai.domain.yang.Configuration();
         configuration.setConfigurationId("configurationId");
         configuration.setModelCustomizationId("modelCustimizationId");
         configuration.setConfigurationName("testConfigurationName");
-        configurations.add(configuration);
-        doReturn(configurations).when(SPY_workflowAction).getRelatedResourcesInVnfc(anyObject(), anyObject(),
+        doReturn(configuration).when(SPY_workflowAction).getRelatedResourcesInVnfc(anyObject(), anyObject(),
                 anyObject());
-
-        doReturn("testName").when(SPY_workflowAction).getVnfcNameForConfiguration(anyObject());
 
         SPY_workflowAction.selectExecutionList(execution);
         List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
@@ -1618,10 +1480,9 @@ public class WorkflowActionTest extends BaseTaskTest {
         String gAction = "deleteInstance";
         ObjectMapper mapper = new ObjectMapper();
         WorkflowType resourceType = WorkflowType.VFMODULE;
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
         execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
         execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
         execution.setVariable("bpmnRequest", bpmnRequest);
         execution.setVariable("vnfId", "1234");
         execution.setVariable("vfModuleId", "vfModuleId1234");
@@ -1664,22 +1525,165 @@ public class WorkflowActionTest extends BaseTaskTest {
     }
 
     @Test
-    public void selectExecutionListALaCarteVfModuleNoFabricDeleteTest() throws Exception {
+    public void getConfigBuildingBlocksTest() throws Exception {
         String gAction = "deleteInstance";
-        String resource = "VfModule";
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.disable(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES);
+
+        WorkflowType resourceType = WorkflowType.VFMODULE;
         execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
         execution.setVariable("requestAction", gAction);
         String bpmnRequest =
                 new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
         execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", true);
-        execution.setVariable("apiVersion", "7");
+        execution.setVariable("vnfId", "1234");
+        execution.setVariable("vfModuleId", "vfModuleId1234");
+        execution.setVariable("requestUri",
+                "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules");
+        ServiceInstancesRequest sIRequest = mapper.readValue(bpmnRequest, ServiceInstancesRequest.class);
+        RequestDetails requestDetails = sIRequest.getRequestDetails();
+        String requestAction = "deleteInstance";
+        String requestId = "9c944122-d161-4280-8594-48c06a9d96d5";
+        boolean aLaCarte = true;
+        String apiVersion = "7";
+        String vnfType = "vnfType";
+        String key = "00d15ebb-c80e-43c1-80f0-90c40dde70b0";
+        String resourceId = "d1d35800-783d-42d3-82f6-d654c5054a6e";
+        Resource resourceKey = new Resource(resourceType, key, aLaCarte);
+        WorkflowResourceIds workflowResourceIds = SPY_workflowAction.populateResourceIdsFromApiHandler(execution);
+
+        List<OrchestrationFlow> orchFlows = createFlowList("DeactivateVfModuleBB", "DeleteVfModuleBB",
+                "UnassignVfModuleBB", "DeleteFabricConfigurationBB");
+
+        ConfigBuildingBlocksDataObject dataObj = new ConfigBuildingBlocksDataObject().setsIRequest(sIRequest)
+                .setOrchFlows(orchFlows).setRequestId(requestId).setResourceKey(resourceKey).setApiVersion(apiVersion)
+                .setResourceId(resourceId).setRequestAction(requestAction).setaLaCarte(aLaCarte).setVnfType(vnfType)
+                .setWorkflowResourceIds(workflowResourceIds).setRequestDetails(requestDetails).setExecution(execution);
+
+        org.onap.aai.domain.yang.GenericVnf vnf = new org.onap.aai.domain.yang.GenericVnf();
+        vnf.setVnfId("vnf0");
+        vnf.setModelCustomizationId("modelCustomizationId");
+        when(bbSetupUtils.getAAIGenericVnf(any())).thenReturn(vnf);
+
+        org.onap.aai.domain.yang.VfModule vfModule = new org.onap.aai.domain.yang.VfModule();
+        vfModule.setModelCustomizationId("modelCustomizationId");
+
+        org.onap.aai.domain.yang.Configuration config1 = new org.onap.aai.domain.yang.Configuration();
+        config1.setConfigurationId("config1");
+        org.onap.aai.domain.yang.Configuration config2 = new org.onap.aai.domain.yang.Configuration();
+        config2.setConfigurationId("config2");
+
+        List<org.onap.aai.domain.yang.Vnfc> vnfcs = new ArrayList<org.onap.aai.domain.yang.Vnfc>();
+        org.onap.aai.domain.yang.Vnfc vnfc1 = new org.onap.aai.domain.yang.Vnfc();
+        vnfc1.setVnfcName("zauk53avetd02svm001");
+        org.onap.aai.domain.yang.Vnfc vnfc2 = new org.onap.aai.domain.yang.Vnfc();
+        vnfc2.setVnfcName("zauk53avetd02tvm001");
+        vnfcs.add(vnfc1);
+        vnfcs.add(vnfc2);
+
+        when(bbSetupUtils.getAAIVfModule(any(), any())).thenReturn(vfModule);
+        doReturn(vnfcs).when(SPY_workflowAction).getRelatedResourcesInVfModule(any(), any(),
+                eq(org.onap.aai.domain.yang.Vnfc.class), eq(Types.VNFC));
+        doReturn(config1).when(SPY_workflowAction).getRelatedResourcesInVnfc(eq(vnfc1),
+                eq(org.onap.aai.domain.yang.Configuration.class), eq(Types.CONFIGURATION));
+        doReturn(config2).when(SPY_workflowAction).getRelatedResourcesInVnfc(eq(vnfc2),
+                eq(org.onap.aai.domain.yang.Configuration.class), eq(Types.CONFIGURATION));
+
+        List<ExecuteBuildingBlock> results = SPY_workflowAction.getConfigBuildingBlocks(dataObj);
+
+        assertFalse(results.isEmpty());
+        assertEquals(2, results.size());
+        assertEquals("config1", results.get(0).getWorkflowResourceIds().getConfigurationId());
+        assertEquals("config2", results.get(1).getWorkflowResourceIds().getConfigurationId());
+        assertEquals("zauk53avetd02svm001", results.get(0).getConfigurationResourceKeys().getVnfcName());
+        assertEquals("zauk53avetd02tvm001", results.get(1).getConfigurationResourceKeys().getVnfcName());
+    }
+
+    @Test
+    public void getConfigBuildingBlocksNullConfigurationTest() throws Exception {
+        String gAction = "deleteInstance";
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.disable(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES);
+
+        WorkflowType resourceType = WorkflowType.VFMODULE;
+        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
+        execution.setVariable("requestAction", gAction);
+        String bpmnRequest =
+                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/VfModuleCreateWithFabric.json")));
+        execution.setVariable("bpmnRequest", bpmnRequest);
+        execution.setVariable("vnfId", "1234");
+        execution.setVariable("vfModuleId", "vfModuleId1234");
+        execution.setVariable("requestUri",
+                "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules");
+        ServiceInstancesRequest sIRequest = mapper.readValue(bpmnRequest, ServiceInstancesRequest.class);
+        RequestDetails requestDetails = sIRequest.getRequestDetails();
+        String requestAction = "deleteInstance";
+        String requestId = "9c944122-d161-4280-8594-48c06a9d96d5";
+        boolean aLaCarte = true;
+        String apiVersion = "7";
+        String vnfType = "vnfType";
+        String key = "00d15ebb-c80e-43c1-80f0-90c40dde70b0";
+        String resourceId = "d1d35800-783d-42d3-82f6-d654c5054a6e";
+        Resource resourceKey = new Resource(resourceType, key, aLaCarte);
+        WorkflowResourceIds workflowResourceIds = SPY_workflowAction.populateResourceIdsFromApiHandler(execution);
+
+        List<OrchestrationFlow> orchFlows = createFlowList("DeactivateVfModuleBB", "DeleteVfModuleBB",
+                "UnassignVfModuleBB", "DeleteFabricConfigurationBB");
+
+        ConfigBuildingBlocksDataObject dataObj = new ConfigBuildingBlocksDataObject().setsIRequest(sIRequest)
+                .setOrchFlows(orchFlows).setRequestId(requestId).setResourceKey(resourceKey).setApiVersion(apiVersion)
+                .setResourceId(resourceId).setRequestAction(requestAction).setaLaCarte(aLaCarte).setVnfType(vnfType)
+                .setWorkflowResourceIds(workflowResourceIds).setRequestDetails(requestDetails).setExecution(execution);
+
+        org.onap.aai.domain.yang.GenericVnf vnf = new org.onap.aai.domain.yang.GenericVnf();
+        vnf.setVnfId("vnf0");
+        vnf.setModelCustomizationId("modelCustomizationId");
+        when(bbSetupUtils.getAAIGenericVnf(any())).thenReturn(vnf);
+
+        org.onap.aai.domain.yang.VfModule vfModule = new org.onap.aai.domain.yang.VfModule();
+        vfModule.setModelCustomizationId("modelCustomizationId");
+
+        /* this is a test case where configuration for vnfc is null */
+        org.onap.aai.domain.yang.Configuration config1 = null;
+        org.onap.aai.domain.yang.Configuration config2 = new org.onap.aai.domain.yang.Configuration();
+        config2.setConfigurationId("config2");
+
+        List<org.onap.aai.domain.yang.Vnfc> vnfcs = new ArrayList<org.onap.aai.domain.yang.Vnfc>();
+        org.onap.aai.domain.yang.Vnfc vnfc1 = new org.onap.aai.domain.yang.Vnfc();
+        vnfc1.setVnfcName("zauk53avetd02svm001");
+        org.onap.aai.domain.yang.Vnfc vnfc2 = new org.onap.aai.domain.yang.Vnfc();
+        vnfc2.setVnfcName("zauk53avetd02tvm001");
+        vnfcs.add(vnfc1);
+        vnfcs.add(vnfc2);
+
+        when(bbSetupUtils.getAAIVfModule(any(), any())).thenReturn(vfModule);
+        doReturn(vnfcs).when(SPY_workflowAction).getRelatedResourcesInVfModule(any(), any(),
+                eq(org.onap.aai.domain.yang.Vnfc.class), eq(Types.VNFC));
+        doReturn(config1).when(SPY_workflowAction).getRelatedResourcesInVnfc(eq(vnfc1),
+                eq(org.onap.aai.domain.yang.Configuration.class), eq(Types.CONFIGURATION));
+        doReturn(config2).when(SPY_workflowAction).getRelatedResourcesInVnfc(eq(vnfc2),
+                eq(org.onap.aai.domain.yang.Configuration.class), eq(Types.CONFIGURATION));
+
+        List<ExecuteBuildingBlock> results = SPY_workflowAction.getConfigBuildingBlocks(dataObj);
+
+        assertFalse(results.isEmpty());
+        assertEquals(1, results.size());
+        assertEquals("config2", results.get(0).getWorkflowResourceIds().getConfigurationId());
+        assertEquals("zauk53avetd02tvm001", results.get(0).getConfigurationResourceKeys().getVnfcName());
+    }
+
+    @Test
+    public void selectExecutionListALaCarteVfModuleNoFabricDeleteTest() throws Exception {
+        String gAction = "deleteInstance";
+        String resource = "VfModule";
+        String bpmnRequest = readBpmnRequestFromFile(VF_MODULE_CREATE_WITH_FABRIC_JSON);
+        initExecution(gAction, bpmnRequest, true);
         execution.setVariable("requestUri",
                 "v7/serviceInstances/f647e3ef-6d2e-4cd3-bff4-8df4634208de/vnfs/b80b16a5-f80d-4ffa-91c8-bd47c7438a3d/vfModules");
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
         List<OrchestrationFlow> orchFlows = createFlowList("DeactivateVfModuleBB", "DeleteVfModuleBB",
-                "UnassignVfModuleBB", "DeactivateFabricConfigurationBB", "UnassignFabricConfigurationBB");
+                "UnassignVfModuleBB", "DeleteFabricConfigurationBB");
         northBoundRequest.setOrchestrationFlowList(orchFlows);
 
         when(catalogDbClient.getNorthBoundRequestByActionAndIsALaCarteAndRequestScopeAndCloudOwner(gAction, resource,
@@ -1695,20 +1699,9 @@ public class WorkflowActionTest extends BaseTaskTest {
         when(bbSetupUtils.getAAIVfModule(anyObject(), anyObject())).thenReturn(vfModule);
 
         List<org.onap.aai.domain.yang.Vnfc> vnfcs = new ArrayList<org.onap.aai.domain.yang.Vnfc>();
-        org.onap.aai.domain.yang.Vnfc vnfc = new org.onap.aai.domain.yang.Vnfc();
-        vnfc.setModelInvariantId("modelInvariantId");
-        vnfc.setVnfcName("testVnfcName");
-        vnfcs.add(vnfc);
+
         doReturn(vnfcs).when(SPY_workflowAction).getRelatedResourcesInVfModule(anyObject(), anyObject(), anyObject(),
                 anyObject());
-
-        List<org.onap.aai.domain.yang.Configuration> configurations =
-                new ArrayList<org.onap.aai.domain.yang.Configuration>();
-        org.onap.aai.domain.yang.Configuration configuration = new org.onap.aai.domain.yang.Configuration();
-        doReturn(configurations).when(SPY_workflowAction).getRelatedResourcesInVnfc(anyObject(), anyObject(),
-                anyObject());
-
-        doReturn("testName").when(SPY_workflowAction).getVnfcNameForConfiguration(anyObject());
 
         SPY_workflowAction.selectExecutionList(execution);
         List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
@@ -1719,13 +1712,8 @@ public class WorkflowActionTest extends BaseTaskTest {
     public void selectExecutionListMacroResumeTest() throws Exception {
         String gAction = "createInstance";
         String resource = "Service";
-        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
-        execution.setVariable("requestAction", gAction);
-        String bpmnRequest =
-                new String(Files.readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroAssign.json")));
-        execution.setVariable("bpmnRequest", bpmnRequest);
-        execution.setVariable("aLaCarte", false);
-        execution.setVariable("apiVersion", "7");
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ASSIGN_JSON);
+        initExecution(gAction, bpmnRequest, false);
         execution.setVariable("requestUri", "v6/serviceInstances/123");
 
         NorthBoundRequest northBoundRequest = new NorthBoundRequest();
@@ -1774,15 +1762,14 @@ public class WorkflowActionTest extends BaseTaskTest {
         List<AAIResultWrapper> configurationResultWrappers = new ArrayList<AAIResultWrapper>();
         configurationResultWrappers.add(configurationWrapper);
 
-        AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.VNFC, vnfc.getVnfcName());
+        AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().vnfc(vnfc.getVnfcName()));
         when(bbSetupUtils.getAAIResourceDepthOne(uri)).thenReturn(vfncWrapper);
 
         doReturn(configurationResultWrappers).when(SPY_workflowAction).getResultWrappersFromRelationships(anyObject(),
                 anyObject());
-        List<org.onap.aai.domain.yang.Configuration> configurationsList = SPY_workflowAction.getRelatedResourcesInVnfc(
-                vnfc, org.onap.aai.domain.yang.Configuration.class, AAIObjectType.CONFIGURATION);
-        assertEquals(1, configurationsList.size());
-        assertEquals("testConfigurationId", configurationsList.get(0).getConfigurationId());
+        org.onap.aai.domain.yang.Configuration configuration = SPY_workflowAction.getRelatedResourcesInVnfc(vnfc,
+                org.onap.aai.domain.yang.Configuration.class, Types.CONFIGURATION);
+        assertEquals("testConfigurationId", configuration.getConfigurationId());
     }
 
     /**
@@ -2423,8 +2410,8 @@ public class WorkflowActionTest extends BaseTaskTest {
         when(bbSetupUtils.getAAIServiceInstancesGloballyByName("siName123")).thenReturn(serviceInstances);
 
         Map<String, String> uriKeys = new HashMap<>();
-        uriKeys.put("global-customer-id", "globalCustomerId");
-        uriKeys.put("service-type", "serviceType");
+        uriKeys.put(AAIFluentTypeBuilder.Types.CUSTOMER.getUriParams().globalCustomerId, "globalCustomerId");
+        uriKeys.put(AAIFluentTypeBuilder.Types.SERVICE_SUBSCRIPTION.getUriParams().serviceType, "serviceType");
 
         when(bbSetupUtils.getURIKeysFromServiceInstance("siId123")).thenReturn(uriKeys);
 
@@ -2960,8 +2947,7 @@ public class WorkflowActionTest extends BaseTaskTest {
         doReturn(service).when(catalogDbClient).getServiceByID("3c40d244-808e-42ca-b09a-256d83d19d0a");
         doReturn(collectionResourceCustomization).when(catalogDbClient)
                 .getNetworkCollectionResourceCustomizationByID("123");
-        String bpmnRequest = new String(Files
-                .readAllBytes(Paths.get("src/test/resources/__files/Macro/ServiceMacroActivateDeleteUnassign.json")));
+        String bpmnRequest = readBpmnRequestFromFile(MACRO_ACTIVATE_DELETE_UNASSIGN_JSON);
         ObjectMapper mapper = new ObjectMapper();
         ServiceInstancesRequest sIRequest = mapper.readValue(bpmnRequest, ServiceInstancesRequest.class);
         List<Resource> resourceCounter = new ArrayList<>();
@@ -3048,7 +3034,7 @@ public class WorkflowActionTest extends BaseTaskTest {
         ExecuteBuildingBlock result = null;
         try {
             result = workflowAction.buildExecuteBuildingBlock(new OrchestrationFlow(), null, null, null, null, null,
-                    false, null, null, null, false, null, null, true);
+                    false, null, null, null, false, null, null, true, null);
         } catch (NullPointerException e) {
             fail("NullPointerException should not be thrown when 'resource' is null");
         }
@@ -3136,5 +3122,17 @@ public class WorkflowActionTest extends BaseTaskTest {
         for (int i = 0; i < ebbs.size(); i++) {
             assertEquals(ebbs.get(i).getBuildingBlock().getBpmnFlowName(), flowNames[i]);
         }
+    }
+
+    private void initExecution(String gAction, String bpmnRequest, boolean isAlaCarte) {
+        execution.setVariable("mso-request-id", "00f704ca-c5e5-4f95-a72c-6889db7b0688");
+        execution.setVariable("requestAction", gAction);
+        execution.setVariable("bpmnRequest", bpmnRequest);
+        execution.setVariable("aLaCarte", isAlaCarte);
+        execution.setVariable("apiVersion", "7");
+    }
+
+    private String readBpmnRequestFromFile(String fileName) throws IOException {
+        return new String(Files.readAllBytes(Paths.get("src/test/resources/__files/" + fileName)));
     }
 }

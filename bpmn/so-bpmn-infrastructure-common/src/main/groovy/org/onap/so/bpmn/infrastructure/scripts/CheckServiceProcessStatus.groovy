@@ -26,7 +26,7 @@ import org.onap.so.bpmn.common.scripts.AbstractServiceTaskProcessor
 import org.onap.so.bpmn.common.scripts.ExceptionUtil
 import org.onap.so.bpmn.common.scripts.RequestDBUtil
 import org.onap.so.bpmn.core.json.JsonUtils
-import org.onap.so.client.aai.AAIResourcesClient
+import org.onap.aaiclient.client.aai.AAIResourcesClient
 import org.onap.so.db.request.beans.OperationStatus
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -128,7 +128,7 @@ class CheckServiceProcessStatus extends AbstractServiceTaskProcessor  {
 
     /**
      * check service status through request operation id, update operation status
-     */
+    */
     void preCheckServiceStatusReq(DelegateExecution execution) {
         logger.trace(Prefix + "preCheckServiceStatusReq Start")
         String serviceInstanceId = execution.getVariable("serviceInstanceId") as String

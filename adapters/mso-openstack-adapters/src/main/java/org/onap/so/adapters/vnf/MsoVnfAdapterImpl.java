@@ -30,15 +30,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.jws.WebService;
 import javax.xml.ws.Holder;
-import org.apache.commons.collections.CollectionUtils;
 import org.onap.logging.filter.base.ErrorCode;
 import org.onap.so.adapters.vnf.exceptions.VnfException;
 import org.onap.so.adapters.vnf.exceptions.VnfNotFound;
-import org.onap.so.client.aai.AAIResourcesClient;
 import org.onap.so.cloud.CloudConfig;
-import org.onap.so.db.catalog.beans.CloudIdentity;
 import org.onap.so.db.catalog.beans.CloudSite;
 import org.onap.so.db.catalog.beans.HeatEnvironment;
 import org.onap.so.db.catalog.beans.HeatFiles;
@@ -51,26 +47,17 @@ import org.onap.so.db.catalog.data.repository.VFModuleCustomizationRepository;
 import org.onap.so.db.catalog.data.repository.VnfResourceRepository;
 import org.onap.so.db.catalog.utils.MavenLikeVersioning;
 import org.onap.so.entity.MsoRequest;
-import org.onap.so.heatbridge.HeatBridgeApi;
-import org.onap.so.heatbridge.HeatBridgeException;
-import org.onap.so.heatbridge.HeatBridgeImpl;
 import org.onap.so.logger.LoggingAnchor;
 import org.onap.so.logger.MessageEnum;
 import org.onap.so.openstack.beans.HeatStatus;
 import org.onap.so.openstack.beans.StackInfo;
 import org.onap.so.openstack.beans.VnfRollback;
-import org.onap.so.openstack.beans.VnfStatus;
-import org.onap.so.openstack.exceptions.MsoCloudSiteNotFound;
 import org.onap.so.openstack.exceptions.MsoException;
 import org.onap.so.openstack.exceptions.MsoExceptionCategory;
 import org.onap.so.openstack.exceptions.MsoHeatNotFoundException;
 import org.onap.so.openstack.utils.MsoHeatEnvironmentEntry;
 import org.onap.so.openstack.utils.MsoHeatUtils;
 import org.onap.so.openstack.utils.MsoHeatUtilsWithUpdate;
-import org.openstack4j.model.compute.Flavor;
-import org.openstack4j.model.compute.Image;
-import org.openstack4j.model.compute.Server;
-import org.openstack4j.model.heat.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,11 +68,9 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@WebService(serviceName = "VnfAdapter", endpointInterface = "org.onap.so.adapters.vnf.MsoVnfAdapter",
-        targetNamespace = "http://org.onap.so/vnf")
 @Component
 @Transactional
-public class MsoVnfAdapterImpl implements MsoVnfAdapter {
+public class MsoVnfAdapterImpl {
 
     @Autowired
     private CloudConfig cloudConfig;
@@ -96,7 +81,6 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
     private static final Logger logger = LoggerFactory.getLogger(MsoVnfAdapterImpl.class);
 
 
-    private static final String VNF_ADAPTER_SERVICE_NAME = "MSO-BPMN:MSO-VnfAdapter.";
     private static final String CHECK_REQD_PARAMS = "org.onap.so.adapters.vnf.checkRequiredParameters";
     private static final String ADD_GET_FILES_ON_VOLUME_REQ = "org.onap.so.adapters.vnf.addGetFilesOnVolumeReq";
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
@@ -104,17 +88,18 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
     private static final String DELETE_VNF = "DeleteVNF";
     private static final String QUERY_STACK = "QueryStack";
     private static final String CREATE_VFM_MODULE = "CreateVFModule";
-    private static final String CREATE_VF_STACK = "Create VF: Stack";
-    private static final String STACK = "Stack";
     private static final String USER_ERROR = "USER ERROR";
     private static final String VERSION_MIN = "VersionMin";
     private static final String VERSION_MAX = "VersionMax";
-    private static final String VF_EXIST_STATUS_MESSAGE =
-            "The vf module was found to already exist, thus no new vf module was created in the cloud via this request";
-    private static final String VF_CREATED_STATUS_MESSAGE = "The new vf module was successfully created in the cloud";
-    private static final String VF_NOT_EXIST_STATUS_MESSAGE =
-            "The vf module was not, thus no vf module was deleted in the cloud via this request";
-    private static final String VF_DELETED_STATUS_MESSAGE = "The vf module was successfully deleted in the cloud";
+    private static final String RESOURCE_EXIST_STATUS_MESSAGE =
+            "The %s was found to already exist, thus no new %s was created in the cloud via this request";
+    private static final String RESOURCE_CREATED_STATUS_MESSAGE = "The new %s was successfully created in the cloud";
+    private static final String RESOURCE_NOT_EXIST_STATUS_MESSAGE =
+            "The %s was not found, thus no %s was deleted in the cloud via this request";
+    private static final String RESOURCE_DELETED_STATUS_MESSAGE = "The %s was successfully deleted in the cloud";
+    private static final String VF_MODULE = "vf module";
+    private static final String VOLUME_GROUP = "volume group";
+
 
     @Autowired
     private VFModuleCustomizationRepository vfModuleCustomRepo;
@@ -138,7 +123,6 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
     /**
      * Health Check web method. Does nothing but return to show the adapter is deployed.
      */
-    @Override
     public void healthCheck() {
         logger.debug("Health check call in VNF Adapter");
     }
@@ -174,7 +158,6 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
      * @param outputs Holder for Map of VNF outputs from heat (assigned IPs, etc)
      * @param rollback Holder for returning VnfRollback object
      */
-    @Override
     public void createVnf(String cloudSiteId, String cloudOwner, String tenantId, String vnfType, String vnfVersion,
             String vnfName, String requestType, String volumeGroupHeatStackId, Map<String, Object> inputs,
             Boolean failIfExists, Boolean backout, Boolean enableBridge, MsoRequest msoRequest, Holder<String> vnfId,
@@ -217,75 +200,6 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
         // End createVf shortcut
     }
 
-    @Override
-    public void updateVnf(String cloudSiteId, String cloudOwner, String tenantId, String vnfType, String vnfVersion,
-            String vnfName, String requestType, String volumeGroupHeatStackId, Map<String, Object> inputs,
-            MsoRequest msoRequest, Holder<Map<String, String>> outputs, Holder<VnfRollback> rollback)
-            throws VnfException {
-        // As of 1707 - this method should no longer be called
-        logger.debug("UpdateVnf called?? This should not be called any longer - update vfModule");
-    }
-
-    /**
-     * This is the "Query VNF" web service implementation. It will look up a VNF by name or ID in the specified cloud
-     * and tenant.
-     *
-     * The method returns an indicator that the VNF exists, its Openstack internal ID, its status, and the set of
-     * outputs (from when the stack was created).
-     *
-     * @param cloudSiteId CLLI code of the cloud site in which to query
-     * @param tenantId Openstack tenant identifier
-     * @param vnfName VNF Name or Openstack ID
-     * @param msoRequest Request tracking information for logs
-     * @param vnfExists Flag reporting the result of the query
-     * @param vnfId Holder for output VNF Openstack ID
-     * @param outputs Holder for Map of VNF outputs from heat (assigned IPs, etc)
-     */
-    @Override
-    public void queryVnf(String cloudSiteId, String cloudOwner, String tenantId, String vnfName, MsoRequest msoRequest,
-            Holder<Boolean> vnfExists, Holder<String> vnfId, Holder<VnfStatus> status,
-            Holder<Map<String, String>> outputs) throws VnfException {
-
-        logger.debug("Querying VNF {} in {}/{}", vnfName, cloudSiteId, tenantId);
-
-        // Will capture execution time for metrics
-
-        StackInfo heatStack;
-        try {
-            heatStack = msoHeatUtils.queryStack(cloudSiteId, cloudOwner, tenantId, vnfName);
-        } catch (MsoException me) {
-            me.addContext("QueryVNF");
-            // Failed to query the Stack due to an openstack exception.
-            // Convert to a generic VnfException
-            String error =
-                    "Query VNF: " + vnfName + " in " + cloudOwner + "/" + cloudSiteId + "/" + tenantId + ": " + me;
-            logger.error(LoggingAnchor.EIGHT, MessageEnum.RA_QUERY_VNF_ERR.toString(), vnfName, cloudSiteId, tenantId,
-                    OPENSTACK, "QueryVNF", ErrorCode.DataError.getValue(), "Exception - " + QUERY_STACK, me);
-            logger.debug(error);
-            throw new VnfException(me);
-        }
-
-        // Populate the outputs based on the returned Stack information
-        //
-        if (heatStack == null || heatStack.getStatus() == HeatStatus.NOTFOUND) {
-            // Not Found
-            vnfExists.value = Boolean.FALSE;
-            status.value = VnfStatus.NOTFOUND;
-            vnfId.value = null;
-            outputs.value = new HashMap<>(); // Return as an empty map
-
-            logger.debug("VNF {} not found", vnfName);
-        } else {
-            vnfExists.value = Boolean.TRUE;
-            status.value = stackStatusToVnfStatus(heatStack.getStatus());
-            vnfId.value = heatStack.getCanonicalName();
-            outputs.value = copyStringOutputs(heatStack.getOutputs());
-
-            logger.debug("VNF {} found, ID = {}", vnfName, vnfId.value);
-        }
-        return;
-    }
-
     /**
      * This is the "Delete VNF" web service implementation. It will delete a VNF by name or ID in the specified cloud
      * and tenant.
@@ -298,14 +212,17 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
      * @param vnfName VNF Name or Openstack ID
      * @param msoRequest Request tracking information for logs
      */
-    @Override
     public void deleteVnf(String cloudSiteId, String cloudOwner, String tenantId, String vnfName, MsoRequest msoRequest)
             throws VnfException {
 
         logger.debug("Deleting VNF {} in {}", vnfName, cloudSiteId + "/" + tenantId);
 
         try {
-            msoHeatUtils.deleteStack(tenantId, cloudOwner, cloudSiteId, vnfName, true, 118);
+            StackInfo stackInfo = msoHeatUtils.deleteStack(tenantId, cloudOwner, cloudSiteId, vnfName, true, 118);
+
+            msoHeatUtils.updateResourceStatus(msoRequest.getRequestId(),
+                    stackInfo.isOperationPerformed() ? String.format(RESOURCE_DELETED_STATUS_MESSAGE, VOLUME_GROUP)
+                            : String.format(RESOURCE_NOT_EXIST_STATUS_MESSAGE, VOLUME_GROUP, VOLUME_GROUP));
         } catch (MsoException me) {
             me.addContext(DELETE_VNF);
             // Failed to query the Stack due to an openstack exception.
@@ -323,11 +240,46 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
     }
 
     /**
+     * This is the "Delete VNF" web service implementation. It will delete a VNF by name or ID in the specified cloud
+     * and tenant.
+     *
+     * The method has no outputs.
+     *
+     * @param cloudSiteId CLLI code of the cloud site in which to delete
+     * @param cloudOwner cloud owner of the cloud region in which to delete
+     * @param tenantId Openstack tenant identifier
+     * @param vnfName VNF Name or Openstack ID
+     * @param msoRequest Request tracking information for logs
+     */
+    public void deleteVnf(String cloudSiteId, String cloudOwner, String tenantId, String vnfName, MsoRequest msoRequest,
+            boolean pollStackStatus) throws VnfException {
+
+        logger.debug("Deleting VNF {} in {}", vnfName, cloudSiteId + "/" + tenantId);
+
+        try {
+            msoHeatUtils.deleteStack(tenantId, cloudOwner, cloudSiteId, vnfName, pollStackStatus, 118);
+        } catch (MsoException me) {
+            me.addContext(DELETE_VNF);
+            // Failed to query the Stack due to an openstack exception.
+            // Convert to a generic VnfException
+            String error =
+                    "Delete VNF: " + vnfName + " in " + cloudOwner + "/" + cloudSiteId + "/" + tenantId + ": " + me;
+            logger.error(LoggingAnchor.NINE, MessageEnum.RA_DELETE_VNF_ERR.toString(), vnfName, cloudOwner, cloudSiteId,
+                    tenantId, OPENSTACK, DELETE_VNF, ErrorCode.DataError.getValue(), "Exception - " + DELETE_VNF, me);
+            logger.debug(error);
+            throw new VnfException(me);
+        }
+
+        // On success, nothing is returned.
+        return;
+    }
+
+
+    /**
      * This web service endpoint will rollback a previous Create VNF operation. A rollback object is returned to the
      * client in a successful creation response. The client can pass that object as-is back to the rollbackVnf operation
      * to undo the creation.
      */
-    @Override
     public void rollbackVnf(VnfRollback rollback) throws VnfException {
         // rollback may be null (e.g. if stack already existed when Create was called)
         if (rollback == null) {
@@ -363,19 +315,6 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
         return;
     }
 
-    private VnfStatus stackStatusToVnfStatus(HeatStatus stackStatus) {
-        switch (stackStatus) {
-            case CREATED:
-                return VnfStatus.ACTIVE;
-            case UPDATED:
-                return VnfStatus.ACTIVE;
-            case FAILED:
-                return VnfStatus.FAILED;
-            default:
-                return VnfStatus.UNKNOWN;
-        }
-    }
-
     private Map<String, String> copyStringOutputs(Map<String, Object> stackOutputs) {
         Map<String, String> stringOutputs = new HashMap<>();
         for (Map.Entry<String, Object> entry : stackOutputs.entrySet()) {
@@ -401,69 +340,6 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
 
     private Map<String, Object> copyStringInputs(Map<String, Object> stringInputs) {
         return new HashMap<>(stringInputs);
-    }
-
-    private void heatbridge(StackInfo heatStack, String cloudOwner, String cloudSiteId, String tenantId,
-            String genericVnfName, String vfModuleId) {
-        try {
-            CloudSite cloudSite =
-                    cloudConfig.getCloudSite(cloudSiteId).orElseThrow(() -> new MsoCloudSiteNotFound(cloudSiteId));
-            CloudIdentity cloudIdentity = cloudSite.getIdentityService();
-            String heatStackId = heatStack.getCanonicalName().split("/")[1];
-
-            List<String> oobMgtNetNames = new ArrayList<>();
-
-            HeatBridgeApi heatBridgeClient = new HeatBridgeImpl(new AAIResourcesClient(), cloudIdentity, cloudOwner,
-                    cloudSiteId, cloudSite.getRegionId(), tenantId);
-
-            heatBridgeClient.authenticate();
-
-            List<Resource> stackResources = heatBridgeClient.queryNestedHeatStackResources(heatStackId);
-
-            List<Server> osServers = heatBridgeClient.getAllOpenstackServers(stackResources);
-
-            heatBridgeClient.createPserversAndPinterfacesIfNotPresentInAai(stackResources);
-
-            List<Image> osImages = heatBridgeClient.extractOpenstackImagesFromServers(osServers);
-
-            List<Flavor> osFlavors = heatBridgeClient.extractOpenstackFlavorsFromServers(osServers);
-
-            logger.debug("Successfully queried heat stack{} for resources.", heatStackId);
-            // os images
-            if (osImages != null && !osImages.isEmpty()) {
-                heatBridgeClient.buildAddImagesToAaiAction(osImages);
-                logger.debug("Successfully built AAI actions to add images.");
-            } else {
-                logger.debug("No images to update to AAI.");
-            }
-            // flavors
-            if (osFlavors != null && !osFlavors.isEmpty()) {
-                heatBridgeClient.buildAddFlavorsToAaiAction(osFlavors);
-                logger.debug("Successfully built AAI actions to add flavors.");
-            } else {
-                logger.debug("No flavors to update to AAI.");
-            }
-
-            // compute resources
-            heatBridgeClient.buildAddVserversToAaiAction(genericVnfName, vfModuleId, osServers);
-            logger.debug("Successfully queried compute resources and built AAI vserver actions.");
-
-            // neutron resources
-            List<String> oobMgtNetIds = new ArrayList<>();
-
-            // if no network-id list is provided, however network-name list is
-            if (!CollectionUtils.isEmpty(oobMgtNetNames)) {
-                oobMgtNetIds = heatBridgeClient.extractNetworkIds(oobMgtNetNames);
-            }
-            heatBridgeClient.buildAddVserverLInterfacesToAaiAction(stackResources, oobMgtNetIds);
-            logger.debug(
-                    "Successfully queried neutron resources and built AAI actions to add l-interfaces to vservers.");
-
-            // Update AAI
-            heatBridgeClient.submitToAai();
-        } catch (Exception ex) {
-            logger.debug("Heatbrige failed for stackId: " + heatStack.getCanonicalName(), ex);
-        }
     }
 
     private String convertNode(final JsonNode node) {
@@ -529,13 +405,13 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
         return stringMap;
     }
 
-    @Override
     public void createVfModule(String cloudSiteId, String cloudOwner, String tenantId, String vnfType,
             String vnfVersion, String genericVnfName, String vnfName, String vfModuleId, String requestType,
             String volumeGroupHeatStackId, String baseVfHeatStackId, String modelCustomizationUuid,
             Map<String, Object> inputs, Boolean failIfExists, Boolean backout, Boolean enableBridge,
             MsoRequest msoRequest, Holder<String> vnfId, Holder<Map<String, String>> outputs,
             Holder<VnfRollback> rollback) throws VnfException {
+        boolean pollForCompletion = false;
         String vfModuleName = vnfName;
         String vfModuleType = vnfType;
         String vfVersion = vnfVersion;
@@ -1050,11 +926,18 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
                 }
                 if (msoHeatUtils != null) {
                     heatStack = msoHeatUtils.createStack(cloudSiteId, cloudOwner, tenantId, vfModuleName, null,
-                            template, goldenInputs, true, heatTemplate.getTimeoutMinutes(), newEnvironmentString,
-                            nestedTemplatesChecked, heatFilesObjects, backout.booleanValue(), failIfExists);
+                            template, goldenInputs, pollForCompletion, heatTemplate.getTimeoutMinutes(),
+                            newEnvironmentString, nestedTemplatesChecked, heatFilesObjects, backout.booleanValue(),
+                            failIfExists);
+                    String resource = VF_MODULE;
+                    if (isVolumeRequest) {
+                        resource = VOLUME_GROUP;
+                    }
                     if (msoRequest.getRequestId() != null) {
                         msoHeatUtils.updateResourceStatus(msoRequest.getRequestId(),
-                                heatStack.isOperationPerformed() ? VF_EXIST_STATUS_MESSAGE : VF_CREATED_STATUS_MESSAGE);
+                                heatStack.isOperationPerformed()
+                                        ? String.format(RESOURCE_CREATED_STATUS_MESSAGE, resource)
+                                        : String.format(RESOURCE_EXIST_STATUS_MESSAGE, resource, resource));
                     }
                 } else {
                     throw new MsoHeatNotFoundException();
@@ -1079,17 +962,12 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
             outputs.value = copyStringOutputs(heatStack.getOutputs());
             rollback.value = vfRollback;
             logger.debug("VF Module {} successfully created", vfModuleName);
-            if (enableBridge != null && enableBridge) {
-                // call heatbridge
-                heatbridge(heatStack, cloudOwner, cloudSiteId, tenantId, genericVnfName, vfModuleId);
-            }
         } catch (Exception e) {
             logger.debug("unhandled exception in create VF", e);
             throw new VnfException("Exception during create VF " + e.getMessage());
         }
     }
 
-    @Override
     public void deleteVfModule(String cloudSiteId, String cloudOwner, String tenantId, String vnfName, String vnfId,
             String vfModuleId, String modelCustomizationUuid, MsoRequest msoRequest,
             Holder<Map<String, String>> outputs) throws VnfException {
@@ -1135,10 +1013,15 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
         }
 
         try {
-            StackInfo stackInfo =
-                    msoHeatUtils.deleteStack(tenantId, cloudOwner, cloudSiteId, vnfName, true, timeoutMinutes);
+            StackInfo currentStack =
+                    msoHeatUtils.deleteStack(tenantId, cloudOwner, cloudSiteId, vnfName, false, timeoutMinutes);
+            if (currentStack != null && outputs != null && outputs.value != null) {
+                logger.debug("Adding canonical stack id to outputs " + currentStack.getCanonicalName());
+                outputs.value.put("canonicalStackId", currentStack.getCanonicalName());
+            }
             msoHeatUtils.updateResourceStatus(msoRequest.getRequestId(),
-                    stackInfo.isOperationPerformed() ? VF_DELETED_STATUS_MESSAGE : VF_NOT_EXIST_STATUS_MESSAGE);
+                    currentStack.isOperationPerformed() ? String.format(RESOURCE_DELETED_STATUS_MESSAGE, VF_MODULE)
+                            : String.format(RESOURCE_NOT_EXIST_STATUS_MESSAGE, VF_MODULE, VF_MODULE));
         } catch (MsoException me) {
             me.addContext(DELETE_VNF);
             // Failed to query the Stack due to an openstack exception.
@@ -1150,15 +1033,8 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
             logger.error(error);
             throw new VnfException(me);
         }
-        // call heatbridge delete
-        try {
-            new HeatBridgeImpl().deleteVfModuleData(vnfId, vfModuleId);
-        } catch (HeatBridgeException e) {
-            logger.error("Heatbridge failed to delete AAI data for vf-module: " + vfModuleId, e);
-        }
     }
 
-    @Override
     public void updateVfModule(String cloudSiteId, String cloudOwner, String tenantId, String vnfType,
             String vnfVersion, String vnfName, String requestType, String volumeGroupHeatStackId,
             String baseVfHeatStackId, String vfModuleStackId, String modelCustomizationUuid, Map<String, Object> inputs,
@@ -1166,8 +1042,6 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
             throws VnfException {
         String vfModuleName = vnfName;
         String vfModuleType = vnfType;
-        String methodName = "updateVfModule";
-        String serviceName = VNF_ADAPTER_SERVICE_NAME + methodName;
 
         StringBuilder sbInit = new StringBuilder();
         sbInit.append("updateVfModule: \n");
@@ -1280,7 +1154,6 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
 
         // 1604 Cinder Volume support - handle a nestedStackId if sent (volumeGroupHeatStackId):
         StackInfo nestedHeatStack = null;
-        Map<String, Object> nestedVolumeOutputs = null;
         if (nestedStackId != null) {
             try {
                 logger.debug("Querying for nestedStackId = {}", nestedStackId);
@@ -1306,13 +1179,11 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
                 throw new VnfException(error, MsoExceptionCategory.USERDATA);
             } else {
                 logger.debug("Found nested heat stack - copying values to inputs *later*");
-                nestedVolumeOutputs = nestedHeatStack.getOutputs();
                 msoHeatUtils.copyStringOutputsToInputs(inputs, nestedHeatStack.getOutputs(), false);
             }
         }
         // handle a nestedBaseStackId if sent - this is the stack ID of the base.
         StackInfo nestedBaseHeatStack = null;
-        Map<String, Object> baseStackOutputs = null;
         if (nestedBaseStackId != null) {
             try {
                 logger.debug("Querying for nestedBaseStackId = {}", nestedBaseStackId);
@@ -1338,7 +1209,6 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
                 throw new VnfException(error, MsoExceptionCategory.USERDATA);
             } else {
                 logger.debug("Found nested base heat stack - copying values to inputs *later*");
-                baseStackOutputs = nestedBaseHeatStack.getOutputs();
                 msoHeatUtils.copyStringOutputsToInputs(inputs, nestedBaseHeatStack.getOutputs(), false);
             }
         }
@@ -1778,56 +1648,4 @@ public class MsoVnfAdapterImpl implements MsoVnfAdapter {
         return vfModuleName;
     }
 
-    /*
-     * Helper method to check a boolean property value - on error return provided default
-     */
-    private boolean checkBooleanProperty(String propertyName, boolean defaultValue) {
-        boolean property = defaultValue;
-        try {
-            String propertyString = this.environment.getProperty(propertyName);
-            if ("true".equalsIgnoreCase(propertyString) || "y".equalsIgnoreCase(propertyString)) {
-                property = true;
-            } else if ("false".equalsIgnoreCase(propertyString) || "n".equalsIgnoreCase(propertyString)) {
-                property = false;
-            }
-        } catch (Exception e) {
-            logger.debug("An exception occured trying to get property {} - defaulting to ", propertyName, defaultValue,
-                    e);
-            property = defaultValue;
-        }
-        return property;
-    }
-
-    /*
-     * Helper method to combine getFiles and nestedTemplates in to a single Map
-     */
-    private Map<String, Object> combineGetFilesAndNestedTemplates(Map<String, Object> getFiles,
-            Map<String, Object> nestedTemplates) {
-        boolean haveGetFiles = true;
-        boolean haveNestedTemplates = true;
-        Map<String, Object> files = new HashMap<>();
-        if (getFiles == null || getFiles.isEmpty()) {
-            haveGetFiles = false;
-        }
-        if (nestedTemplates == null || nestedTemplates.isEmpty()) {
-            haveNestedTemplates = false;
-        }
-        if (haveGetFiles && haveNestedTemplates) {
-            for (String keyString : getFiles.keySet()) {
-                files.put(keyString, getFiles.get(keyString));
-            }
-            for (String keyString : nestedTemplates.keySet()) {
-                files.put(keyString, nestedTemplates.get(keyString));
-            }
-        } else {
-            // Handle if we only have one or neither:
-            if (haveGetFiles) {
-                files = getFiles;
-            }
-            if (haveNestedTemplates) {
-                files = nestedTemplates;
-            }
-        }
-        return files;
-    }
 }

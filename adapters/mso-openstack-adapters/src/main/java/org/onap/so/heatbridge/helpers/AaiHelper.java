@@ -32,8 +32,6 @@
  */
 package org.onap.so.heatbridge.helpers;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -44,6 +42,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.onap.aai.domain.yang.Flavor;
 import org.onap.aai.domain.yang.Image;
+import org.onap.aai.domain.yang.L3Network;
 import org.onap.aai.domain.yang.PInterface;
 import org.onap.aai.domain.yang.Pserver;
 import org.onap.aai.domain.yang.Relationship;
@@ -51,9 +50,15 @@ import org.onap.aai.domain.yang.RelationshipData;
 import org.onap.aai.domain.yang.RelationshipList;
 import org.onap.aai.domain.yang.SriovVf;
 import org.onap.aai.domain.yang.Vserver;
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri;
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder;
 import org.onap.so.heatbridge.constants.HeatBridgeConstants;
 import org.openstack4j.model.compute.Server;
+import org.openstack4j.model.network.Network;
 import org.openstack4j.model.network.Port;
+import org.openstack4j.model.network.Subnet;
+import com.google.common.base.Preconditions;
 
 /**
  * This class provides wrapper methods to manage creation of AAI objects and extracting objects from AAI and
@@ -62,7 +67,7 @@ import org.openstack4j.model.network.Port;
 public class AaiHelper {
 
     /**
-     * Build vserver relationship object to entities: pserver, vf-module, generic-vnf, image, flavor
+     * Build vserver relationship object to entities: pserver, vf-module, image, flavor
      *
      * @param cloudOwner AAI cloudOwner value
      * @param cloudRegionId AAI cloud-region identifier
@@ -77,39 +82,42 @@ public class AaiHelper {
 
         // vserver to pserver relationship
         if (!StringUtils.isEmpty(server.getHypervisorHostname())) {
-            Relationship pserverRelationship =
-                    buildRelationship(HeatBridgeConstants.AAI_PSERVER, ImmutableMap.<String, String>builder()
-                            .put(HeatBridgeConstants.AAI_PSERVER_HOSTNAME, server.getHypervisorHostname()).build());
+            Relationship pserverRelationship = buildRelationship(AAIUriFactory.createResourceUri(
+                    AAIFluentTypeBuilder.cloudInfrastructure().pserver(server.getHypervisorHostname())));
             relationships.add(pserverRelationship);
         }
-        // vserver to vf-module relationship
-        Relationship vfModuleRelationship = buildRelationship(HeatBridgeConstants.AAI_VF_MODULE,
-                ImmutableMap.<String, String>builder().put(HeatBridgeConstants.AAI_GENERIC_VNF_ID, genericVnfId)
-                        .put(HeatBridgeConstants.AAI_VF_MODULE_ID, vfModuleId).build());
-        relationships.add(vfModuleRelationship);
 
         // vserver to generic-vnf relationship
-        Relationship genericVnfRelationship = buildRelationship(HeatBridgeConstants.AAI_GENERIC_VNF, ImmutableMap
-                .<String, String>builder().put(HeatBridgeConstants.AAI_GENERIC_VNF_ID, genericVnfId).build());
+        Relationship genericVnfRelationship = buildRelationship(
+                AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf(genericVnfId)));
         relationships.add(genericVnfRelationship);
+
+        // vserver to vnfc relationship
+        if (!StringUtils.isEmpty(server.getName())) {
+            Relationship vnfcRelationship = buildRelationship(
+                    AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().vnfc(server.getName())));
+            relationships.add(vnfcRelationship);
+        }
+
+        // vserver to vf-module relationship
+        Relationship vfModuleRelationship = buildRelationship(AAIUriFactory
+                .createResourceUri(AAIFluentTypeBuilder.network().genericVnf(genericVnfId).vfModule(vfModuleId)));
+        relationships.add(vfModuleRelationship);
 
         // vserver to image relationship
         if (server.getImage() != null) {
-            Relationship imageRel = buildRelationship(HeatBridgeConstants.AAI_IMAGE,
-                    ImmutableMap.<String, String>builder().put(HeatBridgeConstants.AAI_CLOUD_OWNER, cloudOwner)
-                            .put(HeatBridgeConstants.AAI_CLOUD_REGION_ID, cloudRegionId)
-                            .put(HeatBridgeConstants.AAI_IMAGE_ID, server.getImage().getId()).build());
+            Relationship imageRel = buildRelationship(AAIUriFactory.createResourceUri(AAIFluentTypeBuilder
+                    .cloudInfrastructure().cloudRegion(cloudOwner, cloudRegionId).image(server.getImage().getId())));
             relationships.add(imageRel);
         }
 
         // vserver to flavor relationship
         if (server.getFlavor() != null) {
-            Relationship flavorRel = buildRelationship(HeatBridgeConstants.AAI_FLAVOR,
-                    ImmutableMap.<String, String>builder().put(HeatBridgeConstants.AAI_CLOUD_OWNER, cloudOwner)
-                            .put(HeatBridgeConstants.AAI_CLOUD_REGION_ID, cloudRegionId)
-                            .put(HeatBridgeConstants.AAI_FLAVOR_ID, server.getFlavor().getId()).build());
+            Relationship flavorRel = buildRelationship(AAIUriFactory.createResourceUri(AAIFluentTypeBuilder
+                    .cloudInfrastructure().cloudRegion(cloudOwner, cloudRegionId).flavor(server.getFlavor().getId())));
             relationships.add(flavorRel);
         }
+
         return relationshipList;
     }
 
@@ -119,13 +127,55 @@ public class AaiHelper {
         List<Relationship> relationships = relationshipList.getRelationship();
 
         // sriov-vf to sriov-pf relationship
-        Relationship sriovPfRelationship = buildRelationship(HeatBridgeConstants.AAI_SRIOV_PF,
-                ImmutableMap.<String, String>builder().put(HeatBridgeConstants.AAI_PSERVER_HOSTNAME, pserverName)
-                        .put(HeatBridgeConstants.AAI_P_INTERFACE_NAME, pIfName)
-                        .put(HeatBridgeConstants.AAI_SRIOV_PF_PCI_ID, pfPciId).build());
+        Relationship sriovPfRelationship = buildRelationship(AAIUriFactory.createResourceUri(
+                AAIFluentTypeBuilder.cloudInfrastructure().pserver(pserverName).pInterface(pIfName).sriovPf(pfPciId)));
         relationships.add(sriovPfRelationship);
 
         return relationshipList;
+    }
+
+    public Relationship getRelationshipToVfModule(String vnfId, String vfModuleId) {
+        return buildRelationship(
+                AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf(vnfId).vfModule(vfModuleId)));
+    }
+
+    public Relationship getRelationshipToTenant(String cloudOwner, String cloudRegionId, String tenantId) {
+        return buildRelationship(AAIUriFactory.createResourceUri(
+                AAIFluentTypeBuilder.cloudInfrastructure().cloudRegion(cloudOwner, cloudRegionId).tenant(tenantId)));
+    }
+
+    public org.onap.aai.domain.yang.Subnet buildSubnet(Subnet subnet) {
+        org.onap.aai.domain.yang.Subnet aaiSubnet = new org.onap.aai.domain.yang.Subnet();
+        aaiSubnet.setSubnetId(subnet.getId());
+        aaiSubnet.setDhcpEnabled(subnet.isDHCPEnabled());
+
+        aaiSubnet.setSubnetName(subnet.getName());
+        aaiSubnet.setGatewayAddress(subnet.getGateway());
+        aaiSubnet.setCidrMask(subnet.getCidr());
+        aaiSubnet.setIpVersion(subnet.getIpVersion().name());
+        return aaiSubnet;
+    }
+
+    public L3Network buildNetwork(Network network) {
+        if (network.getId() == null) {
+            return null;
+        }
+        L3Network l3Network = new L3Network();
+        l3Network.setNetworkId(network.getId());
+        l3Network.setIsBoundToVpn(true);
+        l3Network.setIsProviderNetwork(true);
+
+        // optional fields
+        l3Network.setIsSharedNetwork(network.isShared());
+        l3Network.setIsExternalNetwork(network.isRouterExternal());
+        l3Network.setOperationalStatus(String.valueOf(network.isAdminStateUp()));
+        if (network.getName() != null) {
+            l3Network.setNetworkName(network.getName());
+        }
+        if (network.getProviderPhyNet() != null) {
+            l3Network.setPhysicalNetworkName(network.getProviderPhyNet());
+        }
+        return l3Network;
     }
 
     /**
@@ -142,7 +192,6 @@ public class AaiHelper {
         vserver.setVserverId(serverId);
         vserver.setVserverName(server.getName());
         vserver.setVserverName2(server.getName());
-        vserver.setProvStatus(server.getStatus().value());
         server.getLinks().stream().filter(link -> link.getRel().equals(HeatBridgeConstants.OS_RESOURCES_SELF_LINK_KEY))
                 .findFirst().ifPresent(link -> vserver.setVserverSelflink(link.getHref()));
         return vserver;
@@ -166,9 +215,6 @@ public class AaiHelper {
         }
         if (server.getHost() != null) {
             pserver.setPserverName2(server.getHost());
-        }
-        if (server.getStatus() != null && server.getStatus().value() != null) {
-            pserver.setProvStatus(server.getStatus().value());
         }
         return pserver;
     }
@@ -200,8 +246,16 @@ public class AaiHelper {
         aaiImage.setImageName(image.getName());
         aaiImage.setImageOsDistro(HeatBridgeConstants.OS_UNKNOWN_KEY);
         aaiImage.setImageOsVersion(HeatBridgeConstants.OS_UNKNOWN_KEY);
-        image.getLinks().stream().filter(link -> link.getRel().equals(HeatBridgeConstants.OS_RESOURCES_SELF_LINK_KEY))
-                .findFirst().ifPresent(link -> aaiImage.setImageSelflink(link.getHref()));
+
+        // application name/vendor/version needs to be set
+        if (image.getLinks() != null) {
+            image.getLinks().stream()
+                    .filter(link -> link.getRel().equals(HeatBridgeConstants.OS_RESOURCES_SELF_LINK_KEY)).findFirst()
+                    .ifPresent(link -> aaiImage.setImageSelflink(link.getHref()));
+        }
+        if (aaiImage.getImageSelflink() == null || aaiImage.getImageSelflink().isEmpty()) {
+            aaiImage.setImageSelflink("NA");
+        }
         return aaiImage;
     }
 
@@ -215,6 +269,13 @@ public class AaiHelper {
         Flavor aaiFlavor = new Flavor();
         aaiFlavor.setFlavorId(flavor.getId());
         aaiFlavor.setFlavorName(flavor.getName());
+        aaiFlavor.setFlavorVcpus(flavor.getVcpus());
+        aaiFlavor.setFlavorRam(flavor.getRam());
+        aaiFlavor.setFlavorDisk(flavor.getDisk());
+        aaiFlavor.setFlavorEphemeral(flavor.getEphemeral());
+        aaiFlavor.setFlavorDisabled(flavor.isDisabled());
+        aaiFlavor.setFlavorIsPublic(flavor.isPublic());
+        aaiFlavor.setFlavorSwap(Integer.toString(flavor.getSwap()));
         flavor.getLinks().stream().filter(link -> link.getRel().equals(HeatBridgeConstants.OS_RESOURCES_SELF_LINK_KEY))
                 .findFirst().ifPresent(link -> aaiFlavor.setFlavorSelflink(link.getHref()));
         return aaiFlavor;
@@ -319,15 +380,9 @@ public class AaiHelper {
      * @param relationshipKeyValues Key value pairs of relationship data
      * @return AAI Relationship object
      */
-    private Relationship buildRelationship(final String relatedTo, final Map<String, String> relationshipKeyValues) {
+    private Relationship buildRelationship(final AAIResourceUri relatedLink) {
         Relationship relationship = new Relationship();
-        relationship.setRelatedTo(relatedTo);
-        relationshipKeyValues.keySet().forEach(k -> {
-            RelationshipData relationshipData = new RelationshipData();
-            relationshipData.setRelationshipKey(k);
-            relationshipData.setRelationshipValue(relationshipKeyValues.get(k));
-            relationship.getRelationshipData().add(relationshipData);
-        });
+        relationship.setRelatedLink(relatedLink.build().toString());
         return relationship;
     }
 }

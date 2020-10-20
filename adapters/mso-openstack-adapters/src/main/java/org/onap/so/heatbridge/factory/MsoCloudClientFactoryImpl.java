@@ -32,8 +32,6 @@
  */
 package org.onap.so.heatbridge.factory;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Objects;
 import javax.annotation.Nonnull;
 import org.onap.so.heatbridge.HeatBridgeException;
@@ -44,6 +42,9 @@ import org.onap.so.heatbridge.openstack.api.OpenstackClient;
 import org.onap.so.heatbridge.openstack.api.OpenstackClientException;
 import org.onap.so.heatbridge.openstack.factory.OpenstackClientFactory;
 import org.onap.so.utils.CryptoUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 /**
  * This class implements {@link MsoCloudClientFactory} It loads the cloud configuration from SO and uses it to
@@ -51,6 +52,8 @@ import org.onap.so.utils.CryptoUtils;
  * auth token so that subsequent API calls to Openstack can be made.
  */
 public class MsoCloudClientFactoryImpl implements MsoCloudClientFactory {
+
+    private static final Logger logger = LoggerFactory.getLogger(MsoCloudClientFactoryImpl.class);
 
     private OpenstackClientFactory openstackClientFactory;
 
@@ -61,33 +64,38 @@ public class MsoCloudClientFactoryImpl implements MsoCloudClientFactory {
 
     @Override
     public OpenstackClient getOpenstackClient(@Nonnull String url, @Nonnull String msoId, @Nonnull String msoPass,
-            @Nonnull String regionId, @Nonnull String tenantId) throws HeatBridgeException {
+            @Nonnull String regionId, @Nonnull String tenantId, @Nonnull String keystoneVersion, String userDomainName,
+            String projectDomainName) throws HeatBridgeException {
         Objects.requireNonNull(url, "Null openstack url!");
         Objects.requireNonNull(msoId, "Null openstack user id!");
         Objects.requireNonNull(msoPass, "Null openstack password!");
         Objects.requireNonNull(regionId, "Null regionId ID!");
         Objects.requireNonNull(tenantId, "Null tenant ID!");
+        Objects.requireNonNull(keystoneVersion, "Null keystone version");
+        if (userDomainName == null) {
+            userDomainName = HeatBridgeConstants.OS_DEFAULT_DOMAIN_NAME;
+        }
+        if (projectDomainName == null) {
+            projectDomainName = HeatBridgeConstants.OS_DEFAULT_DOMAIN_NAME;
+        }
         try {
             final OpenstackAccess osAccess = new OpenstackAccessBuilder().setBaseUrl(url) // keystone URL
                     .setUser(msoId) // keystone username
                     .setPassword(CryptoUtils.decryptCloudConfigPassword(msoPass)) // keystone decrypted password
                     .setRegion(regionId) // openstack region
-                    .setDomainName(HeatBridgeConstants.OS_DEFAULT_DOMAIN_NAME) // hardcode to "default"
-                    .setTenantId(tenantId) // tenantId
+                    .setDomainName(userDomainName).setProjectName(projectDomainName).setTenantId(tenantId) // tenantId
                     .build();
 
             // Identify the Keystone version
-            String version = new URL(url).getPath().replace("/", "");
-            if (version.equals(HeatBridgeConstants.OS_KEYSTONE_V2_KEY)) {
+            if (keystoneVersion.equals(HeatBridgeConstants.OS_KEYSTONE_V2_KEY)) {
                 return openstackClientFactory.createOpenstackV2Client(osAccess);
-            } else if (version.equals(HeatBridgeConstants.OS_KEYSTONE_V3_KEY)) {
+            } else if (keystoneVersion.equals(HeatBridgeConstants.OS_KEYSTONE_V3_KEY)) {
                 return openstackClientFactory.createOpenstackV3Client(osAccess);
             }
-            throw new OpenstackClientException("Unsupported keystone version!");
-        } catch (MalformedURLException e) {
-            throw new HeatBridgeException("Malformed Keystone Endpoint in SO configuration.", e);
+            throw new OpenstackClientException("Unsupported keystone version! " + keystoneVersion);
         } catch (OpenstackClientException osClientEx) {
-            throw new HeatBridgeException("Client error when authenticating with the Openstack V3.", osClientEx);
+            logger.error("Error creating OS Client", osClientEx);
+            throw new HeatBridgeException("Client error when authenticating with the Openstack", osClientEx);
         }
     }
 }

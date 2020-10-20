@@ -32,6 +32,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.camunda.bpm.engine.delegate.BpmnError;
+import org.onap.aaiclient.client.aai.entities.uri.AAIPluralResourceUri;
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder;
+import org.onap.logging.filter.base.ErrorCode;
 import org.onap.so.bpmn.common.BuildingBlockExecution;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.CloudRegion;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Collection;
@@ -52,9 +56,6 @@ import org.onap.so.bpmn.servicedecomposition.bbobjects.VolumeGroup;
 import org.onap.so.bpmn.servicedecomposition.entities.GeneralBuildingBlock;
 import org.onap.so.bpmn.servicedecomposition.entities.ResourceKey;
 import org.onap.so.bpmn.servicedecomposition.tasks.ExtractPojosForBB;
-import org.onap.so.client.aai.AAIObjectPlurals;
-import org.onap.so.client.aai.entities.uri.AAIPluralResourceUri;
-import org.onap.so.client.aai.entities.uri.AAIUriFactory;
 import org.onap.so.client.exception.BBObjectNotFoundException;
 import org.onap.so.client.exception.ExceptionBuilder;
 import org.onap.so.client.orchestration.AAIConfigurationResources;
@@ -66,7 +67,6 @@ import org.onap.so.client.orchestration.AAIVfModuleResources;
 import org.onap.so.client.orchestration.AAIVnfResources;
 import org.onap.so.client.orchestration.AAIVolumeGroupResources;
 import org.onap.so.client.orchestration.AAIVpnBindingResources;
-import org.onap.logging.filter.base.ErrorCode;
 import org.onap.so.logger.LoggingAnchor;
 import org.onap.so.logger.MessageEnum;
 import org.slf4j.Logger;
@@ -85,6 +85,11 @@ public class AAICreateTasks {
     private static String CONTRAIL_NETWORK_POLICY_FQDN_LIST = "contrailNetworkPolicyFqdnList";
     private static String HEAT_STACK_ID = "heatStackId";
     private static String NETWORK_POLICY_FQDN_PARAM = "network-policy-fqdn";
+    protected static final String EXCEPTION_NAME_EXISTS_WITH_DIFFERENT_ID =
+            "Exception in AAICreateOwningEntity. Can't create OwningEntity as name already exists in AAI associated with a different owning-entity-id (name must be unique)";
+    protected static final String EXCEPTION_NAME_AND_ID_ARE_NULL =
+            "Exception in AAICreateOwningEntity. OwningEntityId and Name are null.";
+
     @Autowired
     private AAIServiceInstanceResources aaiSIResources;
     @Autowired
@@ -192,9 +197,8 @@ public class AAICreateTasks {
             OwningEntity owningEntity = serviceInstance.getOwningEntity();
             if (Strings.isNullOrEmpty(owningEntity.getOwningEntityId())
                     && Strings.isNullOrEmpty(owningEntity.getOwningEntityName())) {
-                String msg = "Exception in AAICreateOwningEntity. OwningEntityId and Name are null.";
-                execution.setVariable("ErrorCreateOEAAI", msg);
-                exceptionUtil.buildAndThrowWorkflowException(execution, 7000, msg);
+                execution.setVariable("ErrorCreateOEAAI", EXCEPTION_NAME_AND_ID_ARE_NULL);
+                exceptionUtil.buildAndThrowWorkflowException(execution, 7000, "EXCEPTION_NAME_AND_ID_ARE_NULL");
             } else if (Strings.isNullOrEmpty(owningEntity.getOwningEntityId())
                     && !Strings.isNullOrEmpty(owningEntity.getOwningEntityName())) {
                 if (aaiSIResources.existsOwningEntityName(owningEntity.getOwningEntityName())) {
@@ -219,11 +223,11 @@ public class AAICreateTasks {
                         exceptionUtil.buildAndThrowWorkflowException(execution, 7000, msg);
                     } else {
                         if (aaiSIResources.existsOwningEntityName(owningEntity.getOwningEntityName())) {
-                            String msg =
-                                    "Exception in AAICreateOwningEntity. Can't create OwningEntity as name already exists in AAI associated with a different owning-entity-id (name must be unique)";
-                            logger.error(LoggingAnchor.FIVE, MessageEnum.BPMN_GENERAL_EXCEPTION_ARG.toString(), msg,
-                                    "BPMN", ErrorCode.UnknownError.getValue(), msg);
-                            exceptionUtil.buildAndThrowWorkflowException(execution, 7000, msg);
+                            logger.error(LoggingAnchor.FIVE, MessageEnum.BPMN_GENERAL_EXCEPTION_ARG.toString(),
+                                    EXCEPTION_NAME_EXISTS_WITH_DIFFERENT_ID, "BPMN", ErrorCode.UnknownError.getValue(),
+                                    EXCEPTION_NAME_EXISTS_WITH_DIFFERENT_ID);
+                            exceptionUtil.buildAndThrowWorkflowException(execution, 7000,
+                                    EXCEPTION_NAME_EXISTS_WITH_DIFFERENT_ID);
                         } else {
                             aaiSIResources.createOwningEntityandConnectServiceInstance(owningEntity, serviceInstance);
                         }
@@ -260,10 +264,11 @@ public class AAICreateTasks {
     public void createPnf(BuildingBlockExecution execution) {
         try {
             Pnf pnf = extractPojosForBB.extractByKey(execution, ResourceKey.PNF);
+            aaiPnfResources.checkIfPnfExistsInAaiAndCanBeUsed(pnf);
             ServiceInstance serviceInstance =
                     extractPojosForBB.extractByKey(execution, ResourceKey.SERVICE_INSTANCE_ID);
             aaiPnfResources.createPnfAndConnectServiceInstance(pnf, serviceInstance);
-        } catch (BBObjectNotFoundException e) {
+        } catch (Exception e) {
             exceptionUtil.buildAndThrowWorkflowException(execution, 7000, e);
         }
     }
@@ -321,8 +326,8 @@ public class AAICreateTasks {
                 logger.debug("PlatformName is null in input. Skipping create platform...");
             } else {
                 List<String> platforms = splitCDL(platform.getPlatformName());
-                platforms.stream().forEach(
-                        platformName -> aaiNetworkResources.createPlatformAndConnectNetwork(platform, network));
+                platforms.stream().forEach(platformName -> aaiNetworkResources
+                        .createPlatformAndConnectNetwork(new Platform(platformName), network));
             }
         }
     }
@@ -690,7 +695,8 @@ public class AAICreateTasks {
                 if (fqdnCount > 0) {
                     for (int i = 0; i < fqdnCount; i++) {
                         String fqdn = fqdnList[i];
-                        AAIPluralResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectPlurals.NETWORK_POLICY);
+                        AAIPluralResourceUri uri =
+                                AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().networkPolicies());
                         uri.queryParam(NETWORK_POLICY_FQDN_PARAM, fqdn);
                         Optional<org.onap.aai.domain.yang.NetworkPolicy> oNetPolicy =
                                 aaiNetworkResources.getNetworkPolicy(uri);

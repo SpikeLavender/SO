@@ -58,6 +58,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.onap.aaiclient.client.aai.AAICommonObjectMapperProvider;
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper;
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri;
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.CloudRegion;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Collection;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Configuration;
@@ -68,6 +73,7 @@ import org.onap.so.bpmn.servicedecomposition.bbobjects.L3Network;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.LineOfBusiness;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.OwningEntity;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Platform;
+import org.onap.so.bpmn.servicedecomposition.bbobjects.Pnf;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Project;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.RouteTableReference;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.ServiceInstance;
@@ -94,11 +100,6 @@ import org.onap.so.bpmn.servicedecomposition.modelinfo.ModelInfoServiceProxy;
 import org.onap.so.bpmn.servicedecomposition.modelinfo.ModelInfoVfModule;
 import org.onap.so.bpmn.servicedecomposition.tasks.exceptions.NoServiceInstanceFoundException;
 import org.onap.so.bpmn.servicedecomposition.tasks.exceptions.ServiceModelNotFoundException;
-import org.onap.so.client.aai.AAICommonObjectMapperProvider;
-import org.onap.so.client.aai.AAIObjectType;
-import org.onap.so.client.aai.entities.AAIResultWrapper;
-import org.onap.so.client.aai.entities.uri.AAIResourceUri;
-import org.onap.so.client.aai.entities.uri.AAIUriFactory;
 import org.onap.so.db.catalog.beans.CollectionNetworkResourceCustomization;
 import org.onap.so.db.catalog.beans.CollectionResource;
 import org.onap.so.db.catalog.beans.CollectionResourceCustomization;
@@ -814,6 +815,26 @@ public class BBInputSetupTest {
         assertThat(actual, sameBeanAs(expected));
     }
 
+    @Test
+    public void testGetServiceInstanceHelperCreateScenarioExistingWithName() throws Exception {
+        RequestDetails requestDetails = new RequestDetails();
+        RequestInfo requestInfo = new RequestInfo();
+        requestDetails.setRequestInfo(requestInfo);
+        ServiceSubscription serviceSub = new ServiceSubscription();
+        Customer customer = new Customer();
+        customer.setServiceSubscription(serviceSub);
+        ServiceInstance expected = new ServiceInstance();
+        expected.setServiceInstanceId("serviceInstanceId");
+        org.onap.aai.domain.yang.ServiceInstance serviceInstanceAAI = new org.onap.aai.domain.yang.ServiceInstance();
+        serviceInstanceAAI.setServiceInstanceId("serviceInstanceId");
+
+        doReturn(serviceInstanceAAI).when(SPY_bbInputSetupUtils).getAAIServiceInstanceByIdAndCustomer(Mockito.any(),
+                Mockito.any(), Mockito.any());
+        ServiceInstance actual = SPY_bbInputSetup.getServiceInstanceHelper(requestDetails, customer, null, null,
+                new HashMap<>(), "SharansInstanceId", false, new Service(), "ActivateServiceInstanceBB");
+        assertThat(actual, sameBeanAs(expected));
+    }
+
     @Test(expected = Exception.class)
     public void testGetServiceInstanceHelperCreateScenarioExistingNoNameButWithIdExceptionThrown() throws Exception {
         RequestDetails requestDetails = new RequestDetails();
@@ -944,8 +965,8 @@ public class BBInputSetupTest {
         cloudRegion.setTenantId("tenantId");
 
         Map<String, String> uriKeys = new HashMap<>();
-        uriKeys.put("global-customer-id", "global-customer-id");
-        uriKeys.put("service-type", "service-type");
+        uriKeys.put(AAIFluentTypeBuilder.Types.CUSTOMER.getUriParams().globalCustomerId, "global-customer-id");
+        uriKeys.put(AAIFluentTypeBuilder.Types.SERVICE_SUBSCRIPTION.getUriParams().serviceType, "service-type");
 
         Customer customer = new Customer();
         ServiceSubscription serviceSubscription = new ServiceSubscription();
@@ -1315,6 +1336,10 @@ public class BBInputSetupTest {
         Map<ResourceKey, String> lookupKeyMap = new HashMap<>();
         lookupKeyMap.put(ResourceKey.CONFIGURATION_ID, "configurationId");
         String bbName = AssignFlows.FABRIC_CONFIGURATION.toString();
+
+        ServiceModel serviceModel = new ServiceModel();
+        serviceModel.setCurrentService(service);
+
         ConfigurationResourceKeys configResourceKeys = prepareConfigurationResourceKeys();
         configResourceKeys.setVnfcName(vnfcName);
         Vnfc vnfc = new Vnfc();
@@ -1326,7 +1351,8 @@ public class BBInputSetupTest {
         BBInputSetupParameter parameter = new BBInputSetupParameter.Builder().setRequestId(REQUEST_ID)
                 .setModelInfo(modelInfo).setService(service).setBbName(bbName).setServiceInstance(serviceInstance)
                 .setLookupKeyMap(lookupKeyMap).setResourceId(resourceId).setInstanceName(instanceName)
-                .setConfigurationResourceKeys(configResourceKeys).setRequestDetails(requestDetails).build();
+                .setConfigurationResourceKeys(configResourceKeys).setRequestDetails(requestDetails)
+                .setServiceModel(serviceModel).build();
         SPY_bbInputSetup.populateConfiguration(parameter);
         verify(SPY_bbInputSetup, times(1)).mapCatalogConfiguration(configuration, modelInfo, service,
                 configResourceKeys);
@@ -1348,6 +1374,52 @@ public class BBInputSetupTest {
                 configResourceKeys);
         SPY_bbInputSetup.populateConfiguration(parameter);
         verify(SPY_bbInputSetup, times(1)).mapCatalogConfiguration(configuration2, modelInfo, service,
+                configResourceKeys);
+    }
+
+    @Test
+    public void testPopulateConfigurationReplace() throws JsonParseException, JsonMappingException, IOException {
+        String instanceName = "configurationName";
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setModelCustomizationUuid("72d9d1cd-f46d-447a-abdb-451d6fb05fa9");
+
+        ServiceInstance serviceInstance = new ServiceInstance();
+        Configuration configuration = new Configuration();
+        configuration.setConfigurationId("configurationId");
+        configuration.setConfigurationName("configurationName");
+        serviceInstance.getConfigurations().add(configuration);
+        String resourceId = "configurationId";
+        String vnfcName = "vnfcName";
+        // Mock service
+        Service service = mapper.readValue(
+                new File(RESOURCE_PATH + "CatalogDBService_getServiceInstanceNOAAIInput.json"), Service.class);
+        ConfigurationResourceCustomization configurationCust = new ConfigurationResourceCustomization();
+        configurationCust.setModelCustomizationUUID("72d9d1cd-f46d-447a-abdb-451d6fb05fa9");
+        service.getConfigurationCustomizations().add(configurationCust);
+        Map<ResourceKey, String> lookupKeyMap = new HashMap<>();
+        lookupKeyMap.put(ResourceKey.CONFIGURATION_ID, "configurationId");
+        String bbName = AssignFlows.FABRIC_CONFIGURATION.toString();
+
+        ServiceModel serviceModel = new ServiceModel();
+        serviceModel.setNewService(service);
+
+        ConfigurationResourceKeys configResourceKeys = prepareConfigurationResourceKeys();
+        configResourceKeys.setVnfcName(vnfcName);
+        Vnfc vnfc = new Vnfc();
+        vnfc.setVnfcName(vnfcName);
+        RequestDetails requestDetails = mapper.readValue(
+                new File(RESOURCE_PATH + "RequestDetailsInput_withRelatedInstanceList.json"), RequestDetails.class);
+        doNothing().when(SPY_bbInputSetup).mapCatalogConfiguration(configuration, modelInfo, service,
+                configResourceKeys);
+        doReturn(vnfc).when(SPY_bbInputSetup).getVnfcToConfiguration(vnfcName);
+        BBInputSetupParameter parameter = new BBInputSetupParameter.Builder().setRequestId(REQUEST_ID)
+                .setModelInfo(modelInfo).setService(service).setBbName(bbName).setServiceInstance(serviceInstance)
+                .setLookupKeyMap(lookupKeyMap).setResourceId(resourceId).setInstanceName(instanceName)
+                .setConfigurationResourceKeys(configResourceKeys).setRequestDetails(requestDetails)
+                .setServiceModel(serviceModel).setIsReplace(true).build();
+        SPY_bbInputSetup.populateConfiguration(parameter);
+        configResourceKeys.setVnfResourceCustomizationUUID("my-test-uuid");
+        verify(SPY_bbInputSetup, times(1)).mapCatalogConfiguration(configuration, modelInfo, service,
                 configResourceKeys);
     }
 
@@ -1398,6 +1470,9 @@ public class BBInputSetupTest {
         vnfc.setVnfcName(vnfcName);
         RequestDetails requestDetails = new RequestDetails();
 
+        ServiceModel serviceModel = new ServiceModel();
+        serviceModel.setCurrentService(service);
+
         CvnfcConfigurationCustomization vnfVfmoduleCvnfcConfigurationCustomization =
                 new CvnfcConfigurationCustomization();
         ConfigurationResource configurationResource = new ConfigurationResource();
@@ -1410,7 +1485,8 @@ public class BBInputSetupTest {
         BBInputSetupParameter parameter = new BBInputSetupParameter.Builder().setRequestId(REQUEST_ID)
                 .setModelInfo(modelInfo).setService(service).setBbName(bbName).setServiceInstance(serviceInstance)
                 .setLookupKeyMap(lookupKeyMap).setResourceId(resourceId).setInstanceName(instanceName)
-                .setConfigurationResourceKeys(configResourceKeys).setRequestDetails(requestDetails).build();
+                .setConfigurationResourceKeys(configResourceKeys).setRequestDetails(requestDetails)
+                .setServiceModel(serviceModel).build();
         SPY_bbInputSetup.populateConfiguration(parameter);
         verify(SPY_bbInputSetup, times(1)).mapCatalogConfiguration(configuration, modelInfo, service,
                 configResourceKeys);
@@ -1440,6 +1516,10 @@ public class BBInputSetupTest {
         lookupKeyMap.put(ResourceKey.GENERIC_VNF_ID, "genericVnfId");
         String bbName = AssignFlows.VNF.toString();
 
+
+        ServiceModel serviceModel = new ServiceModel();
+        serviceModel.setCurrentService(service);
+
         Platform expectedPlatform = new Platform();
         LineOfBusiness expectedLineOfBusiness = new LineOfBusiness();
         String resourceId = "123";
@@ -1459,7 +1539,8 @@ public class BBInputSetupTest {
                 .setLineOfBusiness(lineOfBusiness).setService(service).setBbName(bbName)
                 .setServiceInstance(serviceInstance).setLookupKeyMap(lookupKeyMap)
                 .setRelatedInstanceList(requestDetails.getRelatedInstanceList()).setResourceId(resourceId)
-                .setVnfType(vnfType).setProductFamilyId(requestDetails.getRequestInfo().getProductFamilyId()).build();
+                .setVnfType(vnfType).setProductFamilyId(requestDetails.getRequestInfo().getProductFamilyId())
+                .setServiceModel(serviceModel).build();
         SPY_bbInputSetup.populateGenericVnf(parameter);
 
         lookupKeyMap.put(ResourceKey.GENERIC_VNF_ID, null);
@@ -1748,7 +1829,8 @@ public class BBInputSetupTest {
         expectedAAI.setRelationshipList(relationshipList);
 
         Configuration expected = new Configuration();
-        AAIResourceUri aaiResourceUri = AAIUriFactory.createResourceUri(AAIObjectType.CONFIGURATION, "configurationId");
+        AAIResourceUri aaiResourceUri =
+                AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().configuration("configurationId"));
         AAIResultWrapper configurationWrapper =
                 new AAIResultWrapper(new AAICommonObjectMapperProvider().getMapper().writeValueAsString(expectedAAI));
 
@@ -1772,7 +1854,8 @@ public class BBInputSetupTest {
         expectedAAI.setRelationshipList(relationshipList);
 
         GenericVnf expected = new GenericVnf();
-        AAIResourceUri aaiResourceUri = AAIUriFactory.createResourceUri(AAIObjectType.GENERIC_VNF, "vnfId");
+        AAIResourceUri aaiResourceUri =
+                AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf("vnfId"));
         AAIResultWrapper vnfWrapper =
                 new AAIResultWrapper(new AAICommonObjectMapperProvider().getMapper().writeValueAsString(expectedAAI));
 
@@ -1791,6 +1874,29 @@ public class BBInputSetupTest {
         verify(SPY_bbInputSetup, times(1)).mapPlatform(any(), eq(expected));
         verify(SPY_bbInputSetup, times(1)).mapLineOfBusiness(any(), eq(expected));
         verify(SPY_bbInputSetup, times(1)).mapVolumeGroups(any());
+    }
+
+    @Test
+    public void testMapPnfs() throws JsonProcessingException {
+        org.onap.aai.domain.yang.Pnf expectedAAI = new org.onap.aai.domain.yang.Pnf();
+        org.onap.aai.domain.yang.RelationshipList relationshipList = new org.onap.aai.domain.yang.RelationshipList();
+        org.onap.aai.domain.yang.Relationship relationship = new org.onap.aai.domain.yang.Relationship();
+        relationshipList.getRelationship().add(relationship);
+        expectedAAI.setRelationshipList(relationshipList);
+
+        Pnf expected = new Pnf();
+        AAIResourceUri aaiResourceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().pnf("pnfId"));
+        AAIResultWrapper pnfWrapper =
+                new AAIResultWrapper(new AAICommonObjectMapperProvider().getMapper().writeValueAsString(expectedAAI));
+
+        doReturn(pnfWrapper).when(SPY_bbInputSetupUtils).getAAIResourceDepthOne(aaiResourceUri);
+        doReturn(expected).when(bbInputSetupMapperLayer).mapAAIPnfIntoPnf(isA(org.onap.aai.domain.yang.Pnf.class));
+
+        List<Pnf> pnfs = new ArrayList<>();
+
+        SPY_bbInputSetup.mapPnfs(Arrays.asList(aaiResourceUri), pnfs);
+
+        assertEquals(expected, pnfs.get(0));
     }
 
     @Test
@@ -1903,7 +2009,8 @@ public class BBInputSetupTest {
         List<L3Network> l3Networks = new ArrayList<>();
         AAIResultWrapper l3NetworksWrapper =
                 new AAIResultWrapper(new AAICommonObjectMapperProvider().getMapper().writeValueAsString(expectedAAI));
-        AAIResourceUri aaiResourceUri = AAIUriFactory.createResourceUri(AAIObjectType.L3_NETWORK, "networkId");
+        AAIResourceUri aaiResourceUri =
+                AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().l3Network("networkId"));
 
         doReturn(l3NetworksWrapper).when(SPY_bbInputSetupUtils).getAAIResourceDepthTwo(aaiResourceUri);
         doReturn(expected).when(bbInputSetupMapperLayer).mapAAIL3Network(isA(org.onap.aai.domain.yang.L3Network.class));
@@ -3059,6 +3166,31 @@ public class BBInputSetupTest {
     }
 
     @Test
+    public void testMapCatalogVfModuleIfNoVfUnderVnf() {
+        String vnfModelCustomizationUUID = "vnfResourceCustUUID";
+        String vfModuleCustomizationUUID = "vfModelCustomizationUUID";
+        VfModule vfModule = new VfModule();
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setModelCustomizationUuid(vfModuleCustomizationUUID);
+        Service service = new Service();
+        VnfResourceCustomization vnfResourceCust = new VnfResourceCustomization();
+        vnfResourceCust.setModelCustomizationUUID(vnfModelCustomizationUUID);
+        VfModuleCustomization vfModuleCust = new VfModuleCustomization();
+        vfModuleCust.setModelCustomizationUUID(vfModuleCustomizationUUID);
+        ModelInfoVfModule modelInfoVfModule = new ModelInfoVfModule();
+        doReturn(vfModuleCust).when(SPY_bbInputSetupUtils)
+                .getVfModuleCustomizationByModelCuztomizationUUID(vfModuleCustomizationUUID);
+        doReturn(modelInfoVfModule).when(bbInputSetupMapperLayer).mapCatalogVfModuleToVfModule(vfModuleCust);
+
+        SPY_bbInputSetup.mapCatalogVfModule(vfModule, modelInfo, service, vnfModelCustomizationUUID);
+
+        assertThat(vfModule.getModelInfoVfModule(), sameBeanAs(modelInfoVfModule));
+
+        verify(SPY_bbInputSetupUtils, times(1))
+                .getVfModuleCustomizationByModelCuztomizationUUID(modelInfo.getModelCustomizationId());
+    }
+
+    @Test
     public void testPopulateVfModule() throws Exception {
         String vnfId = "vnfId";
         String vfModuleId = "vfModuleId";
@@ -3292,7 +3424,7 @@ public class BBInputSetupTest {
 
         String vnfcName = "vnfcName";
         org.onap.aai.domain.yang.Configuration expectedAAI = new org.onap.aai.domain.yang.Configuration();
-        AAIResourceUri aaiResourceUri = AAIUriFactory.createResourceUri(AAIObjectType.VNFC, vnfcName);
+        AAIResourceUri aaiResourceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().vnfc(vnfcName));
         AAIResultWrapper configurationWrapper =
                 new AAIResultWrapper(new AAICommonObjectMapperProvider().getMapper().writeValueAsString(expectedAAI));
 

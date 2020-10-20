@@ -44,6 +44,7 @@ import org.onap.so.bpmn.servicedecomposition.bbobjects.LineOfBusiness;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.NetworkPolicy;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.OwningEntity;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Platform;
+import org.onap.so.bpmn.servicedecomposition.bbobjects.Pnf;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Project;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.RouteTableReference;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.ServiceInstance;
@@ -75,11 +76,11 @@ import org.onap.so.db.catalog.beans.OrchestrationStatus;
 import org.onap.so.db.catalog.beans.Service;
 import org.onap.so.db.catalog.beans.VfModuleCustomization;
 import org.onap.so.db.catalog.beans.VnfResourceCustomization;
-import org.onap.so.db.catalog.beans.CvnfcConfigurationCustomization;
 import org.onap.so.db.catalog.beans.VnfcCustomization;
 import org.onap.so.serviceinstancebeans.CloudConfiguration;
 import org.onap.so.serviceinstancebeans.RequestDetails;
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -87,9 +88,10 @@ public class BBInputSetupMapperLayerTest {
 
     BBInputSetupMapperLayer bbInputSetupMapperLayer = new BBInputSetupMapperLayer();
 
-    ObjectMapper mapper = new ObjectMapper();
+    ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private static final String RESOURCE_PATH = "src/test/resources/__files/ExecuteBuildingBlock/";
+
 
     @Test
     public void testMapOrchestrationStatusFromAAI() {
@@ -417,6 +419,17 @@ public class BBInputSetupMapperLayerTest {
                 new File(RESOURCE_PATH + "aaiGenericVnfInput.json"), org.onap.aai.domain.yang.GenericVnf.class);
 
         GenericVnf actual = bbInputSetupMapperLayer.mapAAIGenericVnfIntoGenericVnf(aaiGenericVnf);
+
+        assertThat(actual, sameBeanAs(expected));
+    }
+
+    @Test
+    public void testMapAAIPnfIntoPnf() throws IOException {
+        Pnf expected = mapper.readValue(new File(RESOURCE_PATH + "PnfExpected.json"), Pnf.class);
+        org.onap.aai.domain.yang.Pnf aaiPnf =
+                mapper.readValue(new File(RESOURCE_PATH + "aaiPnfInput.json"), org.onap.aai.domain.yang.Pnf.class);
+
+        Pnf actual = bbInputSetupMapperLayer.mapAAIPnfIntoPnf(aaiPnf);
 
         assertThat(actual, sameBeanAs(expected));
     }

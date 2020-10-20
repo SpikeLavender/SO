@@ -24,7 +24,28 @@ import org.onap.so.adapters.nssmf.entity.RestResponse;
 import org.onap.so.adapters.nssmf.enums.JobStatus;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.util.RestUtil;
-import org.onap.so.beans.nsmf.*;
+import org.onap.so.beans.nsmf.ActDeActNssi;
+import org.onap.so.beans.nsmf.AllocateAnNssi;
+import org.onap.so.beans.nsmf.AllocateCnNssi;
+import org.onap.so.beans.nsmf.AllocateTnNssi;
+import org.onap.so.beans.nsmf.CreateCnNssi;
+import org.onap.so.beans.nsmf.DeAllocateNssi;
+import org.onap.so.beans.nsmf.EsrInfo;
+import org.onap.so.beans.nsmf.JobStatusRequest;
+import org.onap.so.beans.nsmf.JobStatusResponse;
+import org.onap.so.beans.nsmf.NetworkType;
+import org.onap.so.beans.nsmf.NssiActDeActRequest;
+import org.onap.so.beans.nsmf.NssiAllocateRequest;
+import org.onap.so.beans.nsmf.NssiCreateRequest;
+import org.onap.so.beans.nsmf.NssiDeAllocateRequest;
+import org.onap.so.beans.nsmf.NssiResponse;
+import org.onap.so.beans.nsmf.NssiTerminateRequest;
+import org.onap.so.beans.nsmf.NssiUpdateRequest;
+import org.onap.so.beans.nsmf.NssiUpdateRequestById;
+import org.onap.so.beans.nsmf.ResponseDescriptor;
+import org.onap.so.beans.nsmf.TerminateNssi;
+import org.onap.so.beans.nsmf.UpdateCnNssi;
+import org.onap.so.beans.nsmf.UpdateCnNssiById;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
 import org.onap.so.db.request.data.repository.ResourceOperationStatusRepository;
 import org.slf4j.Logger;
@@ -33,13 +54,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Component;
-
 import static java.lang.String.valueOf;
-import static org.onap.so.adapters.nssmf.enums.HttpMethod.*;
+import static org.onap.so.adapters.nssmf.enums.HttpMethod.DELETE;
+import static org.onap.so.adapters.nssmf.enums.HttpMethod.GET;
+import static org.onap.so.adapters.nssmf.enums.HttpMethod.POST;
+import static org.onap.so.adapters.nssmf.enums.HttpMethod.PUT;
+import static org.onap.so.adapters.nssmf.enums.JobStatus.ERROR;
+import static org.onap.so.adapters.nssmf.enums.JobStatus.FINISHED;
+import static org.onap.so.adapters.nssmf.enums.JobStatus.PROCESSING;
+import static org.onap.so.adapters.nssmf.enums.JobStatus.STARTED;
 import static org.onap.so.adapters.nssmf.enums.JobStatus.fromString;
-import static org.onap.so.adapters.nssmf.enums.JobStatus.*;
-import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.*;
-import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.*;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.ACTIVATE_NSS_SUCCESS;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.ALLOCATE_NSS_SUCCESS;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.CREATE_NSS_SUCCESS;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.DEACTIVATE_NSS_SUCCESS;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.DEALLOCATE_NSS_SUCCESS;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.QUERY_JOB_STATUS_FAILED;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.QUERY_JOB_STATUS_SUCCESS;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.assertObjectNotNull;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.unMarshal;
 import static org.onap.so.beans.nsmf.ActDeActNssi.ACT_URL;
 import static org.onap.so.beans.nsmf.ActDeActNssi.DE_ACT_URL;
 
@@ -496,7 +530,7 @@ public class NssmfManager {
     }
 
     private void updateDbStatus(ResourceOperationStatus status, int rspStatus, JobStatus jobStatus,
-                                String description) {
+            String description) {
         status.setErrorCode(valueOf(rspStatus));
         status.setStatus(jobStatus.toString());
         status.setStatusDescription(description);

@@ -1,17 +1,21 @@
 swagger: '2.0'
 info:
   version: 3.1.2
-  title: SO Casablanca APIs
+  title: SO Guilin APIs
 tags:
   - name: e2eServiceInstances
+  - name: Onap3gppServiceInstances
   - name: globalhealthcheck
   - name: nodehealthcheck
   - name: onapsoinfraorchestrationRequests
+  - name: onapsoinfraorchestrationTasks
   - name: onapsoinfraserviceInstantiation
   - name: onapsoinfratasks
   - name: onapsoinfracloudResources
   - name: onapsoinfracloudResourcesRequests
   - name: onapsoinframodelDistributions
+  - name: onapsoinfraworkflowSpecifications
+  - name: onapsoinfrainstanceManagement
 schemes:
   - http
 paths:
@@ -97,6 +101,42 @@ paths:
       responses:
         default:
           description: successful operation
+  '/onap/so/infra/e2eServiceInstances/{version}/{serviceId}/{operationType}':
+    post:
+      tags:
+        - e2eServiceInstances
+      summary: >-
+        Activate/Deactivate 5G slice Service on a specified version and
+        serviceId
+      description: ''
+      operationId: activateE2EServiceInstances
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: string
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][3-5]'
+        - name: serviceId
+          in: path
+          required: true
+          type: string
+        - name: operationType
+          in: path
+          required: true
+          type: string
+          pattern: activate/deactivate
+      responses:
+        default:
+          description: successful operation
   '/onap/so/infra/e2eServiceInstances/{version}/{serviceId}/operations/{operationId}':
     get:
       tags:
@@ -158,7 +198,7 @@ paths:
         - e2eServiceInstances
       summary: >-
         Find added and deleted resources of target model for the
-        e2eserviceInstance on a given serviceId 
+        e2eserviceInstance on a given serviceId
       description: ''
       operationId: compareModelwithTargetVersion
       consumes:
@@ -183,6 +223,168 @@ paths:
       responses:
         default:
           description: successful operation
+  '/onap/so/infra/3gppservices/{version}/allocate':
+    post:
+      tags:
+        - Onap3gppServiceInstances
+      summary: Create a 3GPP Service Instance on a version provided
+      description: ''
+      operationId: allocate3gppService
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/Allocate3gppService'
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][1]'
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/3gppServiceResponse'
+  '/onap/so/infra/3gppservices/{version}/deAllocate':
+    delete:
+      tags:
+        - Onap3gppServiceInstances
+      summary: Terminate/Deallocate a 3GPP Service Instance on a version provided
+      description: ''
+      operationId: deallocate3gppService
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/DeAllocate3gppService'
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][1]'
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/3gppServiceResponse'
+  '/onap/so/infra/3gppservices/{version}/modify':
+    put:
+      tags:
+        - Onap3gppServiceInstances
+      summary: Modify a 3GPP Service Instance on a version provided
+      description: ''
+      operationId: modify3gppService
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/Modify3gppService'
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][1]'
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/3gppServiceResponse'
+  '/onap/so/infra/3gppservices/{version}/activate':
+    post:
+      tags:
+        - Onap3gppServiceInstances
+      summary: Activate a 3GPP Service Instance on a version provided
+      description: ''
+      operationId: activate3gppService
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/3gppServiceActivation'
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][1]'
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/3gppServiceResponse'
+  '/onap/so/infra/3gppservices/{version}/deActivate':
+    post:
+      tags:
+        - Onap3gppServiceInstances
+      summary: Deactivate a 3GPP Service Instance on a version provided
+      description: ''
+      operationId: deactivate3gppService
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/3gppServiceActivation'
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][1]'
+      responses:
+        default:
+          description: successful operation
+          schema:
+            $ref: '#/definitions/3gppServiceResponse'
+  '/onap/so/infra/3gppservices/{version}/subnetCapabilityQuery':
+    get:
+      tags:
+        - Onap3gppServiceInstances
+      summary: Provides subnet capability based on subnet types
+      description: ''
+      operationId: querySubnetCapability
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/QuerySubnetCapability'
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][1]'
+      responses:
+        default:
+          description: successful operation with capabilities for the queried subnetTypes
+          schema:
+            type: object
   /globalhealthcheck:
     get:
       tags:
@@ -272,6 +474,169 @@ paths:
           schema:
             type: string
         - name: requestId
+          in: path
+          required: true
+          type: string
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][4-7]'
+      responses:
+        default:
+          description: successful operation
+  '/onap/so/infra/orchestrationTasks/{version}':
+    get:
+      tags:
+        - onapsoinfraorchestrationTasks
+      summary: Get all orchestrationTasks
+      description: ''
+      operationId: getAllOrchestrationTasks
+      produces:
+        - application/json
+      parameters:
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][4-7]'
+      responses:
+        default:
+          description: successful operation
+    post:
+      tags:
+        - onapsoinfraorchestrationTasks
+      summary: Create an orchestrationTask
+      description: ''
+      operationId: createOrchestrationTask
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: string
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][4-7]'
+      responses:
+        default:
+          description: successful operation
+  '/onap/so/infra/orchestrationTasks/{version}/{taskId}':
+    get:
+      tags:
+        - onapsoinfraorchestrationTasks
+      summary: Get orchestrationTask for a given taskId
+      description: ''
+      operationId: getOrchestrationTask
+      produces:
+        - application/json
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          type: string
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][4-7]'
+      responses:
+        default:
+          description: successful operation
+    put:
+      tags:
+        - onapsoinfraorchestrationTasks
+      summary: update orchestrationTask for a given taskId
+      description: ''
+      operationId: updateOrchestrationTask
+      produces:
+        - application/json
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          type: string
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][4-7]'
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: string
+      responses:
+        default:
+          description: successful operation
+    delete:
+      tags:
+        - onapsoinfraorchestrationTasks
+      summary: delete orchestrationTask for a given taskId
+      description: ''
+      operationId: deleteOrchestrationTask
+      produces:
+        - application/json
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          type: string
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][4-7]'
+      responses:
+        default:
+          description: successful operation
+  '/onap/so/infra/orchestrationTasks/{version}/{taskId}/commit':
+    post:
+      tags:
+        - onapsoinfraorchestrationTasks
+      summary: commit orchestrationTask for a given taskId
+      description: ''
+      operationId: commitOrchestrationTask
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: string
+        - name: taskId
+          in: path
+          required: true
+          type: string
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][4-7]'
+      responses:
+        default:
+          description: successful operation
+  '/onap/so/infra/orchestrationTasks/{version}/{taskId}/abort':
+    post:
+      tags:
+        - onapsoinfraorchestrationTasks
+      summary: abort orchestrationTask for a given taskId
+      description: ''
+      operationId: abortOrchestrationTask
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: string
+        - name: taskId
           in: path
           required: true
           type: string
@@ -1518,3 +1883,295 @@ paths:
       responses:
         default:
           description: successful operation
+  '/onap/so/infra/workflowSpecifications/{version}/workflows':
+    get:
+      tags:
+        - onapsoinfraworkflowSpecifications
+      summary: Retrieve Workflow details based on the filter criteria
+      description: ''
+      operationId: queryWorkflowSpecifications
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: resourceTarget
+          in: query
+          required: false
+          type: string
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][1]'
+      responses:
+        default:
+          description: List of workflow specifications on successful operation
+          schema:
+            $ref: '#/definitions/RetrievingWorkflowResponse'
+  '/onap/so/infra/instanceManagement/{version}/serviceInstances/{serviceInstanceId}/workflows/{workflow_UUID}':
+    post:
+      tags:
+        - onapsoinfrainstanceManagement
+      summary: Executing service level custom workflow
+      description: ''
+      operationId: executeServiceLevelCustomWorkflow
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: false
+          schema:
+            $ref: '#/definitions/ServiceLevelWorkflowExecution'
+        - name: version
+          in: path
+          required: true
+          type: string
+          pattern: '[vV][1]'
+        - name: serviceInstanceId
+          in: path
+          required: true
+          type: string
+        - name: workflow_UUID
+          in: path
+          required: true
+          type: string
+      responses:
+        default:
+          description: successful operation
+definitions:
+  Allocate3gppService:
+    description: This describes the request body for 3gpp service allocation
+    type: object
+    properties:
+      name:
+        description: Name of the service to allocate
+        type: string
+      modelInvariantUuid:
+        description: >-
+          Model Invariant UUID corresponding to the service. For E.g :  NSST
+          Model invariant uuid in case of NSSI creation
+        type: string
+      modelUuid:
+        description: >-
+          Model UUID corresponding to the service. For E.g :  NSST Model uuid in
+          case of NSSI creation
+        type: string
+      globalSubscriberId:
+        type: string
+      subscriptionServiceType:
+        description: 'Service type for the subscription. For E.G :5G'
+        type: string
+      networkType:
+        description: 'Network type. For E.G :AN/CN/TN'
+        type: string
+      additionalProperties:
+        description: Map of additional properties required for service allocation
+        type: object
+  DeAllocate3gppService:
+    description: This describes the request body for 3gpp service Termination/Deallocation
+    type: object
+    properties:
+      serviceInstanceID:
+        description: ID of the service to terminate
+        type: string
+      globalSubscriberId:
+        type: string
+      subscriptionServiceType:
+        description: 'Service type for the subscription. For E.G :5G'
+        type: string
+      networkType:
+        description: 'Network type. For E.G :AN/CN/TN'
+        type: string
+      additionalProperties:
+        description: Map of additional properties required for service deallocation
+        type: object
+  Modify3gppService:
+    description: This describes the request body for 3gpp service modification
+    type: object
+    properties:
+      name:
+        description: Name of the service to modify
+        type: string
+      serviceInstanceID:
+        description: ID of the service to modify
+        type: string
+      globalSubscriberId:
+        type: string
+      subscriptionServiceType:
+        description: 'Service type for the subscription. For E.G :5G'
+        type: string
+      networkType:
+        description: 'Network type. For E.G :AN/CN/TN'
+        type: string
+      additionalProperties:
+        description: Map of additional properties required for service modification
+        type: object
+  3gppServiceActivation:
+    description: This describes the request body for 3gpp service activation/deactivation
+    type: object
+    properties:
+      serviceInstanceID:
+        description: ID of the service to be activated/deactivated
+        type: string
+      globalSubscriberId:
+        type: string
+      subscriptionServiceType:
+        description: 'Service type for the subscription. For E.G :5G'
+        type: string
+      networkType:
+        description: 'Network type. For E.G :AN/CN/TN'
+        type: string
+      additionalProperties:
+        description: >-
+          Map of additional properties required for service
+          activation/deactivation
+        type: object
+  QuerySubnetCapability:
+    description: This describes the subnet capabilities that can be queried
+    type: object
+    properties:
+      subnetTypes:
+        type: array
+        items:
+          $ref: '#/definitions/SubnetTypes'
+  SubnetTypes:
+    description: This describes allowed subnet types
+    type: string
+    enum:
+      - AN
+      - AN_NF
+      - CN
+      - TN_FH
+      - TN_MH
+      - TN_BH
+  3gppServiceResponse:
+    description: This describes the response for 3gpp services
+    type: object
+    properties:
+      jobId:
+        description: Job ID to be used to identify the status of the job
+        type: string
+      status:
+        description: status of the job
+        type: string
+      statusDescription:
+        description: Description on status in case of erroneous response
+        type: object
+  RetrievingWorkflowResponse:
+    description: Response body of fetching workflows using resource target
+    type: object
+    properties:
+      workflowSpecificationList:
+        description: List of Workflow specification data
+        type: array
+        items:
+          $ref: '#/definitions/WorkflowSpecification'
+  WorkflowSpecification:
+    description: This describes workflow specification object
+    type: object
+    properties:
+      artifactInfo:
+        description: 'Attributes related to artifact information '
+        type: object
+        properties:
+          artifactType:
+            description: Type of the artifact to be queried
+            type: string
+          artifactUuid:
+            description: UUID of the artifact
+            type: string
+          artifactName:
+            description: Name of the artifact
+            type: string
+          artifactVersion:
+            description: Artifact's Version
+            type: string
+          artifactDescription:
+            description: ''
+            type: string
+          workflowName:
+            description: Name of the workflow fetched for the resource type
+            type: string
+          operationName:
+            description: Mapped operation name of the corresponding workflow
+            type: string
+          workflowSource:
+            description: ''
+            type: string
+          workflowResourceTarget:
+            description: Type of Resource mapped against the workflow
+            type: string
+  ServiceLevelWorkflowExecution:
+    description: This describes the request body of service level custom workflow execution
+    type: object
+    properties:
+      requestInfo:
+        description: Request object contains source information
+        type: object
+        properties:
+          source:
+            description: Name of the sender
+            type: string
+          suppressRollback:
+            description: Enable/disable rollback suppression
+            type: boolean
+          requestorId:
+            description: Id of the sender
+            type: string
+      modelInfo:
+        description: Parameters related to the service model
+        type: object
+        properties:
+          modelType:
+            description: Type of the model to be executed
+            type: string
+          modelInvariantUuid:
+            description: Model invariant id corresponding to the service
+            type: string
+          modelUuid:
+            description: Model uuid corresponding to the service
+            type: string
+          modelVersionId:
+            description: Model version of the service instance
+            type: string
+          modelName:
+            description: Name of the service
+            type: string
+          modelVersion:
+            description: Version of the service instance
+            type: string
+      requestParameters:
+        description: User parameter object
+        type: object
+        properties:
+          subscriptionServiceType:
+            description: Type of service subscription
+            type: string
+      subscriberInfo:
+        description: Subscriber id information
+        type: object
+        properties:
+          globalSubscriberId:
+            description: Id of the subscriber sending the request
+            type: string
+      project:
+        description: Information about the target project name
+        type: object
+        properties:
+          projectName:
+            description: Name of the target project
+            type: string
+      owningEntity:
+        description: Object describes the entity details
+        type: object
+        properties:
+          owningEntityId:
+            description: Id of the owning Entity
+            type: string
+          owningEntityName:
+            description: Name of the owning Entity
+            type: string

@@ -22,14 +22,22 @@ package org.onap.so.bpmn.common.scripts
 
 import org.apache.commons.lang3.StringUtils
 import org.camunda.bpm.engine.delegate.DelegateExecution
+import org.json.JSONArray
+import org.json.JSONObject
+import org.onap.logging.filter.base.ErrorCode
 import org.onap.logging.filter.base.ONAPComponents
+import org.onap.logging.ref.slf4j.ONAPLogConstants
 import org.onap.so.bpmn.core.UrnPropertiesReader
 import org.onap.so.bpmn.core.json.JsonUtils
 import org.onap.so.client.HttpClient
 import org.onap.so.client.HttpClientFactory
+import org.onap.so.logger.LoggingAnchor
+import org.onap.so.logger.MessageEnum
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.web.util.UriUtils
 
+import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
 /***
@@ -92,7 +100,7 @@ class NssmfAdapterUtils {
 			String nssmfEndpoint = UrnPropertiesReader.getVariable("mso.adapters.nssmf.endpoint",execution)
 			String queryEndpoint = nssmfEndpoint + endPoint
 			def responseData
-            HttpClient client = httpClientFactory.newJsonClient(new URL(queryEndpoint), ONAPComponents.EXTERNAL)
+			HttpClient client = httpClientFactory.newJsonClient(new URL(queryEndpoint), ONAPComponents.EXTERNAL)
 			String basicAuthCred = execution.getVariable("BasicAuthHeaderValue")
 			client.addAdditionalHeader("Authorization", StringUtils.defaultIfEmpty(basicAuthCred, getBasicDBAuthHeader(execution)))
 

@@ -275,10 +275,6 @@ public class InfraActiveRequestsRepositoryImpl implements InfraActiveRequestsRep
                 mapKey = "requestorId";
             } else if ("requestExecutionDate".equalsIgnoreCase(mapKey)) {
                 mapKey = "startTime";
-            } else if ("action".equalsIgnoreCase(mapKey)) {
-                mapKey = "requestAction";
-            } else if ("requestAction".equalsIgnoreCase(mapKey)) {
-                mapKey = "requestAction";
             }
 
             final String operator = entry.getValue().get(0);
@@ -314,9 +310,7 @@ public class InfraActiveRequestsRepositoryImpl implements InfraActiveRequestsRep
 
         final Order order = cb.asc(tableRoot.get(START_TIME));
 
-        return
-
-        executeInfraQuery(crit, predicates, order);
+        return executeInfraQuery(crit, predicates, order);
     }
 
     // Added this method for Tenant Isolation project ( 1802-295491a) to query the mso_requests DB

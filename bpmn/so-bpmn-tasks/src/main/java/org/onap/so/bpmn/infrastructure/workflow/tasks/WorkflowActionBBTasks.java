@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.persistence.EntityNotFoundException;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.onap.aai.domain.yang.GenericVnf;
@@ -34,6 +35,8 @@ import org.onap.aai.domain.yang.ServiceInstance;
 import org.onap.aai.domain.yang.VfModule;
 import org.onap.aai.domain.yang.Vnfc;
 import org.onap.aai.domain.yang.VolumeGroup;
+import org.onap.aaiclient.client.aai.entities.Configuration;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types;
 import org.onap.so.bpmn.common.DelegateExecutionImpl;
 import org.onap.so.bpmn.common.listener.db.RequestsDbListenerRunner;
 import org.onap.so.bpmn.common.listener.flowmanipulator.FlowManipulatorListenerRunner;
@@ -44,8 +47,6 @@ import org.onap.so.bpmn.servicedecomposition.entities.ConfigurationResourceKeys;
 import org.onap.so.bpmn.servicedecomposition.entities.ExecuteBuildingBlock;
 import org.onap.so.bpmn.servicedecomposition.entities.WorkflowResourceIds;
 import org.onap.so.bpmn.servicedecomposition.tasks.BBInputSetupUtils;
-import org.onap.so.client.aai.AAIObjectType;
-import org.onap.so.client.aai.entities.Configuration;
 import org.onap.so.client.exception.ExceptionBuilder;
 import org.onap.so.db.catalog.beans.CvnfcConfigurationCustomization;
 import org.onap.so.db.catalog.client.CatalogDbClient;
@@ -70,11 +71,12 @@ public class WorkflowActionBBTasks {
     private static final String G_ACTION = "requestAction";
     private static final String RETRY_COUNT = "retryCount";
     private static final String FABRIC_CONFIGURATION = "FabricConfiguration";
-    private static final String ASSIGN_FABRIC_CONFIGURATION_BB = "AssignFabricConfigurationBB";
-    private static final String ACTIVATE_FABRIC_CONFIGURATION_BB = "ActivateFabricConfigurationBB";
+    private static final String ADD_FABRIC_CONFIGURATION_BB = "AddFabricConfigurationBB";
     private static final String COMPLETED = "completed";
     private static final String HANDLINGCODE = "handlingCode";
     private static final String ROLLBACKTOCREATED = "RollbackToCreated";
+    private static final String REPLACEINSTANCE = "replaceInstance";
+    private static final String VFMODULE = "VfModule";
     protected String maxRetries = "mso.rainyDay.maxRetries";
     private static final Logger logger = LoggerFactory.getLogger(WorkflowActionBBTasks.class);
 
@@ -107,11 +109,7 @@ public class WorkflowActionBBTasks {
 
         execution.setVariable("buildingBlock", ebb);
         currentSequence++;
-        if (currentSequence >= flowsToExecute.size()) {
-            execution.setVariable(COMPLETED, true);
-        } else {
-            execution.setVariable(COMPLETED, false);
-        }
+        execution.setVariable(COMPLETED, currentSequence >= flowsToExecute.size());
         execution.setVariable(G_CURRENT_SEQUENCE, currentSequence);
     }
 
@@ -151,7 +149,7 @@ public class WorkflowActionBBTasks {
     protected Long getPercentProgress(int completedBBs, int totalBBs) {
         double ratio = (completedBBs / (totalBBs * 1.0));
         int percentProgress = (int) (ratio * 95);
-        return new Long(percentProgress + 5);
+        return (long) (percentProgress + 5);
     }
 
     protected String getStatusMessage(String completedBB, String nextBB, int completedBBs, int remainingBBs) {
@@ -221,7 +219,7 @@ public class WorkflowActionBBTasks {
             final boolean aLaCarte = (boolean) execution.getVariable(G_ALACARTE);
             final String resourceName = (String) execution.getVariable("resourceName");
             String statusMessage = (String) execution.getVariable("StatusMessage");
-            String macroAction = "";
+            String macroAction;
             if (statusMessage == null) {
                 if (aLaCarte) {
                     macroAction = "ALaCarte-" + resourceName + "-" + action + " request was executed correctly.";
@@ -236,7 +234,7 @@ public class WorkflowActionBBTasks {
             request.setEndTime(endTime);
             request.setFlowStatus("Successfully completed all Building Blocks");
             request.setStatusMessage(macroAction);
-            request.setProgress(Long.valueOf(100));
+            request.setProgress(100L);
             request.setRequestStatus("COMPLETE");
             request.setLastModifiedBy("CamundaBPMN");
             requestsDbListener.post(request, new DelegateExecutionImpl(execution));
@@ -287,12 +285,20 @@ public class WorkflowActionBBTasks {
      * working on.
      */
     public void rollbackExecutionPath(DelegateExecution execution) {
+        final String action = (String) execution.getVariable(G_ACTION);
+        final String resourceName = (String) execution.getVariable("resourceName");
         if (!(boolean) execution.getVariable("isRollback")) {
             List<ExecuteBuildingBlock> flowsToExecute =
                     (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
-            List<ExecuteBuildingBlock> rollbackFlows = new ArrayList();
+
+            List<ExecuteBuildingBlock> flowsToExecuteChangeBBs = flowsToExecute.stream()
+                    .filter(buildingBlock -> buildingBlock.getBuildingBlock().getBpmnFlowName().startsWith("Change"))
+                    .collect(Collectors.toList());
+
+            List<ExecuteBuildingBlock> rollbackFlows = new ArrayList<>();
             int currentSequence = (int) execution.getVariable(G_CURRENT_SEQUENCE);
             int listSize = flowsToExecute.size();
+
             for (int i = listSize - 1; i >= 0; i--) {
                 if (i > currentSequence - 1) {
                     flowsToExecute.remove(i);
@@ -304,6 +310,20 @@ public class WorkflowActionBBTasks {
                         flowName = flowName.replaceFirst("Create", "Delete");
                     } else if (flowName.startsWith("Activate")) {
                         flowName = flowName.replaceFirst("Activate", "Deactivate");
+                    } else if (flowName.startsWith("Add")) {
+                        flowName = flowName.replaceFirst("Add", "Delete");
+                    } else if (flowName.startsWith("VNF")) {
+                        if (flowName.startsWith("VNFSet")) {
+                            flowName = flowName.replaceFirst("VNFSet", "VNFUnset");
+                        } else if (flowName.startsWith("VNFLock")) {
+                            flowName = flowName.replaceFirst("VNFLock", "VNFUnlock");
+                        } else if (flowName.startsWith("VNFStop")) {
+                            flowName = flowName.replaceFirst("VNFStop", "VNFStart");
+                        } else if (flowName.startsWith("VNFQuiesce")) {
+                            flowName = flowName.replaceFirst("VNFQuiesce", "VNFResume");
+                        } else {
+                            continue;
+                        }
                     } else {
                         continue;
                     }
@@ -313,25 +333,34 @@ public class WorkflowActionBBTasks {
             }
 
             String handlingCode = (String) execution.getVariable(HANDLINGCODE);
-            List<ExecuteBuildingBlock> rollbackFlowsFiltered = new ArrayList<>();
-            rollbackFlowsFiltered.addAll(rollbackFlows);
+            List<ExecuteBuildingBlock> rollbackFlowsFiltered = new ArrayList<>(rollbackFlows);
             if ("RollbackToAssigned".equals(handlingCode) || ROLLBACKTOCREATED.equals(handlingCode)) {
-                for (int i = 0; i < rollbackFlows.size(); i++) {
-                    if (rollbackFlows.get(i).getBuildingBlock().getBpmnFlowName().contains("Unassign") && !rollbackFlows
-                            .get(i).getBuildingBlock().getBpmnFlowName().contains("FabricConfiguration")) {
-                        rollbackFlowsFiltered.remove(rollbackFlows.get(i));
-                    } else if (rollbackFlows.get(i).getBuildingBlock().getBpmnFlowName().contains("Delete")
+                for (ExecuteBuildingBlock rollbackFlow : rollbackFlows) {
+                    if (rollbackFlow.getBuildingBlock().getBpmnFlowName().contains("Unassign")
+                            && !rollbackFlow.getBuildingBlock().getBpmnFlowName().contains("FabricConfiguration")) {
+                        rollbackFlowsFiltered.remove(rollbackFlow);
+                    } else if (rollbackFlow.getBuildingBlock().getBpmnFlowName().contains("Delete")
+                            && !rollbackFlow.getBuildingBlock().getBpmnFlowName().contains("FabricConfiguration")
                             && ROLLBACKTOCREATED.equals(handlingCode)) {
-                        rollbackFlowsFiltered.remove(rollbackFlows.get(i));
+                        rollbackFlowsFiltered.remove(rollbackFlow);
                     }
                 }
             }
 
+            List<ExecuteBuildingBlock> rollbackFlowsFilteredNonChangeBBs = new ArrayList<>();
+            if (action.equals(REPLACEINSTANCE) && resourceName.equals(VFMODULE)) {
+                for (ExecuteBuildingBlock executeBuildingBlock : rollbackFlowsFiltered) {
+                    if (!executeBuildingBlock.getBuildingBlock().getBpmnFlowName().startsWith("Change")) {
+                        rollbackFlowsFilteredNonChangeBBs.add(executeBuildingBlock);
+                    }
+                }
+                rollbackFlowsFiltered.clear();
+                rollbackFlowsFiltered.addAll(flowsToExecuteChangeBBs);
+                rollbackFlowsFiltered.addAll(rollbackFlowsFilteredNonChangeBBs);
+            }
+
             workflowActionBBFailure.updateRequestErrorStatusMessage(execution);
-            if (rollbackFlows.isEmpty())
-                execution.setVariable("isRollbackNeeded", false);
-            else
-                execution.setVariable("isRollbackNeeded", true);
+            execution.setVariable("isRollbackNeeded", !rollbackFlows.isEmpty());
             execution.setVariable("flowsToExecute", rollbackFlowsFiltered);
             execution.setVariable(HANDLINGCODE, "PreformingRollback");
             execution.setVariable("isRollback", true);
@@ -398,8 +427,7 @@ public class WorkflowActionBBTasks {
             String vnfCustomizationUUID = bbInputSetupUtils.getAAIGenericVnf(vnfId).getModelCustomizationId();
             String vfModuleCustomizationUUID =
                     bbInputSetupUtils.getAAIVfModule(vnfId, vfModuleId).getModelCustomizationId();
-            List<Vnfc> vnfcs =
-                    workflowAction.getRelatedResourcesInVfModule(vnfId, vfModuleId, Vnfc.class, AAIObjectType.VNFC);
+            List<Vnfc> vnfcs = workflowAction.getRelatedResourcesInVfModule(vnfId, vfModuleId, Vnfc.class, Types.VNFC);
             logger.debug("Vnfc Size: {}", vnfcs.size());
             for (Vnfc vnfc : vnfcs) {
                 String modelCustomizationId = vnfc.getModelCustomizationId();
@@ -415,15 +443,11 @@ public class WorkflowActionBBTasks {
                     configurationResourceKeys.setVfModuleCustomizationUUID(vfModuleCustomizationUUID);
                     configurationResourceKeys.setVnfResourceCustomizationUUID(vnfCustomizationUUID);
                     configurationResourceKeys.setVnfcName(vnfc.getVnfcName());
-                    ExecuteBuildingBlock assignConfigBB = getExecuteBBForConfig(ASSIGN_FABRIC_CONFIGURATION_BB, ebb,
+                    ExecuteBuildingBlock addConfigBB = getExecuteBBForConfig(ADD_FABRIC_CONFIGURATION_BB, ebb,
                             configurationId, configurationResourceKeys);
-                    ExecuteBuildingBlock activateConfigBB = getExecuteBBForConfig(ACTIVATE_FABRIC_CONFIGURATION_BB, ebb,
-                            configurationId, configurationResourceKeys);
-                    flowsToExecute.add(assignConfigBB);
-                    flowsToExecute.add(activateConfigBB);
-                    flowsToExecute.stream()
-                            .forEach(executeBB -> logger.info("Flows to Execute After Post Processing: {}",
-                                    executeBB.getBuildingBlock().getBpmnFlowName()));
+                    flowsToExecute.add(addConfigBB);
+                    flowsToExecute.forEach(executeBB -> logger.info("Flows to Execute After Post Processing: {}",
+                            executeBB.getBuildingBlock().getBpmnFlowName()));
                     execution.setVariable("flowsToExecute", flowsToExecute);
                     execution.setVariable(COMPLETED, false);
                 } else {
@@ -440,11 +464,10 @@ public class WorkflowActionBBTasks {
         }
     }
 
-    protected String getConfigurationId(Vnfc vnfc) {
-        List<Configuration> configurations =
-                workflowAction.getRelatedResourcesInVnfc(vnfc, Configuration.class, AAIObjectType.CONFIGURATION);
-        if (!configurations.isEmpty()) {
-            Configuration configuration = configurations.get(0);
+    protected String getConfigurationId(Vnfc vnfc) throws Exception {
+        Configuration configuration =
+                workflowAction.getRelatedResourcesInVnfc(vnfc, Configuration.class, Types.CONFIGURATION);
+        if (configuration != null) {
             return configuration.getConfigurationId();
         } else {
             return UUID.randomUUID().toString();
@@ -456,14 +479,12 @@ public class WorkflowActionBBTasks {
         BuildingBlock buildingBlock =
                 new BuildingBlock().setBpmnFlowName(bbName).setMsoId(UUID.randomUUID().toString());
 
-        WorkflowResourceIds workflowResourceIds = ebb.getWorkflowResourceIds();
+        WorkflowResourceIds workflowResourceIds = new WorkflowResourceIds(ebb.getWorkflowResourceIds());
         workflowResourceIds.setConfigurationId(configurationId);
-        ExecuteBuildingBlock configBB = new ExecuteBuildingBlock().setaLaCarte(ebb.isaLaCarte())
-                .setApiVersion(ebb.getApiVersion()).setRequestAction(ebb.getRequestAction())
-                .setVnfType(ebb.getVnfType()).setRequestId(ebb.getRequestId())
+        return new ExecuteBuildingBlock().setaLaCarte(ebb.isaLaCarte()).setApiVersion(ebb.getApiVersion())
+                .setRequestAction(ebb.getRequestAction()).setVnfType(ebb.getVnfType()).setRequestId(ebb.getRequestId())
                 .setRequestDetails(ebb.getRequestDetails()).setBuildingBlock(buildingBlock)
                 .setWorkflowResourceIds(workflowResourceIds).setConfigurationResourceKeys(configurationResourceKeys);
-        return configBB;
     }
 
     protected void setInstanceName(String resourceId, WorkflowType resourceType, InfraActiveRequests request) {
@@ -487,9 +508,7 @@ public class WorkflowActionBBTasks {
             } else if (resourceType == WorkflowType.VOLUMEGROUP && request.getVolumeGroupName() == null) {
                 Optional<VolumeGroup> volumeGroup =
                         bbInputSetupUtils.getRelatedVolumeGroupByIdFromVnf(request.getVnfId(), resourceId);
-                if (volumeGroup.isPresent()) {
-                    request.setVolumeGroupName(volumeGroup.get().getVolumeGroupName());
-                }
+                volumeGroup.ifPresent(group -> request.setVolumeGroupName(group.getVolumeGroupName()));
             } else if (resourceType == WorkflowType.NETWORK && request.getNetworkName() == null) {
                 L3Network network = bbInputSetupUtils.getAAIL3Network(resourceId);
                 if (network != null) {

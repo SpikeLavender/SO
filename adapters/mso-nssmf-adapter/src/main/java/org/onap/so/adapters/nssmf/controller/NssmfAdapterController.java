@@ -1,11 +1,10 @@
 package org.onap.so.adapters.nssmf.controller;
 
 import org.onap.so.adapters.nssmf.service.NssmfManagerService;
-import org.onap.so.beans.nsmf.NssmfAdapterNBIRequest;
+import org.onap.so.beans.nsmf.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 @RestController

@@ -34,11 +34,22 @@ final class BBInputSetupPnf {
     }
 
     static void populatePnfToServiceInstance(Pnfs pnfs, String pnfId, ServiceInstance serviceInstance) {
+        removePnfFromServiceIfExists(serviceInstance, pnfId);
+
         Pnf pnf = new Pnf();
         pnf.setPnfId(pnfId);
         pnf.setPnfName(pnfs.getInstanceName());
+        pnf.setModelInfoPnf(new ModelInfoPnf());
+        pnf.getModelInfoPnf().setModelCustomizationUuid(pnfs.getModelInfo().getModelCustomizationId());
+        pnf.getModelInfoPnf().setModelInvariantUuid(pnfs.getModelInfo().getModelInvariantId());
+        pnf.getModelInfoPnf().setModelUuid(pnfs.getModelInfo().getModelVersionId());
         pnf.setOrchestrationStatus(OrchestrationStatus.PRECREATED);
 
         serviceInstance.getPnfs().add(pnf);
+    }
+
+    private static void removePnfFromServiceIfExists(ServiceInstance serviceInstance, String pnfId) {
+        serviceInstance.getPnfs().stream().filter(pnf -> pnf.getPnfId().equals(pnfId)).findFirst()
+                .ifPresent(serviceInstance.getPnfs()::remove);
     }
 }

@@ -27,7 +27,7 @@
 	<property name="currentTimeStamp" value="%d{&quot;yyyy-MM-dd'T'HH:mm:ss.SSSXXX&quot;,UTC}"/>
 
 	<property name="errorPattern"
-		value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}|%X{RequestID}|%thread|%X{ServiceName:-Unknown}|%X{PartnerName}|%X{TargetEntity}|%X{TargetServiceName}|%.-5level|%X{ErrorCode:-900}|%X{ErrorDesc:-UnknownError}|%msg%nopex%n" />
+		value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}|%X{RequestID}|%thread|%X{ServiceName:-Unknown}|%X{PartnerName}|%X{TargetEntity}|%X{TargetServiceName}|%.-5level|%X{ErrorCode:-900}|%X{ErrorDesc:-UnknownError}|%replace(%msg){'\n',' '}%nopex%n" />
 
 	<property name="debugPattern"
 		value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}|%X{RequestID}|%logger{50} - %msg%n" />
@@ -52,7 +52,8 @@
 	<appender name="Audit"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<filter class="ch.qos.logback.core.filter.EvaluatorFilter">
-			<evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">				
+			<evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">	
+				<marker>ENTRY</marker>			
 				<marker>EXIT</marker>
 			</evaluator>
 			<onMismatch>DENY</onMismatch>
@@ -80,7 +81,8 @@
 	<appender name="Metric"
 		class="ch.qos.logback.core.rolling.RollingFileAppender">
 		<filter class="ch.qos.logback.core.filter.EvaluatorFilter">
-			<evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">				
+			<evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">	
+				<marker>INVOKE</marker>			
 				<marker>INVOKE-RETURN</marker>
 			</evaluator>
 			<onMismatch>DENY</onMismatch>
@@ -157,6 +159,7 @@
 			<pattern>${debugPattern}</pattern>
 		</encoder>
 	</appender>
+	
 
 	<appender name="asyncDebug" class="ch.qos.logback.classic.AsyncAppender">
 		<queueSize>256</queueSize>
@@ -190,28 +193,29 @@
 	<logger name="org.springframework" level="WARN" />
 	<logger
 		name="org.springframework.security.authentication.dao.DaoAuthenticationProvider"
-		level="DEBUG" />
+		level="${LOG_LEVEL:-DEBUG}" />
 
 	<!-- Camunda related loggers -->
-	<logger name="org.camunda.bpm.engine.jobexecutor.level" level="DEBUG" />
+	<logger name="org.camunda.bpm.engine.jobexecutor.level" level="${LOG_LEVEL:-DEBUG}" />
 	<logger
 		name="org.camunda.bpm.engine.impl.persistence.entity.JobEntity.level"
-		level="DEBUG" />
+		level="${LOG_LEVEL:-DEBUG}" />
 
-	<logger name="org.flywaydb" level="DEBUG"/>
-	<logger name="org.apache.wire" level="DEBUG" />
-	<logger name="org.onap" level="DEBUG" />
-	<logger name="org.apache.cxf.interceptor" level="DEBUG" />
-	<logger name="com.woorea.openstack.connector" level="DEBUG" />
+	<logger name="org.flywaydb" level="${LOG_LEVEL:-DEBUG}"/>
+	<logger name="org.apache.wire" level="${LOG_LEVEL:-DEBUG}" />
+	<logger name="org.onap" level="${LOG_LEVEL:-DEBUG}" />
+	<logger name="org.apache.cxf.interceptor" level="${LOG_LEVEL:-DEBUG}" />
+	<logger name="com.woorea.openstack.connector" level="${LOG_LEVEL:-DEBUG}" />
 	
 	<!-- AAF Logs go here-->
-	<logger name="org.apache.catalina.core.ContainerBase" level="INFO" additivity="false">
+	<logger name="org.apache.catalina.core.ContainerBase" level="WARN" additivity="false">
 		<appender-ref ref="asyncCadi" />
 	</logger>
-	
-	<logger name="org.reflections.Reflections" level="ERROR" additivity="false">
-		<appender-ref ref="asyncCadi" />
-	</logger>
+
+    <!-- Jersey Openstack Connector Logs Go Here for Openstack4J -->
+    <logger name="os" level="${LOG_LEVEL:-DEBUG}" />
+    
+	<logger name="org.reflections" level="ERROR" additivity="false" />
 
 	<logger name="AUDIT" level="INFO" additivity="false">
 		<appender-ref ref="asyncAudit" />

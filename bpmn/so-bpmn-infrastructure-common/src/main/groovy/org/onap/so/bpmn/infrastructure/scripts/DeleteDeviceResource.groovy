@@ -37,10 +37,12 @@ import org.onap.so.bpmn.core.WorkflowException
 import org.onap.so.bpmn.core.json.JsonUtils
 import org.onap.so.bpmn.infrastructure.workflow.serviceTask.client.builder.AbstractBuilder
 import org.onap.so.client.HttpClient
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.AAIResourcesClient
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.AAIResourcesClient
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.onap.so.bpmn.common.scripts.SDNCAdapterUtils
@@ -115,7 +117,7 @@ public class DeleteDeviceResource extends AbstractServiceTaskProcessor {
 		String deviceId = execution.getVariable(Prefix + "DeviceId")
         
         AAIResourcesClient client = new AAIResourcesClient()
-        AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.DEVICE, deviceId)
+        AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().device(deviceId))
         Device dev = client.get(uri).asBean(Device.class).get()
         
         String devClass = dev.getClass ()

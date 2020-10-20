@@ -9,9 +9,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,6 +36,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import com.google.common.base.Strings;
 import org.camunda.bpm.engine.delegate.BpmnError;
 import org.junit.Before;
 import org.junit.Rule;
@@ -64,8 +66,8 @@ import org.onap.so.bpmn.servicedecomposition.bbobjects.VolumeGroup;
 import org.onap.so.bpmn.servicedecomposition.entities.ResourceKey;
 import org.onap.so.bpmn.servicedecomposition.modelinfo.ModelInfoGenericVnf;
 import org.onap.so.bpmn.servicedecomposition.modelinfo.ModelInfoVfModule;
-import org.onap.so.client.aai.entities.uri.AAIBaseResourceUri;
-import org.onap.so.client.aai.entities.uri.AAIResourceUri;
+import org.onap.aaiclient.client.aai.entities.uri.AAIBaseResourceUri;
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri;
 import org.onap.so.client.exception.BBObjectNotFoundException;
 import org.onap.so.db.catalog.beans.OrchestrationStatus;
 
@@ -195,6 +197,30 @@ public class AAICreateTasksTest extends BaseTaskTest {
     }
 
     @Test
+    public void createPlatformNetworkTest() throws Exception {
+        doNothing().when(aaiNetworkResources).createPlatformAndConnectNetwork(network.getPlatform(), network);
+        aaiCreateTasks.createPlatformForNetwork(execution);
+        ArgumentCaptor<Platform> platformCaptor = ArgumentCaptor.forClass(Platform.class);
+        ArgumentCaptor<L3Network> network = ArgumentCaptor.forClass(L3Network.class);
+        Mockito.verify(aaiNetworkResources, times(4)).createPlatformAndConnectNetwork(platformCaptor.capture(),
+                network.capture());
+
+        List<Platform> capturedPlatforms = platformCaptor.getAllValues();
+
+        String actual = capturedPlatforms.stream().map(item -> item.getPlatformName()).collect(Collectors.toList())
+                .stream().sorted().collect(Collectors.joining(" ,"));
+        String expected =
+                Arrays.asList("testPlatformName", "testPlatformName2", "testPlatformName3", "testPlatformName4")
+                        .stream().sorted().collect(Collectors.joining(" ,"));
+
+        assertEquals(expected, actual);
+        assertTrue(capturedPlatforms.stream().anyMatch(item -> "testPlatformName".equals(item.getPlatformName())));
+        assertTrue(capturedPlatforms.stream().anyMatch(item -> "testPlatformName2".equals(item.getPlatformName())));
+        assertTrue(capturedPlatforms.stream().anyMatch(item -> "testPlatformName3".equals(item.getPlatformName())));
+        assertTrue(capturedPlatforms.stream().anyMatch(item -> "testPlatformName4".equals(item.getPlatformName())));
+    }
+
+    @Test
     public void createLineOfBusinessTest() throws Exception {
         doNothing().when(aaiVnfResources).createLineOfBusinessandConnectVnf(genericVnf.getLineOfBusiness(), genericVnf);
         aaiCreateTasks.createLineOfBusiness(execution);
@@ -275,6 +301,22 @@ public class AAICreateTasksTest extends BaseTaskTest {
         verify(aaiServiceInstanceResources, times(1)).existsOwningEntity(serviceInstance.getOwningEntity());
         verify(aaiServiceInstanceResources, times(1))
                 .createOwningEntityandConnectServiceInstance(serviceInstance.getOwningEntity(), serviceInstance);
+    }
+
+    @Test
+    public void createOwningEntityShouldThrowExceptionWhenNameAndIDAreNull() {
+        boolean catchedBpmnError = false;
+        serviceInstance.getOwningEntity().setOwningEntityName(null);
+        serviceInstance.getOwningEntity().setOwningEntityId(null);
+
+        try {
+            aaiCreateTasks.createOwningEntity(execution);
+        } catch (BpmnError err) {
+            catchedBpmnError = true;
+        }
+
+        assertTrue(catchedBpmnError);
+        assertEquals(execution.getVariable("ErrorCreateOEAAI"), aaiCreateTasks.EXCEPTION_NAME_AND_ID_ARE_NULL);
     }
 
     @Test

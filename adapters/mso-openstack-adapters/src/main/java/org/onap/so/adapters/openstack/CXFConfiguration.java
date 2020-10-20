@@ -33,18 +33,11 @@ import org.apache.cxf.jaxrs.swagger.Swagger2Feature;
 import org.apache.cxf.jaxws.EndpointImpl;
 import org.apache.cxf.transport.servlet.CXFServlet;
 import org.onap.so.adapters.cloudregion.CloudRegionRestV1;
-import org.onap.so.adapters.network.MsoNetworkAdapterAsyncImpl;
 import org.onap.so.adapters.network.MsoNetworkAdapterImpl;
-import org.onap.so.adapters.network.NetworkAdapterRest;
 import org.onap.so.adapters.tenant.MsoTenantAdapterImpl;
 import org.onap.so.adapters.tenant.TenantAdapterRest;
 import org.onap.so.adapters.vnf.MsoVnfAdapterAsyncImpl;
 import org.onap.so.adapters.vnf.MsoVnfAdapterImpl;
-import org.onap.so.adapters.vnf.MsoVnfCloudifyAdapterImpl;
-import org.onap.so.adapters.vnf.VnfAdapterRest;
-import org.onap.so.adapters.vnf.VnfAdapterRestV2;
-import org.onap.so.adapters.vnf.VolumeAdapterRest;
-import org.onap.so.adapters.vnf.VolumeAdapterRestV2;
 import org.onap.so.client.policy.JettisonStyleMapperProvider;
 import org.onap.so.logging.cxf.interceptor.SOAPLoggingInInterceptor;
 import org.onap.so.logging.cxf.interceptor.SOAPLoggingOutInterceptor;
@@ -60,29 +53,15 @@ import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 @Configuration
 public class CXFConfiguration {
     @Autowired
-    private NetworkAdapterRest networkAdapterRest;
-    @Autowired
     private TenantAdapterRest tenantAdapterRest;
     @Autowired
-    private VnfAdapterRest vnfAdapterRest;
-    @Autowired
-    private VnfAdapterRestV2 vnfAdapterRestV2;
-    @Autowired
-    private VolumeAdapterRest volumeAdapterRest;
-    @Autowired
-    private VolumeAdapterRestV2 volumeAdapterRestV2;
-    @Autowired
     private MsoNetworkAdapterImpl networkAdapterImpl;
-    @Autowired
-    private MsoNetworkAdapterAsyncImpl networkAdapterAsyncImpl;
     @Autowired
     private MsoTenantAdapterImpl tenantAdapterImpl;
     @Autowired
     private MsoVnfAdapterImpl vnfAdapterImpl;
     @Autowired
     private MsoVnfAdapterAsyncImpl vnfAdapterAsyncImpl;
-    @Autowired
-    private MsoVnfCloudifyAdapterImpl vnfCloudifyAdapterImpl;
     @Autowired
     private CloudRegionRestV1 cloudRegionRestV1;
     @Autowired
@@ -113,17 +92,6 @@ public class CXFConfiguration {
         EndpointImpl endpoint = new EndpointImpl(springBus(), networkAdapterImpl);
         endpoint.publish("/NetworkAdapter");
         endpoint.setWsdlLocation("NetworkAdapter.wsdl");
-        endpoint.getInInterceptors().add(new SOAPLoggingInInterceptor());
-        endpoint.getOutInterceptors().add(new SOAPLoggingOutInterceptor());
-        endpoint.getOutFaultInterceptors().add(new SOAPLoggingOutInterceptor());
-        return endpoint;
-    }
-
-    @Bean
-    public Endpoint networkAdapterAsyncEndpoint() {
-        EndpointImpl endpoint = new EndpointImpl(springBus(), networkAdapterAsyncImpl);
-        endpoint.publish("/NetworkAdapterAsync");
-        endpoint.setWsdlLocation("NetworkAdapterAsync.wsdl");
         endpoint.getInInterceptors().add(new SOAPLoggingInInterceptor());
         endpoint.getOutInterceptors().add(new SOAPLoggingOutInterceptor());
         endpoint.getOutFaultInterceptors().add(new SOAPLoggingOutInterceptor());
@@ -169,24 +137,12 @@ public class CXFConfiguration {
         return endpoint;
     }
 
-    @Bean
-    public Endpoint vnfCloudAdapterEndpoint() {
-        EndpointImpl endpoint = new EndpointImpl(springBus(), vnfCloudifyAdapterImpl);
-        endpoint.publish("/VnfCloudifyAdapterImpl");
-        endpoint.setWsdlLocation("VnfCloudifyAdapterImpl.wsdl");
-        endpoint.getInInterceptors().add(new SOAPLoggingInInterceptor());
-        endpoint.getOutInterceptors().add(new SOAPLoggingOutInterceptor());
-        endpoint.getOutFaultInterceptors().add(new SOAPLoggingOutInterceptor());
-        return endpoint;
-    }
-
     // Uses Jettson Style marshalling semantics
     @Bean
     public Server rsServer() {
         JAXRSServerFactoryBean endpoint = new JAXRSServerFactoryBean();
         endpoint.setBus(springBus());
-        endpoint.setServiceBeans(Arrays.<Object>asList(networkAdapterRest, tenantAdapterRest, vnfAdapterRest,
-                vnfAdapterRestV2, volumeAdapterRest, volumeAdapterRestV2));
+        endpoint.setServiceBeans(Arrays.<Object>asList(tenantAdapterRest));
         endpoint.setAddress("/rest");
         endpoint.setFeatures(Arrays.asList(createSwaggerFeature(), new LoggingFeature()));
         endpoint.setProviders(Arrays.asList(new JacksonJsonProvider(jettisonStyleObjectMapper.getMapper()),

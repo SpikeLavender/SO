@@ -20,6 +20,8 @@
 
 package org.onap.so.openstack.utils;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import org.onap.so.cloud.authentication.KeystoneAuthHolder;
 import org.onap.so.openstack.exceptions.MsoCloudSiteNotFound;
 import org.onap.so.openstack.exceptions.MsoException;
@@ -73,9 +75,17 @@ public class NeutronClientImpl extends MsoCommonUtils {
     public Networks queryNetworks(String cloudSiteId, String tenantId, int limit, String marker, String name, String id)
             throws MsoCloudSiteNotFound, NeutronClientException {
         try {
+            String encodedName = null;
+            if (name != null) {
+                try {
+                    encodedName = URLEncoder.encode(name, "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    logger.error("error encoding query parameter: {}", encodedName);
+                }
+            }
             Quantum neutronClient = getNeutronClient(cloudSiteId, tenantId);
             OpenStackRequest<Networks> request = neutronClient.networks().list().queryParam("id", id)
-                    .queryParam("limit", limit).queryParam("marker", marker).queryParam("name", name);
+                    .queryParam("limit", limit).queryParam("marker", marker).queryParam("name", encodedName);
             return executeAndRecordOpenstackRequest(request, false);
         } catch (MsoException e) {
             logger.error("Error building Neutron Client", e);

@@ -20,11 +20,12 @@
 
 package org.onap.so.openstack.utils;
 
-import org.onap.so.cloud.authentication.KeystoneAuthHolder;
+import java.io.IOException;
 import org.onap.so.openstack.exceptions.MsoCloudSiteNotFound;
 import org.onap.so.openstack.exceptions.MsoException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,21 +50,8 @@ public class NovaClientImpl extends MsoCommonUtils {
     /** The logger. */
     private static final Logger logger = LoggerFactory.getLogger(NovaClientImpl.class);
 
-    /**
-     * Gets the Nova client
-     *
-     * @param cloudSiteId id of the cloud site
-     * @param tenantId the tenant id
-     * @return the Nova client
-     * @throws MsoException the mso exception
-     */
-    private Nova getNovaClient(String cloudSiteId, String tenantId) throws MsoException {
-        KeystoneAuthHolder keystone = getKeystoneAuthHolder(cloudSiteId, tenantId, "compute");
-        Nova novaClient = new Nova(keystone.getServiceUrl());
-        novaClient.token(keystone.getId());
-        return novaClient;
-    }
-
+    @Autowired
+    private NovaClient client;
 
     /**
      * Query Networks
@@ -82,7 +70,7 @@ public class NovaClientImpl extends MsoCommonUtils {
     public Flavors queryFlavors(String cloudSiteId, String tenantId, int limit, String marker)
             throws MsoCloudSiteNotFound, NovaClientException {
         try {
-            Nova novaClient = getNovaClient(cloudSiteId, tenantId);
+            Nova novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<Flavors> request =
                     novaClient.flavors().list(false).queryParam("limit", limit).queryParam("marker", marker);
             return executeAndRecordOpenstackRequest(request, false);
@@ -107,8 +95,7 @@ public class NovaClientImpl extends MsoCommonUtils {
     public Flavor queryFlavorById(String cloudSiteId, String tenantId, String id)
             throws MsoCloudSiteNotFound, NovaClientException {
         try {
-            Nova novaClient = getNovaClient(cloudSiteId, tenantId);
-            novaClient = getNovaClient(cloudSiteId, tenantId);
+            Nova novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<Flavor> request = novaClient.flavors().show(id);
             return executeAndRecordOpenstackRequest(request, false);
         } catch (MsoException e) {
@@ -132,7 +119,7 @@ public class NovaClientImpl extends MsoCommonUtils {
     public HostAggregates queryHostAggregates(String cloudSiteId, String tenantId, int limit, String marker)
             throws MsoCloudSiteNotFound, NovaClientException {
         try {
-            Nova novaClient = getNovaClient(cloudSiteId, tenantId);
+            Nova novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<HostAggregates> request =
                     novaClient.aggregates().list().queryParam("limit", limit).queryParam("marker", marker);
             return executeAndRecordOpenstackRequest(request, false);
@@ -157,7 +144,7 @@ public class NovaClientImpl extends MsoCommonUtils {
     public HostAggregate queryHostAggregateById(String cloudSiteId, String tenantId, String id)
             throws MsoCloudSiteNotFound, NovaClientException {
         try {
-            Nova novaClient = getNovaClient(cloudSiteId, tenantId);
+            Nova novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<HostAggregate> request = novaClient.aggregates().showAggregate(id);
             return executeAndRecordOpenstackRequest(request, false);
         } catch (MsoException e) {
@@ -181,7 +168,7 @@ public class NovaClientImpl extends MsoCommonUtils {
     public QuotaSet queryOSQuotaSet(String cloudSiteId, String tenantId)
             throws MsoCloudSiteNotFound, NovaClientException {
         try {
-            Nova novaClient = getNovaClient(cloudSiteId, tenantId);
+            Nova novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<QuotaSet> request = novaClient.quotaSets().showQuota(tenantId);
             return executeAndRecordOpenstackRequest(request, false);
         } catch (MsoException e) {
@@ -203,7 +190,7 @@ public class NovaClientImpl extends MsoCommonUtils {
     public void deleteKeyPair(String cloudSiteId, String tenantId, String keyPairName)
             throws MsoCloudSiteNotFound, NovaClientException {
         try {
-            Nova novaClient = getNovaClient(cloudSiteId, tenantId);
+            Nova novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<Void> request = novaClient.keyPairs().delete(keyPairName);
             executeAndRecordOpenstackRequest(request, false);
         } catch (MsoException e) {
@@ -214,7 +201,7 @@ public class NovaClientImpl extends MsoCommonUtils {
 
     public Server queryServerById(String cloudSiteId, String tenantId, String id) throws NovaClientException {
         try {
-            Nova novaClient = getNovaClient(cloudSiteId, tenantId);
+            Nova novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<Server> request = novaClient.servers().show(id);
             return executeAndRecordOpenstackRequest(request, false);
         } catch (MsoException e) {
@@ -224,27 +211,22 @@ public class NovaClientImpl extends MsoCommonUtils {
     }
 
     public void postActionToServer(String cloudSiteId, String tenantId, String id, String request)
-            throws NovaClientException {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode actualObj = mapper.readTree(request);
-            Entity<JsonNode> openstackEntity = new Entity<>(actualObj, "application/json");
-            CharSequence actionPath = "/servers/" + id + "/action";
-            Nova novaClient = getNovaClient(cloudSiteId, tenantId);
-            OpenStackRequest<Void> OSRequest =
-                    new OpenStackRequest<>(novaClient, HttpMethod.POST, actionPath, openstackEntity, Void.class);
-            executeAndRecordOpenstackRequest(OSRequest, false);
-        } catch (Exception e) {
-            logger.error("Error building Nova Client", e);
-            throw new NovaClientException("Error building Nova Client", e);
-        }
+            throws IOException, MsoException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode actualObj = mapper.readTree(request);
+        Entity<JsonNode> openstackEntity = new Entity<>(actualObj, "application/json");
+        CharSequence actionPath = "/servers/" + id + "/action";
+        Nova novaClient = client.getNovaClient(cloudSiteId, tenantId);
+        OpenStackRequest<Void> OSRequest =
+                new OpenStackRequest<>(novaClient, HttpMethod.POST, actionPath, openstackEntity, Void.class);
+        executeAndRecordOpenstackRequest(OSRequest, false);
     }
 
     public void attachVolume(String cloudSiteId, String tenantId, String serverId, VolumeAttachment volumeAttachment)
             throws NovaClientException {
         Nova novaClient;
         try {
-            novaClient = getNovaClient(cloudSiteId, tenantId);
+            novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<Void> request = novaClient.servers().attachVolume(serverId, volumeAttachment.getVolumeId(),
                     volumeAttachment.getDevice());
             executeAndRecordOpenstackRequest(request, false);
@@ -258,7 +240,7 @@ public class NovaClientImpl extends MsoCommonUtils {
             throws NovaClientException {
         Nova novaClient;
         try {
-            novaClient = getNovaClient(cloudSiteId, tenantId);
+            novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<Void> request = novaClient.servers().detachVolume(serverId, volumeId);
             executeAndRecordOpenstackRequest(request, false);
         } catch (MsoException e) {
@@ -270,7 +252,7 @@ public class NovaClientImpl extends MsoCommonUtils {
     public Hypervisors getHypervisorDetails(String cloudSiteId, String tenantId) throws NovaClientException {
         Nova novaClient;
         try {
-            novaClient = getNovaClient(cloudSiteId, tenantId);
+            novaClient = client.getNovaClient(cloudSiteId, tenantId);
             OpenStackRequest<Hypervisors> request = novaClient.hypervisors().listDetail();
             return executeAndRecordOpenstackRequest(request, false);
         } catch (MsoException e) {

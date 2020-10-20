@@ -159,4 +159,40 @@ class CreateSliceServiceTest extends MsoGroovyTest {
         assertNotNull(values)
     }
 
+    @Test
+    void testPrepareCreateOrchestrationTask() {
+        when(mockExecution.getVariable("serviceInstanceId")).thenReturn("123456")
+        when(mockExecution.getVariable("serviceInstanceName")).thenReturn("test")
+        when(mockExecution.getVariable("serviceProfile")).thenReturn(serviceProfile)
+
+        CreateSliceService sliceService = new CreateSliceService()
+        sliceService.prepareCreateOrchestrationTask(mockExecution)
+
+        SliceTaskParams sliceTaskParamsExpect = new SliceTaskParams()
+        sliceTaskParamsExpect.setServiceId("123456")
+        sliceTaskParamsExpect.setServiceName("test")
+        sliceTaskParamsExpect.setServiceProfile(serviceProfile)
+        String paramJsonExpect = sliceTaskParamsExpect.convertToJson()
+
+        Mockito.verify(mockExecution, times(2)).setVariable(eq("subscriptionServiceType"), captor.capture())
+        List allValues = captor.getAllValues()
+        SliceTaskParams sliceTaskParams = allValues.get(0)
+        String paramJson = allValues.get(1)
+        assertEquals(sliceTaskParams.getServiceId(), sliceTaskParams.getServiceId())
+        assertEquals(sliceTaskParams.getServiceName(), sliceTaskParams.getServiceName())
+        assertEquals(sliceTaskParams.getServiceProfile(), sliceTaskParams.getServiceProfile())
+        assertEquals(paramJsonExpect, paramJson)
+    }
+
+    @Test
+    void testSendSyncResponse() {
+        when(mockExecution.getVariable("operationId")).thenReturn("123456")
+        when(mockExecution.getVariable("serviceInstanceId")).thenReturn("12345")
+        CreateSliceService sliceService = new CreateSliceService()
+        sliceService.sendSyncResponse(mockExecution)
+        Mockito.verify(mockExecution, times(1)).setVariable(eq("sentSyncResponse"), captor.capture())
+        def catchSyncResponse = captor.getValue()
+        assertEquals(catchSyncResponse, true)
+    }
+
 }

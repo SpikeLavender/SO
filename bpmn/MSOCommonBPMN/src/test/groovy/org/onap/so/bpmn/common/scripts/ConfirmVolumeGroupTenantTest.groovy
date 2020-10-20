@@ -36,10 +36,12 @@ import org.onap.aai.domain.yang.Relationship
 import org.onap.aai.domain.yang.RelationshipData
 import org.onap.aai.domain.yang.RelationshipList
 import org.onap.aai.domain.yang.VolumeGroup
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.entities.AAIResultWrapper
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 import org.onap.so.constants.Defaults
 
 class ConfirmVolumeGroupTenantTest extends MsoGroovyTest {
@@ -79,7 +81,7 @@ class ConfirmVolumeGroupTenantTest extends MsoGroovyTest {
         when(mockExecution.getVariable("mso.workflow.global.default.aai.version")).thenReturn('8')
         when(mockExecution.getVariable("mso.workflow.default.aai.v8.cloud-region.uri")).thenReturn('/aai/v8/cloud-infrastructure/cloud-regions/cloud-region/CloudOwner')
         when(mockExecution.getVariable("mso.workflow.global.default.aai.namespace")).thenReturn('http://org.openecomp.aai.inventory/')
-        AAIResourceUri arURI = AAIUriFactory. createResourceUri(AAIObjectType.VOLUME_GROUP, Defaults.CLOUD_OWNER.toString(), "aicCloudRegionId","volumeGroupId")
+        AAIResourceUri arURI = AAIUriFactory. createResourceUri(AAIFluentTypeBuilder.cloudInfrastructure().cloudRegion(Defaults.CLOUD_OWNER.toString(), "aicCloudRegionId").volumeGroup("volumeGroupId"))
         AAIResultWrapper wrapper = new AAIResultWrapper(expectedVolumeGroup)
         when(client.get(arURI)).thenReturn(wrapper)
         confirmVolumeGroupTenant.preProcessRequest(mockExecution)

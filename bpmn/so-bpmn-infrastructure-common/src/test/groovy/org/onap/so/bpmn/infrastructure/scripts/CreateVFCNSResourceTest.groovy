@@ -27,9 +27,11 @@ import org.mockito.Mockito
 import org.mockito.MockitoAnnotations
 import org.mockito.Spy
 import org.onap.so.bpmn.common.scripts.MsoGroovyTest
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 
 import javax.ws.rs.NotFoundException
 
@@ -59,8 +61,8 @@ class CreateVFCNSResourceTest extends MsoGroovyTest{
         when(mockExecution.getVariable("nsInstanceId")).thenReturn("nsInstanceId")
         doNothing().when(client).connect(isA(AAIResourceUri.class),isA(AAIResourceUri.class))
         createVFCNSResource.addNSRelationship(mockExecution)
-        AAIResourceUri nsUri = AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE,"globalSubscriberId1","serviceType","nsInstanceId")
-        AAIResourceUri relatedServiceUri = AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE,"globalSubscriberId1","serviceType","serviceInstanceId")
+        AAIResourceUri nsUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business().customer("globalSubscriberId1").serviceSubscription("serviceType").serviceInstance("nsInstanceId"))
+        AAIResourceUri relatedServiceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business().customer("globalSubscriberId1").serviceSubscription("serviceType").serviceInstance("serviceInstanceId"))
         Mockito.verify(client).connect(nsUri,relatedServiceUri)
     }
 

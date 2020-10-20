@@ -35,11 +35,13 @@ import org.onap.aai.domain.yang.VolumeGroup
 import org.onap.so.bpmn.common.scripts.DeleteAAIVfModule
 import org.onap.so.bpmn.common.scripts.MsoGroovyTest
 import org.onap.so.bpmn.core.WorkflowException
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.entities.AAIResultWrapper
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
-import org.onap.so.client.graphinventory.exceptions.GraphInventoryUriComputationException
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
+import org.onap.aaiclient.client.graphinventory.exceptions.GraphInventoryUriComputationException
 
 import javax.ws.rs.NotFoundException
 
@@ -251,7 +253,7 @@ class DeleteVfModuleVolumeInfraV1Test extends MsoGroovyTest {
         volumeGroup.setVolumeGroupId("volumeGroupId1")
         when(mockExecution.getVariable("DELVfModVol_queryAAIVolGrpResponse")).thenReturn(volumeGroup)
         when(mockExecution.getVariable("DELVfModVol_aicCloudRegion")).thenReturn("region1")
-        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIObjectType.VOLUME_GROUP,CLOUD_OWNER, "region1","volumeGroupId1")
+        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.cloudInfrastructure().cloudRegion(CLOUD_OWNER, "region1").volumeGroup("volumeGroupId1"))
         doNothing().when(client).delete(resourceUri)
         deleteVfModuleVolumeInfraV1.deleteVolGrpId(mockExecution, true)
         verify(client).delete(resourceUri)
@@ -263,7 +265,7 @@ class DeleteVfModuleVolumeInfraV1Test extends MsoGroovyTest {
         volumeGroup.setVolumeGroupId("volumeGroupId1")
         when(mockExecution.getVariable("DELVfModVol_queryAAIVolGrpResponse")).thenReturn(volumeGroup)
         when(mockExecution.getVariable("DELVfModVol_aicCloudRegion")).thenReturn("region1")
-        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIObjectType.VOLUME_GROUP,CLOUD_OWNER, "region1","volumeGroupId1")
+        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.cloudInfrastructure().cloudRegion(CLOUD_OWNER, "region1").volumeGroup("volumeGroupId1"))
         doThrow(new NotFoundException("Not Found")).when(client).delete(resourceUri)
         try {
             deleteVfModuleVolumeInfraV1.deleteVolGrpId(mockExecution, true)
@@ -282,7 +284,7 @@ class DeleteVfModuleVolumeInfraV1Test extends MsoGroovyTest {
         volumeGroup.setVolumeGroupId("volumeGroupId1")
         when(mockExecution.getVariable("DELVfModVol_queryAAIVolGrpResponse")).thenReturn(volumeGroup)
         when(mockExecution.getVariable("DELVfModVol_aicCloudRegion")).thenReturn("region1")
-        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIObjectType.VOLUME_GROUP,CLOUD_OWNER, "region1","volumeGroupId1")
+        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.cloudInfrastructure().cloudRegion(CLOUD_OWNER, "region1").volumeGroup("volumeGroupId1"))
         doThrow(new GraphInventoryUriComputationException("Error")).when(client).delete(resourceUri)
         try {
             deleteVfModuleVolumeInfraV1.deleteVolGrpId(mockExecution, true)

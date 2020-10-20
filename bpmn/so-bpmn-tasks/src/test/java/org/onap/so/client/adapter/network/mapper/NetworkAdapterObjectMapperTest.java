@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -176,6 +176,7 @@ public class NetworkAdapterObjectMapperTest extends TestDataSetup {
     public void updateNetworkRequestMapperTest() throws UnsupportedEncodingException {
         org.onap.so.openstack.beans.Subnet subnet = new org.onap.so.openstack.beans.Subnet();
         subnet.setSubnetId("subnetId");
+        subnet.setGatewayIp("NULL");
         subnet.setHostRoutes(new ArrayList<org.onap.so.openstack.beans.HostRoute>());
 
         List<org.onap.so.openstack.beans.Subnet> subnets = new ArrayList<>();
@@ -397,5 +398,7 @@ public class NetworkAdapterObjectMapperTest extends TestDataSetup {
         assertEquals("192.168.0.0/16", subnets.get(0).getHostRoutes().get(0).getPrefix());
         assertEquals("192.168.1.5/16", subnets.get(0).getHostRoutes().get(1).getPrefix());
 
+
+        assertEquals("NULL", subnets.get(1).getGatewayIp());
     }
 }

@@ -22,17 +22,19 @@
 
 package org.onap.so.bpmn.common.scripts
 
-import org.onap.so.logger.LoggingAnchor
 import org.camunda.bpm.engine.delegate.BpmnError
 import org.camunda.bpm.engine.delegate.DelegateExecution
 import org.onap.aai.domain.yang.VolumeGroup
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.entities.AAIResultWrapper
-import org.onap.so.client.aai.entities.Relationships
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
-import org.onap.so.constants.Defaults
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper
+import org.onap.aaiclient.client.aai.entities.Relationships
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 import org.onap.logging.filter.base.ErrorCode
+import org.onap.so.constants.Defaults
+import org.onap.so.logger.LoggingAnchor
 import org.onap.so.logger.MessageEnum
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -61,7 +63,7 @@ class ConfirmVolumeGroupTenant extends AbstractServiceTaskProcessor{
 			String incomingGroupName = execution.getVariable("volumeGroupName")
 			String incomingTenantId = execution.getVariable("tenantId")
 			String aicCloudRegion = execution.getVariable("aicCloudRegion")
-			AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.VOLUME_GROUP, Defaults.CLOUD_OWNER.toString(), aicCloudRegion, volumeGroupId)
+			AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.cloudInfrastructure().cloudRegion(Defaults.CLOUD_OWNER.toString(), aicCloudRegion).volumeGroup(volumeGroupId))
 			AAIResultWrapper wrapper = getAAIClient().get(uri);
 			Optional<VolumeGroup> volumeGroup = wrapper.asBean(VolumeGroup.class)
 			Optional<Relationships> relationships = wrapper.getRelationships()
@@ -69,9 +71,9 @@ class ConfirmVolumeGroupTenant extends AbstractServiceTaskProcessor{
 				execution.setVariable("queryAAIVolumeGroupResponse", volumeGroup.get())
 				String volumeGroupTenantId = ""
 				if(relationships.isPresent()){
-					List<AAIResourceUri> tenantUris = relationships.get().getRelatedAAIUris(AAIObjectType.TENANT)
+					List<AAIResourceUri> tenantUris = relationships.get().getRelatedUris(Types.TENANT)
 					for (AAIResourceUri tenantURI: tenantUris){
-							volumeGroupTenantId = tenantURI.getURIKeys().get("tenant-id")
+							volumeGroupTenantId = tenantURI.getURIKeys().get(AAIFluentTypeBuilder.Types.TENANT.getUriParams().tenantId)
 					}
 				}
 				//Determine if Tenant Ids match

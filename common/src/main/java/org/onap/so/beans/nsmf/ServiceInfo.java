@@ -17,7 +17,6 @@
  # limitations under the License.
  * ============LICENSE_END=========================================================
  */
-
 package org.onap.so.beans.nsmf;
 
 import lombok.Data;
@@ -48,4 +47,6 @@ public class ServiceInfo implements Serializable {
     private String nssiName;
 
     private String pLMNIdList;
+
+    private String actionType;
 }

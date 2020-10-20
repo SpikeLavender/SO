@@ -31,7 +31,6 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.IdClass;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
@@ -44,8 +43,10 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import com.openpojo.business.annotation.BusinessKey;
 import uk.co.blackpepper.bowman.annotation.LinkedResource;
+import uk.co.blackpepper.bowman.annotation.RemoteResource;
 
 @Entity
+@RemoteResource("/vnfcInstanceGroupCustomization")
 
 @Table(name = "vnfc_instance_group_customization")
 public class VnfcInstanceGroupCustomization implements Serializable {

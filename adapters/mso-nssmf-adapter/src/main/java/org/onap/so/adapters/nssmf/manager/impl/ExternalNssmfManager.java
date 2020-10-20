@@ -30,11 +30,9 @@ import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.adapters.nssmf.util.NssmfAdapterUtil;
 import org.onap.so.beans.nsmf.*;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
-
 import static java.lang.String.valueOf;
 import static org.onap.so.adapters.nssmf.enums.JobStatus.*;
-import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.QUERY_JOB_STATUS_FAILED;
-import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.QUERY_JOB_STATUS_SUCCESS;
+import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.StatusDesc.*;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.unMarshal;
 
@@ -94,8 +92,13 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
 
     private RestResponse doResponseStatus(ResourceOperationStatus status) throws ApplicationException {
         RestResponse restResponse = sendRequest(null);
-        ResponseDescriptor rspDesc =
-                unMarshal(restResponse.getResponseContent(), JobStatusResponse.class).getResponseDescriptor();
+        JobStatusResponse jobStatusResponse = unMarshal(restResponse.getResponseContent(), JobStatusResponse.class);
+
+        ResponseDescriptor rspDesc = jobStatusResponse.getResponseDescriptor();
+        rspDesc.setNssiId(status.getResourceInstanceID());
+
+        jobStatusResponse.setResponseDescriptor(rspDesc);
+        restResponse.setResponseContent(marshal(jobStatusResponse));
         updateRequestDbJobStatus(rspDesc, status, restResponse);
         return restResponse;
     }
@@ -146,7 +149,7 @@ public abstract class ExternalNssmfManager extends BaseNssmfManager {
     }
 
     protected void updateDbStatus(ResourceOperationStatus status, int rspStatus, JobStatus jobStatus,
-                                  String description) {
+            String description) {
         status.setErrorCode(valueOf(rspStatus));
         status.setStatus(jobStatus.toString());
         status.setStatusDescription(description);

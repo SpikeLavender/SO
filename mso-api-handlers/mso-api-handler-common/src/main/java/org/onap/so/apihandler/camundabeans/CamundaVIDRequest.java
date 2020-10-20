@@ -65,10 +65,8 @@ public class CamundaVIDRequest {
 
     @JsonProperty(CommonConstants.SERVICE_INSTANCE_ID_VARIABLE)
     private CamundaInput serviceInstanceId;
-
     @JsonProperty(CommonConstants.OPERATION_TYPE)
     private CamundaInput operationType;
-
     @JsonProperty(CommonConstants.PNF_CORRELATION_ID)
     private CamundaInput pnfCorrelationId;
 

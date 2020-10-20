@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.onap.so</groupId>
     <artifactId>adapters</artifactId>
-    <version>1.6.0-SNAPSHOT</version>
+    <version>1.7.1-SNAPSHOT</version>
   </parent>
   <artifactId>mso-openstack-adapters</artifactId>
   <packaging>jar</packaging>
@@ -17,10 +17,6 @@
     <finalName>${project.artifactId}-${project.version}</finalName>
 
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-      </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
@@ -135,12 +131,15 @@
         <executions>
           <execution>
             <id>extract-docker-file</id>
+            <configuration>
+              <skip>false</skip>
+            </configuration>
           </execution>
         </executions>
       </plugin>
       <plugin>
         <groupId>io.fabric8</groupId>
-        <artifactId>fabric8-maven-plugin</artifactId>
+        <artifactId>docker-maven-plugin</artifactId>
         <executions>
           <execution>
             <id>start</id>
@@ -153,9 +152,7 @@
         <executions>
           <execution>
             <id>original</id>
-            <configuration>
-              <skip>false</skip>
-            </configuration>
+            <phase>package</phase>
           </execution>
         </executions>
       </plugin>
@@ -191,6 +188,19 @@
                   <action>
                     <ignore>
                     </ignore>
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <versionRange>[1.0.0,)</versionRange>
+                    <goals>
+                      <goal>unpack</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <execute />
                   </action>
                 </pluginExecution>
               </pluginExecutions>
@@ -250,10 +260,24 @@
     </dependency>
     <dependency>
       <groupId>org.pacesys.openstack4j.connectors</groupId>
-      <artifactId>openstack4j-httpclient</artifactId>
+      <artifactId>openstack4j-jersey2</artifactId>
       <version>3.2.0</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.glassfish.jersey.core</groupId>
+      <artifactId>jersey-client</artifactId>
+      <version>2.22.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.media</groupId>
+      <artifactId>jersey-media-json-jackson</artifactId>
+      <version>2.22.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.core</groupId>
+      <artifactId>jersey-common</artifactId>
+      <version>2.22.1</version>
+    </dependency>
     <dependency>
       <groupId>commons-collections</groupId>
       <artifactId>commons-collections</artifactId>
@@ -274,7 +298,7 @@
     <dependency>
       <groupId>commons-validator</groupId>
       <artifactId>commons-validator</artifactId>
-      <version>1.4.0</version>
+      <version>1.4.1</version>
     </dependency>
 
     <!-- added for unit testing -->
@@ -328,6 +352,11 @@
       <groupId>org.camunda.bpm</groupId>
       <artifactId>camunda-external-task-client</artifactId>
       <version>1.1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.seancfoley</groupId>
+      <artifactId>ipaddress</artifactId>
+      <version>2.0.0</version>
     </dependency>
   </dependencies>
 </project>

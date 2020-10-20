@@ -25,7 +25,7 @@ import org.junit.rules.ExpectedException
 import static org.mockito.Mockito.*
 
 import javax.ws.rs.NotFoundException
-
+import org.camunda.bpm.engine.ProcessEngineServices
 import org.camunda.bpm.engine.delegate.BpmnError
 import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity
 import org.junit.Before
@@ -35,9 +35,11 @@ import org.mockito.ArgumentCaptor
 import org.mockito.Captor
 import org.mockito.MockitoAnnotations
 import org.mockito.Spy
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 import org.onap.aai.domain.yang.VfModule
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule
@@ -57,6 +59,7 @@ class UpdateAAIVfModuleTest  extends MsoGroovyTest {
     void init() throws IOException {
         super.init("UpdateAAIVfModule")
         when(updateAAIVfModule.getAAIClient()).thenReturn(client)
+        mockExecution = setupMock("UpdateAAIVfModule")
     }
 
     @Test
@@ -66,7 +69,7 @@ class UpdateAAIVfModuleTest  extends MsoGroovyTest {
         when(mockExecution.getVariable(prefix + "vfModuleId")).thenReturn("supercool")
         VfModule vfModule = new VfModule()
         vfModule.setVfModuleId("supercool")
-        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIObjectType.VF_MODULE, "skask", "supercool");
+        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf("skask").vfModule("supercool"));
         when(client.get(VfModule.class,resourceUri)).thenReturn(Optional.of(vfModule))
         updateAAIVfModule.getVfModule(mockExecution)
         verify(mockExecution).setVariable(prefix + "getVfModuleResponseCode", 200)
@@ -78,7 +81,7 @@ class UpdateAAIVfModuleTest  extends MsoGroovyTest {
         when(mockExecution.getVariable("prefix")).thenReturn(prefix)
         when(mockExecution.getVariable(prefix + "vnfId")).thenReturn("skask")
         when(mockExecution.getVariable(prefix + "vfModuleId")).thenReturn("supercool")
-        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIObjectType.VF_MODULE, "skask", "supercool");
+        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf("skask").vfModule("supercool"));
         when(client.get(VfModule.class,resourceUri)).thenReturn(Optional.empty())
         updateAAIVfModule.getVfModule(mockExecution)
         verify(mockExecution).setVariable(prefix + "getVfModuleResponseCode", 404)
@@ -90,7 +93,7 @@ class UpdateAAIVfModuleTest  extends MsoGroovyTest {
         when(mockExecution.getVariable("prefix")).thenReturn(prefix)
         when(mockExecution.getVariable(prefix + "vnfId")).thenReturn("skask")
         when(mockExecution.getVariable(prefix + "vfModuleId")).thenReturn("supercool")
-        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIObjectType.VF_MODULE, "skask", "supercool");
+        AAIResourceUri resourceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf("skask").vfModule("supercool"));
         when(client.get(VfModule.class,resourceUri)).thenThrow(new NullPointerException("Error from AAI client"))
         updateAAIVfModule.getVfModule(mockExecution)
         verify(mockExecution).setVariable(prefix + "getVfModuleResponseCode", 500)
@@ -110,7 +113,7 @@ class UpdateAAIVfModuleTest  extends MsoGroovyTest {
         when(mockExecution.getVariable(prefix + "getVfModuleResponse")).thenReturn(vfModule)
         doNothing().when(client).update(isA(AAIResourceUri.class) as AAIResourceUri, anyObject())
         updateAAIVfModule.updateVfModule(mockExecution)
-		verify(mockExecution).setVariable("UAAIVfMod_updateVfModuleResponseCode", 200)
+        verify(mockExecution).setVariable("UAAIVfMod_updateVfModuleResponseCode", 200)
     }
 
     @Test
@@ -126,7 +129,7 @@ class UpdateAAIVfModuleTest  extends MsoGroovyTest {
         doThrow(new NotFoundException("Vf Module not found")).when(client).update(isA(AAIResourceUri.class) as AAIResourceUri, anyObject())
         thrown.expect(BpmnError.class)
         updateAAIVfModule.updateVfModule(mockExecution)
-		verify(mockExecution).setVariable("UAAIVfMod_updateVfModuleResponseCode", 404)
+        verify(mockExecution).setVariable("UAAIVfMod_updateVfModuleResponseCode", 404)
     }
 
 
@@ -143,7 +146,6 @@ class UpdateAAIVfModuleTest  extends MsoGroovyTest {
         doThrow(new IllegalStateException("Error in AAI client")).when(client).update(isA(AAIResourceUri.class) as AAIResourceUri, anyObject())
         thrown.expect(BpmnError.class)
         updateAAIVfModule.updateVfModule(mockExecution)
-		verify(mockExecution).setVariable("UAAIVfMod_updateVfModuleResponseCode", 500)
-
+        verify(mockExecution).setVariable("UAAIVfMod_updateVfModuleResponseCode", 500)
     }
 }

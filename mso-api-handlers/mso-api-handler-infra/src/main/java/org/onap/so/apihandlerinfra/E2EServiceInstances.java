@@ -23,7 +23,12 @@
 package org.onap.so.apihandlerinfra;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -34,19 +39,17 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.onap.so.apihandlerinfra.e2eserviceinstancebeans.*;
-import org.onap.aai.domain.yang.v16.ServiceInstance;
-import org.onap.so.client.aai.AAIObjectType;
-import org.onap.so.client.aai.AAIResourcesClient;
-import org.onap.so.client.aai.entities.uri.AAIResourceUri;
-import org.onap.so.client.aai.entities.uri.AAIUriFactory;
-import org.onap.so.logger.LoggingAnchor;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.json.JSONObject;
+import org.onap.aai.domain.yang.v16.ServiceInstance;
+import org.onap.aaiclient.client.aai.AAIResourcesClient;
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri;
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder;
+import org.onap.logging.filter.base.ErrorCode;
+import org.onap.so.apihandler.camundabeans.CamundaResponse;
+import org.onap.so.apihandler.common.CamundaClient;
 import org.onap.so.apihandler.common.ErrorNumbers;
-import org.onap.so.apihandler.common.RequestClient;
-import org.onap.so.apihandler.common.RequestClientFactory;
 import org.onap.so.apihandler.common.RequestClientParameter;
 import org.onap.so.apihandler.common.ResponseBuilder;
 import org.onap.so.apihandler.common.ResponseHandler;
@@ -54,8 +57,10 @@ import org.onap.so.apihandlerinfra.e2eserviceinstancebeans.CompareModelsRequest;
 import org.onap.so.apihandlerinfra.e2eserviceinstancebeans.E2EServiceInstanceDeleteRequest;
 import org.onap.so.apihandlerinfra.e2eserviceinstancebeans.E2EServiceInstanceRequest;
 import org.onap.so.apihandlerinfra.e2eserviceinstancebeans.E2EServiceInstanceScaleRequest;
+import org.onap.so.apihandlerinfra.e2eserviceinstancebeans.E2ESliceServiceActivateRequest;
 import org.onap.so.apihandlerinfra.e2eserviceinstancebeans.GetE2EServiceInstanceResponse;
 import org.onap.so.apihandlerinfra.exceptions.ApiException;
+import org.onap.so.apihandlerinfra.exceptions.BPMNFailureException;
 import org.onap.so.apihandlerinfra.exceptions.ValidateException;
 import org.onap.so.apihandlerinfra.logging.ErrorLoggerInfo;
 import org.onap.so.constants.Status;
@@ -64,7 +69,7 @@ import org.onap.so.db.catalog.beans.ServiceRecipe;
 import org.onap.so.db.catalog.client.CatalogDbClient;
 import org.onap.so.db.request.beans.OperationStatus;
 import org.onap.so.db.request.client.RequestsDbClient;
-import org.onap.logging.filter.base.ErrorCode;
+import org.onap.so.logger.LoggingAnchor;
 import org.onap.so.logger.MessageEnum;
 import org.onap.so.serviceinstancebeans.ModelInfo;
 import org.onap.so.serviceinstancebeans.ModelType;
@@ -76,6 +81,7 @@ import org.onap.so.serviceinstancebeans.SubscriberInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
@@ -106,9 +112,6 @@ public class E2EServiceInstances {
     private MsoRequest msoRequest;
 
     @Autowired
-    private RequestClientFactory requestClientFactory;
-
-    @Autowired
     private RequestsDbClient requestsDbClient;
 
     @Autowired
@@ -116,6 +119,12 @@ public class E2EServiceInstances {
 
     @Autowired
     private ResponseBuilder builder;
+
+    @Autowired
+    private CamundaClient camundaClient;
+
+    @Autowired
+    private ResponseHandler responseHandler;
 
     /**
      * POST Requests for E2E Service create Instance on a version provided
@@ -288,24 +297,16 @@ public class E2EServiceInstances {
         String workflowUrl = "/mso/async/services/CompareModelofE2EServiceInstance";
         int recipeTimeout = 180;
 
-        RequestClient requestClient;
-        HttpResponse response;
-
+        String bpmnRequest = null;
+        RequestClientParameter postParam = null;
         try {
-            requestClient = requestClientFactory.getRequestClient(workflowUrl);
-
             JSONObject jjo = new JSONObject(requestJSON);
-            String bpmnRequest = jjo.toString();
-
-            // Capture audit event
-            logger.debug("MSO API Handler Posting call to BPEL engine for url: " + requestClient.getUrl());
+            bpmnRequest = jjo.toString();
             String serviceId = instanceIdMap.get(SERVICE_ID);
             String serviceType = e2eCompareModelReq.getServiceType();
-            RequestClientParameter postParam = new RequestClientParameter.Builder().setRequestId(requestId)
-                    .setBaseVfModule(false).setRecipeTimeout(recipeTimeout).setRequestAction(action.name())
-                    .setServiceInstanceId(serviceId).setServiceType(serviceType).setRequestDetails(bpmnRequest)
-                    .setALaCarte(false).build();
-            response = requestClient.post(postParam);
+            postParam = new RequestClientParameter.Builder().setRequestId(requestId).setBaseVfModule(false)
+                    .setRecipeTimeout(recipeTimeout).setRequestAction(action.name()).setServiceInstanceId(serviceId)
+                    .setServiceType(serviceType).setRequestDetails(bpmnRequest).setALaCarte(false).build();
         } catch (Exception e) {
             Response resp = msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY,
                     MsoException.ServiceException, "Failed calling bpmn " + e.getMessage(),
@@ -315,21 +316,7 @@ public class E2EServiceInstances {
             logger.debug(END_OF_THE_TRANSACTION + resp.getEntity().toString());
             return resp;
         }
-
-        if (response == null) {
-            Response resp =
-                    msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY, MsoException.ServiceException,
-                            "bpelResponse is null", ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
-            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
-                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.BusinessProcessError.getValue(), "Null response from BPEL");
-            logger.debug(END_OF_THE_TRANSACTION + resp.getEntity().toString());
-            return resp;
-        }
-
-        ResponseHandler respHandler = new ResponseHandler(response, requestClient.getType());
-        int bpelStatus = respHandler.getStatus();
-
-        return beplStatusUpdate(requestClient, respHandler, bpelStatus, version);
+        return postRequest(workflowUrl, postParam, version);
     }
 
     private Response getE2EServiceInstance(String serviceId, String operationId, String version) {
@@ -398,8 +385,9 @@ public class E2EServiceInstances {
             // TODO Get the service template model version uuid from AAI.
             String modelVersionId = null;
             AAIResourcesClient client = new AAIResourcesClient();
-            AAIResourceUri url = AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE,
-                    e2eActReq.getGlobalSubscriberId(), e2eActReq.getServiceType(), instanceIdMap.get(SERVICE_ID));
+            AAIResourceUri url = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business()
+                    .customer(e2eActReq.getGlobalSubscriberId()).serviceSubscription(e2eActReq.getServiceType())
+                    .serviceInstance(instanceIdMap.get(SERVICE_ID)));
             Optional<ServiceInstance> serviceInstanceOpt = client.get(ServiceInstance.class, url);
             if (serviceInstanceOpt.isPresent()) {
                 modelVersionId = serviceInstanceOpt.get().getModelVersionId();
@@ -414,7 +402,8 @@ public class E2EServiceInstances {
                     ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
 
             msoRequest.createErrorRequestRecord(Status.FAILED, requestId,
-                    "Exception while communciate with " + "Catalog DB", action, ModelType.service.name(), requestJSON);
+                    "Exception while communciate with " + "Catalog DB", action, ModelType.service.name(), requestJSON,
+                    null);
             logger.debug(END_OF_THE_TRANSACTION + response.getEntity());
             return response;
         }
@@ -426,34 +415,26 @@ public class E2EServiceInstances {
                     ErrorNumbers.SVC_GENERAL_SERVICE_ERROR, null, version);
 
             msoRequest.createErrorRequestRecord(Status.FAILED, requestId, "Recipe does not exist in catalog DB", action,
-                    ModelType.service.name(), requestJSON);
+                    ModelType.service.name(), requestJSON, null);
             logger.debug(END_OF_THE_TRANSACTION + response.getEntity());
             return response;
         }
 
-        RequestClient requestClient;
-        HttpResponse response;
+        String bpmnRequest = null;
+        RequestClientParameter postParam = null;
 
         try {
-            requestClient = requestClientFactory.getRequestClient(recipeLookupResult.getOrchestrationURI());
-
             JSONObject jjo = new JSONObject(requestJSON);
             jjo.put("operationId", requestId);
-
-            String bpmnRequest = jjo.toString();
-
-            // Capture audit event
-            logger.debug("MSO API Handler Posting call to BPEL engine for url: " + requestClient.getUrl());
+            bpmnRequest = jjo.toString();
             String serviceId = instanceIdMap.get(SERVICE_ID);
             String operationType = instanceIdMap.get("operationType");
             String serviceInstanceType = e2eActReq.getServiceType();
-            RequestClientParameter clientParam = new RequestClientParameter.Builder().setRequestId(requestId)
-                    .setBaseVfModule(false).setRecipeTimeout(recipeLookupResult.getRecipeTimeout())
-                    .setRequestAction(action.name()).setServiceInstanceId(serviceId).setOperationType(operationType)
-                    .setServiceType(serviceInstanceType).setRequestDetails(bpmnRequest).setApiVersion(version)
-                    .setALaCarte(false).setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd()).build();
-            response = requestClient.post(clientParam);
-
+            postParam = new RequestClientParameter.Builder().setRequestId(requestId).setBaseVfModule(false)
+                    .setRecipeTimeout(recipeLookupResult.getRecipeTimeout()).setRequestAction(action.name())
+                    .setServiceInstanceId(serviceId).setOperationType(operationType).setServiceType(serviceInstanceType)
+                    .setRequestDetails(bpmnRequest).setApiVersion(version).setALaCarte(false)
+                    .setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd()).build();
         } catch (Exception e) {
             Response resp = msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY,
                     MsoException.ServiceException, "Failed calling bpmn " + e.getMessage(),
@@ -464,21 +445,7 @@ public class E2EServiceInstances {
             logger.debug("End of the transaction, the final response is: " + resp.getEntity());
             return resp;
         }
-
-        if (response == null) {
-            Response resp =
-                    msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY, MsoException.ServiceException,
-                            "bpelResponse is null", ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
-            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
-                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.BusinessProcessError.getValue(), "Null response from BPEL");
-            logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
-            return resp;
-        }
-
-        ResponseHandler respHandler = new ResponseHandler(response, requestClient.getType());
-        int bpelStatus = respHandler.getStatus();
-
-        return beplStatusUpdate(requestClient, respHandler, bpelStatus, version);
+        return postRequest(recipeLookupResult.getOrchestrationURI(), postParam, version);
     }
 
     private Response deleteE2EserviceInstances(String requestJSON, Action action, HashMap<String, String> instanceIdMap,
@@ -508,8 +475,9 @@ public class E2EServiceInstances {
             // TODO Get the service template model version uuid from AAI.
             String modelVersionId = null;
             AAIResourcesClient client = new AAIResourcesClient();
-            AAIResourceUri url = AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE,
-                    e2eDelReq.getGlobalSubscriberId(), e2eDelReq.getServiceType(), instanceIdMap.get(SERVICE_ID));
+            AAIResourceUri url = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business()
+                    .customer(e2eDelReq.getGlobalSubscriberId()).serviceSubscription(e2eDelReq.getServiceType())
+                    .serviceInstance(instanceIdMap.get(SERVICE_ID)));
             Optional<ServiceInstance> serviceInstanceOpt = client.get(ServiceInstance.class, url);
             if (serviceInstanceOpt.isPresent()) {
                 modelVersionId = serviceInstanceOpt.get().getModelVersionId();
@@ -524,7 +492,8 @@ public class E2EServiceInstances {
                     ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
 
             msoRequest.createErrorRequestRecord(Status.FAILED, requestId,
-                    "Exception while communciate with " + "Catalog DB", action, ModelType.service.name(), requestJSON);
+                    "Exception while communciate with " + "Catalog DB", action, ModelType.service.name(), requestJSON,
+                    null);
             logger.debug(END_OF_THE_TRANSACTION + response.getEntity());
             return response;
         }
@@ -536,33 +505,23 @@ public class E2EServiceInstances {
                     ErrorNumbers.SVC_GENERAL_SERVICE_ERROR, null, version);
 
             msoRequest.createErrorRequestRecord(Status.FAILED, requestId, "Recipe does not exist in catalog DB", action,
-                    ModelType.service.name(), requestJSON);
+                    ModelType.service.name(), requestJSON, null);
             logger.debug(END_OF_THE_TRANSACTION + response.getEntity());
             return response;
         }
-
-        RequestClient requestClient;
-        HttpResponse response;
-
+        String bpmnRequest = null;
+        RequestClientParameter clientParam = null;
         try {
-            requestClient = requestClientFactory.getRequestClient(recipeLookupResult.getOrchestrationURI());
-
             JSONObject jjo = new JSONObject(requestJSON);
             jjo.put("operationId", requestId);
-
-            String bpmnRequest = jjo.toString();
-
-            // Capture audit event
-            logger.debug("MSO API Handler Posting call to BPEL engine for url: " + requestClient.getUrl());
+            bpmnRequest = jjo.toString();
             String serviceId = instanceIdMap.get(SERVICE_ID);
             String serviceInstanceType = e2eDelReq.getServiceType();
-            RequestClientParameter clientParam = new RequestClientParameter.Builder().setRequestId(requestId)
-                    .setBaseVfModule(false).setRecipeTimeout(recipeLookupResult.getRecipeTimeout())
-                    .setRequestAction(action.name()).setServiceInstanceId(serviceId).setServiceType(serviceInstanceType)
-                    .setRequestDetails(bpmnRequest).setApiVersion(version).setALaCarte(false)
-                    .setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd()).build();
-            response = requestClient.post(clientParam);
-
+            clientParam = new RequestClientParameter.Builder().setRequestId(requestId).setBaseVfModule(false)
+                    .setRecipeTimeout(recipeLookupResult.getRecipeTimeout()).setRequestAction(action.name())
+                    .setServiceInstanceId(serviceId).setServiceType(serviceInstanceType).setRequestDetails(bpmnRequest)
+                    .setApiVersion(version).setALaCarte(false).setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd())
+                    .build();
         } catch (Exception e) {
             Response resp = msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY,
                     MsoException.ServiceException, "Failed calling bpmn " + e.getMessage(),
@@ -574,20 +533,7 @@ public class E2EServiceInstances {
             return resp;
         }
 
-        if (response == null) {
-            Response resp =
-                    msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY, MsoException.ServiceException,
-                            "bpelResponse is null", ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
-            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
-                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.BusinessProcessError.getValue(), "Null response from BPEL");
-            logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
-            return resp;
-        }
-
-        ResponseHandler respHandler = new ResponseHandler(response, requestClient.getType());
-        int bpelStatus = respHandler.getStatus();
-
-        return beplStatusUpdate(requestClient, respHandler, bpelStatus, version);
+        return postRequest(recipeLookupResult.getOrchestrationURI(), clientParam, version);
     }
 
     private Response updateE2EserviceInstances(String requestJSON, Action action, String version) throws ApiException {
@@ -657,51 +603,14 @@ public class E2EServiceInstances {
         }
 
         String serviceInstanceType = e2eSir.getService().getServiceType();
-
-        RequestClient requestClient;
-        HttpResponse response;
-
         String sirRequestJson = convertToString(sir);
+        RequestClientParameter postParam = new RequestClientParameter.Builder().setRequestId(requestId)
+                .setBaseVfModule(false).setRecipeTimeout(recipeLookupResult.getRecipeTimeout())
+                .setRequestAction(action.name()).setServiceInstanceId(serviceId).setServiceType(serviceInstanceType)
+                .setRequestDetails(sirRequestJson).setApiVersion(version).setALaCarte(false)
+                .setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd()).build();
 
-        try {
-            requestClient = requestClientFactory.getRequestClient(recipeLookupResult.getOrchestrationURI());
-
-            // Capture audit event
-            logger.debug("MSO API Handler Posting call to BPEL engine for url: " + requestClient.getUrl());
-            RequestClientParameter postParam = new RequestClientParameter.Builder().setRequestId(requestId)
-                    .setBaseVfModule(false).setRecipeTimeout(recipeLookupResult.getRecipeTimeout())
-                    .setRequestAction(action.name()).setServiceInstanceId(serviceId).setServiceType(serviceInstanceType)
-                    .setRequestDetails(sirRequestJson).setApiVersion(version).setALaCarte(false)
-                    .setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd()).build();
-            response = requestClient.post(postParam);
-        } catch (Exception e) {
-            logger.debug("Exception while communicate with BPMN engine", e);
-            Response getBPMNResp = msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY,
-                    MsoException.ServiceException, "Failed calling bpmn " + e.getMessage(),
-                    ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
-
-            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
-                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.AvailabilityError.getValue(),
-                    "Exception while communicate with BPMN engine");
-            logger.debug(END_OF_THE_TRANSACTION + getBPMNResp.getEntity());
-
-            return getBPMNResp;
-        }
-
-        if (response == null) {
-            Response getBPMNResp =
-                    msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY, MsoException.ServiceException,
-                            "bpelResponse is null", ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
-            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
-                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.BusinessProcessError.getValue(), "Null response from BPEL");
-            logger.debug(END_OF_THE_TRANSACTION + getBPMNResp.getEntity());
-            return getBPMNResp;
-        }
-
-        ResponseHandler respHandler = new ResponseHandler(response, requestClient.getType());
-        int bpelStatus = respHandler.getStatus();
-
-        return beplStatusUpdate(requestClient, respHandler, bpelStatus, version);
+        return postRequest(recipeLookupResult.getOrchestrationURI(), postParam, version);
     }
 
     private Response processE2EserviceInstances(String requestJSON, Action action,
@@ -771,48 +680,14 @@ public class E2EServiceInstances {
         String serviceInstanceType = e2eSir.getService().getServiceType();
 
         String serviceId = e2eSir.getService().getServiceId();
-        RequestClient requestClient;
-        HttpResponse response;
-
         String sirRequestJson = convertToString(sir);
+        RequestClientParameter parameter = new RequestClientParameter.Builder().setRequestId(requestId)
+                .setBaseVfModule(false).setRecipeTimeout(recipeLookupResult.getRecipeTimeout())
+                .setRequestAction(action.name()).setServiceInstanceId(serviceId).setServiceType(serviceInstanceType)
+                .setRequestDetails(sirRequestJson).setApiVersion(version).setALaCarte(false)
+                .setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd()).build();
 
-        try {
-            requestClient = requestClientFactory.getRequestClient(recipeLookupResult.getOrchestrationURI());
-
-            // Capture audit event
-            logger.debug("MSO API Handler Posting call to BPEL engine for url: " + requestClient.getUrl());
-            RequestClientParameter parameter = new RequestClientParameter.Builder().setRequestId(requestId)
-                    .setBaseVfModule(false).setRecipeTimeout(recipeLookupResult.getRecipeTimeout())
-                    .setRequestAction(action.name()).setServiceInstanceId(serviceId).setServiceType(serviceInstanceType)
-                    .setRequestDetails(sirRequestJson).setApiVersion(version).setALaCarte(false)
-                    .setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd()).build();
-            response = requestClient.post(parameter);
-        } catch (Exception e) {
-            Response resp = msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY,
-                    MsoException.ServiceException, "Failed calling bpmn " + e.getMessage(),
-                    ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
-
-            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
-                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.AvailabilityError.getValue(),
-                    "Exception while communicate with BPMN engine");
-            logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
-            return resp;
-        }
-
-        if (response == null) {
-            Response resp =
-                    msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY, MsoException.ServiceException,
-                            "bpelResponse is null", ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
-            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
-                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.BusinessProcessError.getValue(), "Null response from BPEL");
-            logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
-            return resp;
-        }
-
-        ResponseHandler respHandler = new ResponseHandler(response, requestClient.getType());
-        int bpelStatus = respHandler.getStatus();
-
-        return beplStatusUpdate(requestClient, respHandler, bpelStatus, version);
+        return postRequest(recipeLookupResult.getOrchestrationURI(), parameter, version);
     }
 
     private Response scaleE2EserviceInstances(String requestJSON, Action action, String version) throws ApiException {
@@ -849,7 +724,8 @@ public class E2EServiceInstances {
                     ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
 
             msoRequest.createErrorRequestRecord(Status.FAILED, requestId,
-                    "No communication to catalog DB " + e.getMessage(), action, ModelType.service.name(), requestJSON);
+                    "No communication to catalog DB " + e.getMessage(), action, ModelType.service.name(), requestJSON,
+                    null);
             logger.debug(END_OF_THE_TRANSACTION + response.getEntity());
             return response;
         }
@@ -861,94 +737,71 @@ public class E2EServiceInstances {
                     MsoException.ServiceException, "Recipe does not exist in catalog DB",
                     ErrorNumbers.SVC_GENERAL_SERVICE_ERROR, null, version);
             msoRequest.createErrorRequestRecord(Status.FAILED, requestId, "No recipe found in DB", action,
-                    ModelType.service.name(), requestJSON);
+                    ModelType.service.name(), requestJSON, null);
             logger.debug(END_OF_THE_TRANSACTION + response.getEntity());
             return response;
         }
-
-        RequestClient requestClient;
-        HttpResponse response;
-
+        String bpmnRequest = null;
+        RequestClientParameter postParam = null;
         try {
-            requestClient = requestClientFactory.getRequestClient(recipeLookupResult.getOrchestrationURI());
-
             JSONObject jjo = new JSONObject(requestJSON);
             jjo.put("operationId", requestId);
-
-            String bpmnRequest = jjo.toString();
-
-            // Capture audit event
-            logger.debug("MSO API Handler Posting call to BPEL engine for url: " + requestClient.getUrl());
+            bpmnRequest = jjo.toString();
             String serviceId = instanceIdMap.get(SERVICE_ID);
             String serviceInstanceType = e2eScaleReq.getService().getServiceType();
-            RequestClientParameter postParam = new RequestClientParameter.Builder().setRequestId(requestId)
-                    .setBaseVfModule(false).setRecipeTimeout(recipeLookupResult.getRecipeTimeout())
-                    .setRequestAction(action.name()).setServiceInstanceId(serviceId).setServiceType(serviceInstanceType)
-                    .setRequestDetails(bpmnRequest).setApiVersion(version).setALaCarte(false)
-                    .setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd()).build();
-            response = requestClient.post(postParam);
+            postParam = new RequestClientParameter.Builder().setRequestId(requestId).setBaseVfModule(false)
+                    .setRecipeTimeout(recipeLookupResult.getRecipeTimeout()).setRequestAction(action.name())
+                    .setServiceInstanceId(serviceId).setServiceType(serviceInstanceType).setRequestDetails(bpmnRequest)
+                    .setApiVersion(version).setALaCarte(false).setRecipeParamXsd(recipeLookupResult.getRecipeParamXsd())
+                    .build();
         } catch (Exception e) {
             Response resp = msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY,
-                    MsoException.ServiceException, "Failed calling bpmn " + e.getMessage(),
+                    MsoException.ServiceException, "Failed creating bpmnRequest " + e.getMessage(),
                     ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
 
             logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
                     MSO_PROP_APIHANDLER_INFRA, ErrorCode.AvailabilityError.getValue(),
-                    "Exception while communicate with BPMN engine", e);
+                    "Exception while creating bpmnRequest", e);
             logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
             return resp;
         }
-
-        if (response == null) {
-            Response resp =
-                    msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY, MsoException.ServiceException,
-                            "bpelResponse is null", ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
-            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
-                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.BusinessProcessError.getValue(), "Null response from BPEL");
-            logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
-            return resp;
-        }
-
-        ResponseHandler respHandler = new ResponseHandler(response, requestClient.getType());
-        int bpelStatus = respHandler.getStatus();
-
-        return beplStatusUpdate(requestClient, respHandler, bpelStatus, version);
+        return postRequest(recipeLookupResult.getOrchestrationURI(), postParam, version);
     }
 
-    private Response beplStatusUpdate(RequestClient requestClient, ResponseHandler respHandler, int bpelStatus,
-            String version) {
-
-        String apiVersion = version.substring(1);
-
-        // BPMN accepted the request, the request is in progress
-        if (bpelStatus == HttpStatus.SC_ACCEPTED) {
-            String camundaJSONResponseBody = respHandler.getResponseBody();
-            logger.debug("Received from Camunda: " + camundaJSONResponseBody);
-            logger.debug(END_OF_THE_TRANSACTION + camundaJSONResponseBody);
-            return builder.buildResponse(HttpStatus.SC_ACCEPTED, null, camundaJSONResponseBody, apiVersion);
-        } else {
-            List<String> variables = new ArrayList<>();
-            variables.add(bpelStatus + "");
-            String camundaJSONResponseBody = respHandler.getResponseBody();
-            if (camundaJSONResponseBody != null && !camundaJSONResponseBody.isEmpty()) {
-                Response resp = msoRequest.buildServiceErrorResponse(bpelStatus, MsoException.ServiceException,
-                        "Request Failed due to BPEL error with HTTP Status= %1 " + '\n' + camundaJSONResponseBody,
-                        ErrorNumbers.SVC_DETAILED_SERVICE_ERROR, variables, version);
-                logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_RESPONSE_ERROR.toString(),
-                        requestClient.getUrl(), ErrorCode.BusinessProcessError.getValue(),
-                        "Response from BPEL engine is failed with HTTP Status=" + bpelStatus);
-                logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
-                return resp;
-            } else {
-                Response resp = msoRequest.buildServiceErrorResponse(bpelStatus, MsoException.ServiceException,
-                        "Request Failed due to BPEL error with HTTP Status= %1",
-                        ErrorNumbers.SVC_DETAILED_SERVICE_ERROR, variables, version);
-                logger.error("", MessageEnum.APIH_BPEL_RESPONSE_ERROR.toString(), requestClient.getUrl(),
-                        ErrorCode.BusinessProcessError.getValue(), "Response from BPEL engine is empty");
-                logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
-                return resp;
-            }
+    protected Response postRequest(String orchestrationURI, RequestClientParameter postParam, String version)
+            throws ApiException {
+        ResponseEntity<String> response = null;
+        try {
+            response = camundaClient.post(postParam, orchestrationURI);
+        } catch (BPMNFailureException e) {
+            Response resp = msoRequest.buildServiceErrorResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR,
+                    MsoException.ServiceException, "Failed calling bpmn " + e.getMessage(),
+                    ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
+            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
+                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.AvailabilityError.getValue(),
+                    "Exception while communicate with BPMN engine");
+            logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
+            return resp;
+        } catch (Exception e) {
+            Response resp = msoRequest.buildServiceErrorResponse(HttpStatus.SC_BAD_GATEWAY,
+                    MsoException.ServiceException, "Failed calling bpmn " + e.getMessage(),
+                    ErrorNumbers.SVC_NO_SERVER_RESOURCES, null, version);
+            logger.error(LoggingAnchor.FOUR, MessageEnum.APIH_BPEL_COMMUNICATE_ERROR.toString(),
+                    MSO_PROP_APIHANDLER_INFRA, ErrorCode.AvailabilityError.getValue(),
+                    "Exception while communicate with BPMN engine");
+            logger.debug(END_OF_THE_TRANSACTION + resp.getEntity());
+            return resp;
         }
+        return bpelStatusUpdate(response, version);
+    }
+
+    private Response bpelStatusUpdate(ResponseEntity<String> responseEntity, String version) throws ApiException {
+        String apiVersion = version.substring(1);
+        responseHandler.acceptedResponse(responseEntity);
+        CamundaResponse camundaResponse = responseHandler.getCamundaResponse(responseEntity);
+        String response = camundaResponse.getResponse();
+        logger.debug(END_OF_THE_TRANSACTION + response);
+        return builder.buildResponse(HttpStatus.SC_ACCEPTED, null, response, apiVersion);
     }
 
     /**
@@ -1105,7 +958,7 @@ public class E2EServiceInstances {
                             ErrorNumbers.SVC_BAD_PARAMETER).cause(e).errorInfo(errorLoggerInfo).build();
 
             msoRequest.createErrorRequestRecord(Status.FAILED, requestId, validateException.getMessage(), action,
-                    ModelType.service.name(), requestJSON);
+                    ModelType.service.name(), requestJSON, null);
 
             throw validateException;
         }

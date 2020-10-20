@@ -49,13 +49,14 @@ import java.lang.reflect.Type
  */
 class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 
-	private static final Logger logger = LoggerFactory.getLogger( DoSendCommandToNSSMF.class);
+    private static final Logger logger = LoggerFactory.getLogger( DoSendCommandToNSSMF.class);
 	String Prefix="DoCNSSMF_"
-	ExceptionUtil exceptionUtil = new ExceptionUtil()
-	JsonUtils jsonUtil = new JsonUtils()
-	VidUtils vidUtils = new VidUtils(this)
-	SDNCAdapterUtils sdncAdapterUtils = new SDNCAdapterUtils()
-	private NssmfAdapterUtils nssmfAdapterUtils = new NssmfAdapterUtils(httpClientFactory, jsonUtil)
+    ExceptionUtil exceptionUtil = new ExceptionUtil()
+    JsonUtils jsonUtil = new JsonUtils()
+    VidUtils vidUtils = new VidUtils(this)
+    SDNCAdapterUtils sdncAdapterUtils = new SDNCAdapterUtils()
+
+    private NssmfAdapterUtils nssmfAdapterUtils = new NssmfAdapterUtils(httpClientFactory, jsonUtil)
 
 	/**
 	 * This method gets and validates the incoming
@@ -76,7 +77,7 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 			String serviceInstanceId = execution.getVariable("e2eserviceInstanceId")
 			execution.setVariable("e2eserviceInstanceId", e2eserviceInstanceId)
 			execution.setVariable("serviceInstanceId", serviceInstanceId)
-			logger.debug("Incoming e2eserviceInstanceId is: " + e2eserviceInstanceId)
+		 	logger.debug("Incoming e2eserviceInstanceId is: " + e2eserviceInstanceId)
 
 			String NSIserviceid =  execution.getVariable("NSIserviceid")
 			execution.setVariable("NSIserviceid", NSIserviceid)
@@ -86,7 +87,7 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 			String nssiMap  = execution.getVariable("nssiMap")
 			Type type = new TypeToken<HashMap<String, NSSI>>(){}.getType()
 			Map<String, NSSI> DonssiMap = new Gson().fromJson(nssiMap,type)
-			String strDonssiMap = mapToJsonStr(DonssiMap)
+            String strDonssiMap = mapToJsonStr(DonssiMap)
 			execution.setVariable("DonssiMap",strDonssiMap)
 			logger.debug("Incoming DonssiMap is: " + strDonssiMap)
 
@@ -97,7 +98,7 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 			execution.setVariable("operationType", operationType.toLowerCase())
 			logger.debug("Incoming operationType is: " + operationType)
 
-			if (operationType == "activation") {
+            if (operationType == "activation") {
 				execution.setVariable("activationSequence","an,tn,cn")
 			}else {
 				execution.setVariable("activationSequence","cn,tn,an")
@@ -119,24 +120,24 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 		logger.trace("COMPLETED DoSendCommandToNSSMF PreProcessRequest Process")
 	}
 
-	private String mapToJsonStr(Map<String, NSSI> stringNSSIHashMap) {
-		HashMap<String, NSSI> map = new HashMap<String, NSSI>()
-		for(Map.Entry<String, NSSI> child:stringNSSIHashMap.entrySet())
-		{
-			map.put(child.getKey(), child.getValue())
-		}
-		return new Gson().toJson(map)
-	}
+    private String mapToJsonStr(Map<String, NSSI> stringNSSIHashMap) {
+        HashMap<String, NSSI> map = new HashMap<String, NSSI>()
+        for(Map.Entry<String, NSSI> child:stringNSSIHashMap.entrySet())
+        {
+            map.put(child.getKey(), child.getValue())
+        }
+        return new Gson().toJson(map)
+    }
 
 	public	void getNSSIformlist(DelegateExecution execution) {
 
 		String  nssiMap = execution.getVariable("DonssiMap")
 		Type type = new TypeToken<HashMap<String, NSSI>>(){}.getType()
-		Map<String, NSSI> DonssiMap = new Gson().fromJson(nssiMap,type)
+        Map<String, NSSI> DonssiMap = new Gson().fromJson(nssiMap,type)
 		String isNSSIActivate = execution.getVariable("isNSSIActivate")
 
 		String activationSequence01 = execution.getVariable("activationSequence")
-		String[] strlist = activationSequence01.split(",")
+	    String[] strlist = activationSequence01.split(",")
 
 		int  activationIndex = execution.getVariable("activationIndex")
 		int indexcurrent = 0
@@ -156,10 +157,10 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 				String modelUuid = execution.getVariable("modelUuid")
 				//here modelVersion is not set, we use modelUuid to decompose the service.
 				String serviceModelInfo = """{
-			"modelInvariantUuid":"${modelInvariantUuid}",
-			"modelUuid":"${modelUuid}",
-			"modelVersion":""
-			 }"""
+            "modelInvariantUuid":"${modelInvariantUuid}",
+            "modelUuid":"${modelUuid}",
+            "modelVersion":""
+             }"""
 				execution.setVariable("serviceModelInfo", serviceModelInfo)
 				indexcurrent = index
 				execution.setVariable("activationIndex", indexcurrent)
@@ -186,13 +187,13 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 
 		try {
 			ServiceDecomposition serviceDecomposition = execution.getVariable("serviceDecomposition") as ServiceDecomposition
-			ServiceArtifact serviceArtifact = serviceDecomposition.getServiceInfo().getServiceArtifact().get(0)
+            ServiceArtifact serviceArtifact = serviceDecomposition.getServiceInfo().getServiceArtifact().get(0)
 			String content = serviceArtifact.getContent()
 			String vendor = jsonUtil.getJsonValue(content, "metadata.vendor")
 			//String domainType  = jsonUtil.getJsonValue(content, "metadata.domainType")
 
 			execution.setVariable("vendor", vendor)
-			//	currentNSSI['domainType'] = domainType
+		//	currentNSSI['domainType'] = domainType
 			logger.info("processDecomposition, current vendor-domainType:" +  vendor)
 
 		} catch (any) {
@@ -240,21 +241,21 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 
 			String payload =
 					"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-						xmlns:ns="http://org.onap.so/requestsdb">
-						<soapenv:Header/>
-						<soapenv:Body>
-							<ns:initServiceOperationStatus xmlns:ns="http://org.onap.so/requestsdb">
-							<serviceId>${MsoUtils.xmlEscape(serviceId)}</serviceId>
-							<operationId>${MsoUtils.xmlEscape(operationId)}</operationId>
-							<operationType>${MsoUtils.xmlEscape(operationType)}</operationType>
-							<userId>${MsoUtils.xmlEscape(userId)}</userId>
-							<result>${MsoUtils.xmlEscape(result)}</result>
-							<operationContent>${MsoUtils.xmlEscape(operationContent)}</operationContent>
-							<progress>${MsoUtils.xmlEscape(progress)}</progress>
-							<reason>${MsoUtils.xmlEscape(reason)}</reason>
-						</ns:initServiceOperationStatus>
-					</soapenv:Body>
-				</soapenv:Envelope>"""
+                        xmlns:ns="http://org.onap.so/requestsdb">
+                        <soapenv:Header/>
+                        <soapenv:Body>
+                            <ns:initServiceOperationStatus xmlns:ns="http://org.onap.so/requestsdb">
+                            <serviceId>${MsoUtils.xmlEscape(serviceId)}</serviceId>
+                            <operationId>${MsoUtils.xmlEscape(operationId)}</operationId>
+                            <operationType>${MsoUtils.xmlEscape(operationType)}</operationType>
+                            <userId>${MsoUtils.xmlEscape(userId)}</userId>
+                            <result>${MsoUtils.xmlEscape(result)}</result>
+                            <operationContent>${MsoUtils.xmlEscape(operationContent)}</operationContent>
+                            <progress>${MsoUtils.xmlEscape(progress)}</progress>
+                            <reason>${MsoUtils.xmlEscape(reason)}</reason>
+                        </ns:initServiceOperationStatus>
+                    </soapenv:Body>
+                </soapenv:Envelope>"""
 
 			payload = utils.formatXml(payload)
 			execution.setVariable("CVFMI_updateServiceOperStatusRequest", payload)
@@ -294,9 +295,9 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 		logger.debug("the NSSID is : "+nssiId)
 		logger.debug("the NSIserviceid is : "+NSIserviceid)
 
-		JobStatusRequest jobStatusRequest = new JobStatusRequest()
+        JobStatusRequest jobStatusRequest = new JobStatusRequest()
 
-		EsrInfo info = new EsrInfo()
+        EsrInfo info = new EsrInfo()
 		info.setNetworkType(NetworkType.fromString(domaintype))
 		info.setVendor(vendor)
 
@@ -309,41 +310,41 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 		String nssmfRequest = mapper.writeValueAsString(jobStatusRequest)
 		String isActivateSuccessfull
 
-		String urlString = "/api/rest/provMns/v1/NSS/jobs/" +Jobid
+        String urlString = "/api/rest/provMns/v1/NSS/jobs/" +Jobid
 
-		JobStatusResponse jobStatusResponse = nssmfAdapterUtils.sendPostRequestNSSMF(execution, urlString, nssmfRequest, JobStatusResponse.class)
+        JobStatusResponse jobStatusResponse = nssmfAdapterUtils.sendPostRequestNSSMF(execution, urlString, nssmfRequest, JobStatusResponse.class)
 
-		if (jobStatusResponse != null) {
-			execution.setVariable("statusDescription", jobStatusResponse.getResponseDescriptor().getStatusDescription())
-			jobstatus = jobStatusResponse.getResponseDescriptor().getStatus()
-			switch(jobstatus) {
-				case "started":
-				case "processing":
-					isActivateSuccessfull = "waitting"
-					execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
-					break
-				case "finished":
-					isActivateSuccessfull = "true"
-					execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
-					execution.setVariable("activateNumberSlice",execution.getVariable("activateNumberSlice")+ 1)
-					break
-				case "error":
-				default:
-					isActivateSuccessfull = "false"
-					execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
+        if (jobStatusResponse != null) {
+            execution.setVariable("statusDescription", jobStatusResponse.getResponseDescriptor().getStatusDescription())
+            jobstatus = jobStatusResponse.getResponseDescriptor().getStatus()
+            switch(jobstatus) {
+                case "started":
+                case "processing":
+                    isActivateSuccessfull = "waitting"
+                    execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
+                    break
+                case "finished":
+                    isActivateSuccessfull = "true"
+                    execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
+                    execution.setVariable("activateNumberSlice",execution.getVariable("activateNumberSlice")+ 1)
+                    break
+                case "error":
+                default:
+                    isActivateSuccessfull = "false"
+                    execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
 
-			}
-			if(Integer.parseInt(miniute) > 6 )
-			{
-				isActivateSuccessfull = "false"
-				execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
-				exceptionUtil.buildAndThrowWorkflowException(execution, 7000, "Received a timeout job status Response from NSSMF.")
-			}
-		} else {
-			exceptionUtil.buildAndThrowWorkflowException(execution, 7000, "Received a Bad job status Response from NSSMF.")
-			isActivateSuccessfull = false
-			execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
-		}
+            }
+            if(Integer.parseInt(miniute) > 6 )
+            {
+                isActivateSuccessfull = "false"
+                execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
+                exceptionUtil.buildAndThrowWorkflowException(execution, 7000, "Received a timeout job status Response from NSSMF.")
+            }
+        } else {
+            exceptionUtil.buildAndThrowWorkflowException(execution, 7000, "Received a Bad job status Response from NSSMF.")
+            isActivateSuccessfull = false
+            execution.setVariable("isActivateSuccessfull", isActivateSuccessfull)
+        }
 	}
 
 	public void SendCommandToNssmf(DelegateExecution execution) {
@@ -360,14 +361,14 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 		logger.debug("the NSSID is : "+nssiId)
 		logger.debug("the NSIserviceid is : "+NSIserviceid)
 
-		EsrInfo esr = new EsrInfo();
+        EsrInfo esr = new EsrInfo();
 		esr.setNetworkType(NetworkType.fromString(domaintype))
 		esr.setVendor(vendor)
 
-		ActDeActNssi actNssi = new ActDeActNssi();
+        ActDeActNssi actNssi = new ActDeActNssi();
 		actNssi.setNsiId(NSIserviceid);
 		actNssi.setNssiId(nssiId);
-		NssiActDeActRequest actRequest = new NssiActDeActRequest();
+        NssiActDeActRequest actRequest = new NssiActDeActRequest();
 		actRequest.setActDeActNssi(actNssi);
 		actRequest.setEsrInfo(esr)
 
@@ -378,19 +379,19 @@ class DoSendCommandToNSSMF extends AbstractServiceTaskProcessor {
 
 		String urlString = "/api/rest/provMns/v1/NSS/" + snssai + "/" + operationType.toLowerCase()
 
-		NssiResponse nssmfResponse = nssmfAdapterUtils.sendPostRequestNSSMF(execution, urlString, nssmfRequest, NssiResponse.class)
+        NssiResponse nssmfResponse = nssmfAdapterUtils.sendPostRequestNSSMF(execution, urlString, nssmfRequest, NssiResponse.class)
 
-		if (nssmfResponse != null) {
-			String  isNSSIActivated = "true"
-			execution.setVariable("isNSSIActivated", isNSSIActivated)
-			String jobId  = nssmfResponse.getJobId() ?: ""
-			execution.setVariable("JobId", jobId)
-		} else {
-			exceptionUtil.buildAndThrowWorkflowException(execution, 7000, "Received a Bad Response from NSSMF.")
-			String  isNSSIActivated = "false"
-			execution.setVariable("isNSSIActivated", isNSSIActivated)
-			execution.setVariable("isNSSIActivate","false")
-		}
+        if (nssmfResponse != null) {
+            String  isNSSIActivated = "true"
+            execution.setVariable("isNSSIActivated", isNSSIActivated)
+            String jobId  = nssmfResponse.getJobId() ?: ""
+            execution.setVariable("JobId", jobId)
+        } else {
+            exceptionUtil.buildAndThrowWorkflowException(execution, 7000, "Received a Bad Response from NSSMF.")
+            String  isNSSIActivated = "false"
+            execution.setVariable("isNSSIActivated", isNSSIActivated)
+            execution.setVariable("isNSSIActivate","false")
+        }
 
 	}
 

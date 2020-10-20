@@ -23,31 +23,41 @@ package org.onap.so.beans.nsmf;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
-
+import lombok.ToString;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
+@ToString
 public class AnSliceProfile {
 
-    private List<String> sNSSAIList;
-
+    @JsonProperty(value = "sliceProfileId", required = true)
     private String sliceProfileId;
 
-    private List<String> coverageAreaTAList;
+    @JsonProperty(value = "sNSSAIList", required = true)
+    private List<String> sNSSAIList;
 
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    private int latency;
-
+    @JsonProperty(value = "pLMNIdList", required = true)
     private List<String> pLMNIdList;
 
-    private PerfReq perfReq;
+    @JsonProperty(value = "perfReq", required = true)
+    private AnPerfReq perfReq;
 
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    private int maxNumberofUEs;
+    @JsonProperty(value = "maxNumberofUEs")
+    private long maxNumberofUEs;
 
+    @JsonProperty(value = "coverageAreaTAList")
+    private List<Integer> coverageAreaTAList;
+
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    @JsonProperty(value = "latency")
+    private int latency;
+
+    @JsonProperty(value = "uEMobilityLevel")
     private UeMobilityLevel uEMobilityLevel;
 
+    @JsonProperty(value = "resourceSharingLevel")
     private ResourceSharingLevel resourceSharingLevel;
 
 }

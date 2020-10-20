@@ -11,6 +11,7 @@ SO Developer Information
 
    Building_SO.rst
    Working_with_SO_Docker.rst
+   Working_with_so_monitoring.rst
    Camunda_Cockpit_Community_Edition.rst
    Camunda_Cockpit_Enterprise_Edition.rst
    Camunda_Modeler.rst
@@ -18,5 +19,8 @@ SO Developer Information
    BPMN_Main_Process_Flows.rst
    BPMN_Subprocess_Process_Flows.rst
    BPMN_Project_Deployment_Strategy.rst
+   BPMN-INFRA_Workflow_Understanding.rst
+   Mso_Openstack_Adapter.rst
+   Cxf_Logging.rst
    instantiate/index.rst
    FAQs.rst

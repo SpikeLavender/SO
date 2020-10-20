@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" ?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
@@ -11,7 +11,7 @@
   <groupId>org.onap.so</groupId>
   <artifactId>so</artifactId>
   <packaging>pom</packaging>
-  <version>1.6.0-SNAPSHOT</version>
+  <version>1.7.1-SNAPSHOT</version>
   <name>so</name>
   <description>This Maven project is responsible to build and package all child projects - contributions in the MSO project.
 	This build can be configured to run Functional tests and to start/stop a jboss server + Mysql DB.
@@ -24,15 +24,18 @@
   <modules>
     <module>deployment-configs</module>
     <module>common</module>
+    <module>graph-inventory</module>
     <module>mso-catalog-db</module>
     <module>mso-api-handlers</module>
     <module>adapters</module>
     <module>asdc-controller</module>
+    <module>so-optimization-clients</module>
+    <module>so-sdn-clients</module>
     <module>bpmn</module>
-    <module>cloudify-client</module>
     <module>cxf-logging</module>
     <module>so-monitoring</module>
     <module>so-simulator</module>
+    <module>so-etsi-nfvo</module>
     <module>packages</module>
   </modules>
   <properties>
@@ -40,6 +43,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <sonar.language>java</sonar.language>
+    <java.version>11</java.version>
     <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
     <sonar.surefire.reportsPath>${project.build.directory}/surefire-reports</sonar.surefire.reportsPath>
     <sonar.coverage.jacoco.xmlReportPaths>${project.reporting.outputDirectory}/jacoco-ut/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
@@ -49,7 +53,7 @@
     <sonar.cpd.exclusions>**/*</sonar.cpd.exclusions>
     <jacoco.version>0.8.5</jacoco.version>
     <org.apache.maven.user-settings />
-    <openstack.version>1.5.2-SNAPSHOT</openstack.version>
+    <openstack.version>1.7.1</openstack.version>
     <maven.build.timestamp.format>yyyyMMdd'T'HHmm</maven.build.timestamp.format>
     <originalClassifier>original</originalClassifier>
     <docker.skip>true</docker.skip>
@@ -64,14 +68,16 @@
     <snapshotNexusPath>content/repositories/snapshots/</snapshotNexusPath>
     <publicNexusPath>content/repositories/public/</publicNexusPath>
     <siteNexusPath>content/sites/site/org/onap/so/${project.version}/</siteNexusPath>
-    <cxf.version>3.2.6</cxf.version>
+    <cxf.version>3.3.3</cxf.version>
     <jax.ws.rs>2.1</jax.ws.rs>
     <springboot.version>2.1.5.RELEASE</springboot.version>
     <camunda.springboot.version>3.2.0</camunda.springboot.version>
     <format.skipValidate>false</format.skipValidate>
     <format.skipExecute>true</format.skipExecute>
-    <io.fabric8.version>4.1.0</io.fabric8.version>
-    <appc.client.version>1.7.1</appc.client.version>
+    <io.fabric8.version>0.33.0</io.fabric8.version>
+    <appc.client.version>1.7.2</appc.client.version>
+    <bowman.client.version>0.8.0</bowman.client.version>
+    <aaf.cadi.version>2.1.15</aaf.cadi.version>
   </properties>
   <distributionManagement>
     <repository>
@@ -211,17 +217,10 @@
       </resource>
     </resources>
     <plugins>
-      <!-- <plugin>
-        <groupId>org.sonatype.plugins</groupId>
-        <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.7</version>
-        <extensions>true</extensions>
-        <configuration>
-          <nexusUrl>${nexusproxy}</nexusUrl>
-          <stagingProfileId>176c31dfe190a</stagingProfileId>
-          <serverId>ecomp-staging</serverId>
-        </configuration>
-      </plugin> -->
+      <!-- <plugin> <groupId>org.sonatype.plugins</groupId> <artifactId>nexus-staging-maven-plugin</artifactId> 
+        <version>1.6.7</version> <extensions>true</extensions> <configuration> <nexusUrl>${nexusproxy}</nexusUrl> 
+        <stagingProfileId>176c31dfe190a</stagingProfileId> <serverId>ecomp-staging</serverId> 
+        </configuration> </plugin> -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-deploy-plugin</artifactId>
@@ -234,18 +233,20 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.6.1</version>
+        <version>3.8.0</version>
         <configuration>
           <debug>true</debug>
           <compilerArgument>-Xlint</compilerArgument>
           <verbose>true</verbose>
           <showDeprecation>true</showDeprecation>
           <showWarnings>true</showWarnings>
-          <source>1.8</source>
-          <target>1.8</target>
           <compilerArgs>
             <arg>-parameters</arg>
           </compilerArgs>
+          <forceJavacCompilerUse>true</forceJavacCompilerUse>
+          <source>11</source>
+          <target>11</target>
+          <release>11</release>
         </configuration>
       </plugin>
       <plugin>
@@ -334,7 +335,7 @@
         <version>4.20</version>
         <configuration>
           <buildId>mso-${project.version}</buildId>
-          <source>1.8</source>
+          <source>${java.version}</source>
         </configuration>
       </plugin>
       <plugin>
@@ -542,26 +543,66 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.eclipse.m2e</groupId>
+          <artifactId>lifecycle-mapping</artifactId>
+          <version>1.0.0</version>
+          <configuration>
+            <lifecycleMappingMetadata>
+              <pluginExecutions>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <versionRange>[1.0.0,)</versionRange>
+                    <goals>
+                      <goal>check</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <execute />
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.codehaus.gmaven</groupId>
+                    <artifactId>groovy-maven-plugin</artifactId>
+                    <versionRange>[1.0.0,)</versionRange>
+                    <goals>
+                      <goal>execute</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <execute />
+                  </action>
+                </pluginExecution>
+              </pluginExecutions>
+            </lifecycleMappingMetadata>
+          </configuration>
+        </plugin>
+        <plugin>
           <groupId>io.fabric8</groupId>
-          <artifactId>fabric8-maven-plugin</artifactId>
+          <artifactId>docker-maven-plugin</artifactId>
           <version>${io.fabric8.version}</version>
           <configuration>
             <skip>${docker.skip}</skip>
             <skipBuild>${docker.skip.build}</skipBuild>
             <skipPush>${docker.skip.push}</skipPush>
             <dockerHost>${docker.newHost}</dockerHost>
-            <!-- 1. Update address to your local docker VM. 2. Add IP to your NO_PROXY environment variable -->
+            <!-- 1. Update address to your local docker VM. 2. Add IP to 
+              your NO_PROXY environment variable -->
             <certPath>${docker.host.cert.path}</certPath>
-            <!-- Add -Ddocker.host.cert.pat="path to your local certs directory" to maven build command -->
+            <!-- Add -Ddocker.host.cert.pat="path to your local certs directory" 
+              to maven build command -->
             <pushRegistry>${dockerPushRepo}</pushRegistry>
-            <!-- Update .m2/settings.xml Add server id settings.dockerRepository, username, and password -->
+            <!-- Update .m2/settings.xml Add server id settings.dockerRepository, 
+              username, and password -->
             <pullRegistry>${dockerPullRepo}</pullRegistry>
-            <!-- If docker repo is not public. Update .m2/settings.xml Add server id settings.dockerRepository, username, 
-              and password -->
+            <!-- If docker repo is not public. Update .m2/settings.xml Add 
+              server id settings.dockerRepository, username, and password -->
             <images>
               <image>
                 <alias>service</alias>
-                <name>${artifactId}:${project.version}</name>
+                <name>${project.artifactId}:${project.version}</name>
                 <build>
                   <dockerFileDir>${project.build.directory}</dockerFileDir>
                 </build>
@@ -581,7 +622,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.20</version>
+          <version>2.22.2</version>
           <configuration>
             <systemPropertyVariables>
               <so.log.level>DEBUG</so.log.level>
@@ -595,7 +636,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>2.20</version>
+          <version>2.22.2</version>
           <configuration>
             <skip>true</skip>
             <systemPropertyVariables>
@@ -614,6 +655,7 @@
                 <goal>unpack</goal>
               </goals>
               <configuration>
+                <skip>true</skip>
                 <artifactItems>
                   <artifactItem>
                     <groupId>org.onap.so</groupId>
@@ -635,12 +677,11 @@
           <executions>
             <execution>
               <id>original</id>
-              <phase>package</phase>
+              <phase>none</phase>
               <goals>
                 <goal>jar</goal>
               </goals>
               <configuration>
-                <skip>true</skip>
                 <classifier>${originalClassifier}</classifier>
                 <includes>
                   <include>**</include>
@@ -671,17 +712,14 @@
     <dependency>
       <groupId>org.onap.logging-analytics</groupId>
       <artifactId>logging-slf4j</artifactId>
-      <version>1.6.6</version>
     </dependency>
     <dependency>
       <groupId>org.onap.logging-analytics</groupId>
       <artifactId>logging-filter-base</artifactId>
-      <version>1.6.6</version>
     </dependency>
     <dependency>
       <groupId>org.onap.logging-analytics</groupId>
       <artifactId>logging-filter-spring</artifactId>
-      <version>1.6.6</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -796,7 +834,7 @@
     <dependency>
       <groupId>com.openpojo</groupId>
       <artifactId>openpojo</artifactId>
-      <version>0.8.10</version>
+      <version>0.8.13</version>
     </dependency>
     <dependency>
       <groupId>com.shazam</groupId>
@@ -821,6 +859,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>7.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.googlecode.junit-toolbox</groupId>
       <artifactId>junit-toolbox</artifactId>
       <version>2.4</version>
@@ -828,8 +872,21 @@
   </dependencies>
   <dependencyManagement>
     <dependencies>
-      <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
-      <!-- force use of version 4.5 everywhere in transient deps, aligned on WildFly 10 version -->
+      <dependency>
+        <groupId>org.onap.logging-analytics</groupId>
+        <artifactId>logging-slf4j</artifactId>
+        <version>1.6.7</version>
+      </dependency>
+      <dependency>
+        <groupId>org.onap.logging-analytics</groupId>
+        <artifactId>logging-filter-base</artifactId>
+        <version>1.6.7</version>
+      </dependency>
+      <dependency>
+        <groupId>org.onap.logging-analytics</groupId>
+        <artifactId>logging-filter-spring</artifactId>
+        <version>1.6.7</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore</artifactId>
@@ -864,7 +921,7 @@
       <dependency>
         <groupId>org.yaml</groupId>
         <artifactId>snakeyaml</artifactId>
-        <version>1.23</version>
+        <version>1.26</version>
       </dependency>
       <dependency>
         <groupId>javax.interceptor</groupId>
@@ -902,6 +959,11 @@
         <artifactId>json</artifactId>
         <version>20140107</version>
       </dependency>
+      <dependency>
+        <groupId>org.onap.aai.schema-service</groupId>
+        <artifactId>aai-schema</artifactId>
+        <version>1.7.10-SNAPSHOT</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <profiles>
@@ -910,7 +972,6 @@
       <properties>
         <docker.skip>false</docker.skip>
         <docker.skip.build>false</docker.skip.build>
-        <fabric8.skipResourceValidation>true</fabric8.skipResourceValidation>
       </properties>
     </profile>
     <profile>
@@ -919,7 +980,6 @@
         <docker.skip>false</docker.skip>
         <docker.skip.build>false</docker.skip.build>
         <docker.skip.push>false</docker.skip.push>
-        <fabric8.skipResourceValidation>true</fabric8.skipResourceValidation>
       </properties>
     </profile>
     <profile>

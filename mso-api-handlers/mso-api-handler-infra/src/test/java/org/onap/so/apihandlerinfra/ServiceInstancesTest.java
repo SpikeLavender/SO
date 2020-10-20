@@ -1,8 +1,6 @@
 /*-
  * ============LICENSE_START=======================================================
- * ONAP - SO
- * ================================================================================
- * Copyright (C) 2017 AT&T Intellectual Property. All rights reserved.
+ *  Copyright (C) 2020 Nordix Foundation.
  * ================================================================================
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
  * ============LICENSE_END=========================================================
  */
 
@@ -26,6 +26,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.shazam.shazamcrest.matcher.Matchers.sameBeanAs;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -96,6 +97,8 @@ public class ServiceInstancesTest extends BaseTest {
 
     private final String servInstanceuri = "/onap/so/infra/serviceInstantiation/";
     private final String servInstanceUriPrev7 = "/onap/so/infra/serviceInstances/";
+    private final String orchestration_path = "/onap/so/infra";
+
     private String uri;
     private URL selfLink;
     private URL initialUrl;
@@ -114,7 +117,7 @@ public class ServiceInstancesTest extends BaseTest {
         headers.set(ONAP_PARTNER_NAME, "VID");
         headers.set(REQUESTOR_ID, "xxxxxx");
         try { // generate one-time port number to avoid RANDOM port number later.
-            initialUrl = new URL(createURLWithPort(Constants.ORCHESTRATION_REQUESTS_PATH));
+            initialUrl = new URL(createURLWithPort(Constants.ORCHESTRATION_REQUESTS_PATH, orchestration_path));
             initialPort = initialUrl.getPort();
         } catch (MalformedURLException e) {
             e.printStackTrace();
@@ -1389,7 +1392,7 @@ public class ServiceInstancesTest extends BaseTest {
     @Test
     public void replaceVfModuleInstanceNoCloudConfigurationTest() throws IOException {
         wireMockServer.stubFor(
-                get(urlPathEqualTo("/aai/v19/network/generic-vnfs/generic-vnf/ff305d54-75b4-431b-adb2-eb6b9e5ff000"))
+                get(urlPathMatching("/aai/v\\d+/network/generic-vnfs/generic-vnf/ff305d54-75b4-431b-adb2-eb6b9e5ff000"))
                         .willReturn(aResponse().withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
                                 .withBodyFile("infra/Vnf.json").withStatus(org.apache.http.HttpStatus.SC_OK)));
         wireMockServer.stubFor(post(urlPathEqualTo("/mso/async/services/WorkflowActionBB"))
@@ -2214,7 +2217,6 @@ public class ServiceInstancesTest extends BaseTest {
 
         wireMockServer.stubFor(post(urlPathEqualTo("/mso/async/services/WorkflowActionBB"))
                 .willReturn(aResponse().withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
-                        .withBodyFile("Camunda/UnauthorizedResponse.json")
                         .withStatus(org.apache.http.HttpStatus.SC_UNAUTHORIZED)));
 
         wireMockServer.stubFor(get(urlMatching(".*/service/.*"))
@@ -2231,7 +2233,7 @@ public class ServiceInstancesTest extends BaseTest {
 
         assertEquals(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), response.getStatusCode().value());
         RequestError realResponse = mapper.readValue(response.getBody(), RequestError.class);
-        assertEquals("Exception caught mapping Camunda JSON response to object",
+        assertEquals("Request Failed due to BPEL error with HTTP Status = 401 UNAUTHORIZED",
                 realResponse.getServiceException().getText());
     }
 
@@ -2430,7 +2432,7 @@ public class ServiceInstancesTest extends BaseTest {
         ResponseEntity<String> response =
                 sendRequest(inputStream("/ServiceInstanceDefault.json"), uri, HttpMethod.POST, headers);
 
-        assertEquals(Response.Status.NOT_ACCEPTABLE.getStatusCode(), response.getStatusCode().value());
+        assertEquals(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), response.getStatusCode().value());
         RequestError realResponse = mapper.readValue(response.getBody(), RequestError.class);
         assertEquals("Exception caught mapping Camunda JSON response to object",
                 realResponse.getServiceException().getText());

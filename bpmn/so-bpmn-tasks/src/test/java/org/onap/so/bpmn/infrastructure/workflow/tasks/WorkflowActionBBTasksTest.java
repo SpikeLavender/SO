@@ -44,7 +44,9 @@ import org.onap.so.bpmn.BaseTaskTest;
 import org.onap.so.bpmn.common.listener.flowmanipulator.FlowManipulatorListenerRunner;
 import org.onap.so.bpmn.core.WorkflowException;
 import org.onap.so.bpmn.servicedecomposition.entities.BuildingBlock;
+import org.onap.so.bpmn.servicedecomposition.entities.ConfigurationResourceKeys;
 import org.onap.so.bpmn.servicedecomposition.entities.ExecuteBuildingBlock;
+import org.onap.so.bpmn.servicedecomposition.entities.WorkflowResourceIds;
 import org.onap.so.db.catalog.beans.VnfResourceCustomization;
 import org.onap.so.db.request.beans.InfraActiveRequests;
 import org.onap.so.serviceinstancebeans.ModelInfo;
@@ -53,7 +55,9 @@ import org.springframework.core.env.Environment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -67,6 +71,7 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
     private static final String SAMPLE_MSO_REQUEST_ID = "00f704ca-c5e5-4f95-a72c-6889db7b0688";
     private static final String SAMPLE_REQUEST_ACTION = "Delete-Network-Collection";
     private static final int SAMPLE_SEQUENCE = 0;
+    private static final String EMPTY_STRING = "";
     @Mock
     protected WorkflowAction workflowAction;
 
@@ -172,7 +177,7 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
         workflowActionBBTasks.selectBB(execution);
         boolean success = (boolean) execution.getVariable("completed");
         int currentSequence = (int) execution.getVariable("gCurrentSequence");
-        assertEquals(false, success);
+        assertFalse(success);
         assertEquals(1, currentSequence);
     }
 
@@ -195,6 +200,8 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
     public void rollbackExecutionPathTest() {
         execution.setVariable("handlingCode", "Rollback");
         execution.setVariable("isRollback", false);
+        execution.setVariable("requestAction", EMPTY_STRING);
+        execution.setVariable("resourceName", EMPTY_STRING);
         List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
         BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("AssignVfModuleBB");
         ExecuteBuildingBlock ebb1 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock1);
@@ -224,6 +231,8 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
     public void rollbackExecutionPathUnfinishedFlowTest() {
         execution.setVariable("handlingCode", "Rollback");
         execution.setVariable("isRollback", false);
+        execution.setVariable("requestAction", EMPTY_STRING);
+        execution.setVariable("resourceName", EMPTY_STRING);
         List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
         BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("AssignVfModuleBB");
         ExecuteBuildingBlock ebb1 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock1);
@@ -253,6 +262,8 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
     public void rollbackExecutionTest() {
         execution.setVariable("handlingCode", "Rollback");
         execution.setVariable("isRollback", false);
+        execution.setVariable("requestAction", EMPTY_STRING);
+        execution.setVariable("resourceName", EMPTY_STRING);
         List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
         BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("AssignServiceInstanceBB");
         ExecuteBuildingBlock ebb1 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock1);
@@ -286,6 +297,8 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
     public void rollbackExecutionRollbackToAssignedTest() {
         execution.setVariable("isRollback", false);
         execution.setVariable("handlingCode", "RollbackToAssigned");
+        execution.setVariable("requestAction", EMPTY_STRING);
+        execution.setVariable("resourceName", EMPTY_STRING);
         List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
 
         BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("AssignVfModuleBB");
@@ -311,9 +324,50 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
     }
 
     @Test
+    public void rollbackExecutionPathChangeBBForReplaceVFModuleTest() {
+        execution.setVariable("handlingCode", "Rollback");
+        execution.setVariable("isRollback", false);
+        execution.setVariable("requestAction", "replaceInstance");
+        execution.setVariable("resourceName", "VfModule");
+        List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
+        BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("AssignVfModuleBB");
+        ExecuteBuildingBlock ebb1 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock1);
+        flowsToExecute.add(ebb1);
+
+        BuildingBlock buildingBlock2 = new BuildingBlock().setBpmnFlowName("CreateVfModuleBB");
+        ExecuteBuildingBlock ebb2 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock2);
+        flowsToExecute.add(ebb2);
+
+        BuildingBlock buildingBlock3 = new BuildingBlock().setBpmnFlowName("ActivateVfModuleBB");
+        ExecuteBuildingBlock ebb3 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock3);
+        flowsToExecute.add(ebb3);
+
+
+        BuildingBlock buildingBlock4 = new BuildingBlock().setBpmnFlowName("ChangeModelVnfBB");
+        ExecuteBuildingBlock ebb4 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock4);
+        flowsToExecute.add(ebb4);
+
+        BuildingBlock buildingBlock5 = new BuildingBlock().setBpmnFlowName("ChangeModelServiceInstanceBB");
+        ExecuteBuildingBlock ebb5 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock5);
+        flowsToExecute.add(ebb5);
+
+        execution.setVariable("flowsToExecute", flowsToExecute);
+        execution.setVariable("gCurrentSequence", 5);
+        doNothing().when(workflowActionBBFailure).updateRequestErrorStatusMessage(isA(DelegateExecution.class));
+
+        workflowActionBBTasks.rollbackExecutionPath(execution);
+        List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
+        assertEquals(ebbs.get(0).getBuildingBlock().getBpmnFlowName(), "ChangeModelVnfBB");
+        assertEquals(ebbs.get(1).getBuildingBlock().getBpmnFlowName(), "ChangeModelServiceInstanceBB");
+        assertEquals(0, execution.getVariable("gCurrentSequence"));
+    }
+
+    @Test
     public void rollbackExecutionRollbackToAssignedWithFabricTest() {
         execution.setVariable("isRollback", false);
         execution.setVariable("handlingCode", "RollbackToAssigned");
+        execution.setVariable("requestAction", EMPTY_STRING);
+        execution.setVariable("resourceName", EMPTY_STRING);
         List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
 
         BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("AssignVfModuleBB");
@@ -328,25 +382,56 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
         ExecuteBuildingBlock ebb3 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock3);
         flowsToExecute.add(ebb3);
 
-        BuildingBlock buildingBlock4 = new BuildingBlock().setBpmnFlowName("AssignFabricConfigurationBB");
+        BuildingBlock buildingBlock4 = new BuildingBlock().setBpmnFlowName("AddFabricConfigurationBB");
         ExecuteBuildingBlock ebb4 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock4);
         flowsToExecute.add(ebb4);
 
-        BuildingBlock buildingBlock5 = new BuildingBlock().setBpmnFlowName("ActivateFabricConfigurationBB");
-        ExecuteBuildingBlock ebb5 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock5);
-        flowsToExecute.add(ebb5);
-
         execution.setVariable("flowsToExecute", flowsToExecute);
-        execution.setVariable("gCurrentSequence", 5);
+        execution.setVariable("gCurrentSequence", 4);
 
         workflowActionBBTasks.rollbackExecutionPath(execution);
         List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
         assertEquals(0, execution.getVariable("gCurrentSequence"));
-        assertEquals(4, ebbs.size());
-        assertEquals("DeactivateFabricConfigurationBB", ebbs.get(0).getBuildingBlock().getBpmnFlowName());
-        assertEquals("UnassignFabricConfigurationBB", ebbs.get(1).getBuildingBlock().getBpmnFlowName());
-        assertEquals("DeactivateVfModuleBB", ebbs.get(2).getBuildingBlock().getBpmnFlowName());
-        assertEquals("DeleteVfModuleBB", ebbs.get(3).getBuildingBlock().getBpmnFlowName());
+        assertEquals(3, ebbs.size());
+        assertEquals("DeleteFabricConfigurationBB", ebbs.get(0).getBuildingBlock().getBpmnFlowName());
+        assertEquals("DeactivateVfModuleBB", ebbs.get(1).getBuildingBlock().getBpmnFlowName());
+        assertEquals("DeleteVfModuleBB", ebbs.get(2).getBuildingBlock().getBpmnFlowName());
+
+    }
+
+    @Test
+    public void rollbackExecutionRollbackToCreatedWithFabricTest() {
+        execution.setVariable("isRollback", false);
+        execution.setVariable("handlingCode", "RollbackToCreated");
+        execution.setVariable("requestAction", EMPTY_STRING);
+        execution.setVariable("resourceName", EMPTY_STRING);
+        List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
+
+        BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("AssignVfModuleBB");
+        ExecuteBuildingBlock ebb1 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock1);
+        flowsToExecute.add(ebb1);
+
+        BuildingBlock buildingBlock2 = new BuildingBlock().setBpmnFlowName("CreateVfModuleBB");
+        ExecuteBuildingBlock ebb2 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock2);
+        flowsToExecute.add(ebb2);
+
+        BuildingBlock buildingBlock3 = new BuildingBlock().setBpmnFlowName("ActivateVfModuleBB");
+        ExecuteBuildingBlock ebb3 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock3);
+        flowsToExecute.add(ebb3);
+
+        BuildingBlock buildingBlock4 = new BuildingBlock().setBpmnFlowName("AddFabricConfigurationBB");
+        ExecuteBuildingBlock ebb4 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock4);
+        flowsToExecute.add(ebb4);
+
+        execution.setVariable("flowsToExecute", flowsToExecute);
+        execution.setVariable("gCurrentSequence", 4);
+
+        workflowActionBBTasks.rollbackExecutionPath(execution);
+        List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
+        assertEquals(0, execution.getVariable("gCurrentSequence"));
+        assertEquals(2, ebbs.size());
+        assertEquals("DeleteFabricConfigurationBB", ebbs.get(0).getBuildingBlock().getBpmnFlowName());
+        assertEquals("DeactivateVfModuleBB", ebbs.get(1).getBuildingBlock().getBpmnFlowName());
 
     }
 
@@ -354,6 +439,8 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
     public void rollbackExecutionRollbackToCreatedTest() {
         execution.setVariable("isRollback", false);
         execution.setVariable("handlingCode", "RollbackToCreated");
+        execution.setVariable("requestAction", EMPTY_STRING);
+        execution.setVariable("resourceName", EMPTY_STRING);
         List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
         BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("AssignVfModuleBB");
         ExecuteBuildingBlock ebb1 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock1);
@@ -375,6 +462,159 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
         assertEquals("DeactivateVfModuleBB", ebbs.get(0).getBuildingBlock().getBpmnFlowName());
         assertEquals(0, execution.getVariable("gCurrentSequence"));
         assertEquals(1, ebbs.size());
+    }
+
+    @Test
+    public void rollbackExecutionRollbackInPlaceSoftwareUpdateTest() {
+        execution.setVariable("isRollback", false);
+        execution.setVariable("handlingCode", "Rollback");
+        execution.setVariable("requestAction", EMPTY_STRING);
+        execution.setVariable("resourceName", EMPTY_STRING);
+        List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
+        BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("VNFCheckPserversLockedFlagActivity");
+        ExecuteBuildingBlock ebb1 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock1);
+        flowsToExecute.add(ebb1);
+
+        BuildingBlock buildingBlock2 = new BuildingBlock().setBpmnFlowName("VNFCheckInMaintFlagActivity");
+        ExecuteBuildingBlock ebb2 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock2);
+        flowsToExecute.add(ebb2);
+
+        BuildingBlock buildingBlock3 = new BuildingBlock().setBpmnFlowName("VNFSetInMaintFlagActivity");
+        ExecuteBuildingBlock ebb3 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock3);
+        flowsToExecute.add(ebb3);
+
+        BuildingBlock buildingBlock4 = new BuildingBlock().setBpmnFlowName("VNFCheckClosedLoopDisabledFlagActivity");
+        ExecuteBuildingBlock ebb4 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock4);
+        flowsToExecute.add(ebb4);
+
+        BuildingBlock buildingBlock5 = new BuildingBlock().setBpmnFlowName("VNFSetClosedLoopDisabledFlagActivity");
+        ExecuteBuildingBlock ebb5 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock5);
+        flowsToExecute.add(ebb5);
+
+        BuildingBlock buildingBlock6 = new BuildingBlock().setBpmnFlowName("VNFLockActivity");
+        ExecuteBuildingBlock ebb6 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock6);
+        flowsToExecute.add(ebb6);
+
+        BuildingBlock buildingBlock7 = new BuildingBlock().setBpmnFlowName("VNFUpgradePreCheckActivity");
+        ExecuteBuildingBlock ebb7 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock7);
+        flowsToExecute.add(ebb7);
+
+        BuildingBlock buildingBlock8 = new BuildingBlock().setBpmnFlowName("VNFQuiesceTrafficActivity");
+        ExecuteBuildingBlock ebb8 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock8);
+        flowsToExecute.add(ebb8);
+
+        BuildingBlock buildingBlock9 = new BuildingBlock().setBpmnFlowName("VNFStopActivity");
+        ExecuteBuildingBlock ebb9 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock9);
+        flowsToExecute.add(ebb9);
+
+        BuildingBlock buildingBlock10 = new BuildingBlock().setBpmnFlowName("VNFSnapShotActivity");
+        ExecuteBuildingBlock ebb10 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock10);
+        flowsToExecute.add(ebb10);
+
+        execution.setVariable("flowsToExecute", flowsToExecute);
+        execution.setVariable("gCurrentSequence", 10);
+
+        workflowActionBBTasks.rollbackExecutionPath(execution);
+        List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
+        assertEquals("VNFStartActivity", ebbs.get(0).getBuildingBlock().getBpmnFlowName());
+        assertEquals("VNFResumeTrafficActivity", ebbs.get(1).getBuildingBlock().getBpmnFlowName());
+        assertEquals("VNFUnlockActivity", ebbs.get(2).getBuildingBlock().getBpmnFlowName());
+        assertEquals("VNFUnsetClosedLoopDisabledFlagActivity", ebbs.get(3).getBuildingBlock().getBpmnFlowName());
+        assertEquals("VNFUnsetInMaintFlagActivity", ebbs.get(4).getBuildingBlock().getBpmnFlowName());
+        assertEquals(0, execution.getVariable("gCurrentSequence"));
+        assertEquals(5, ebbs.size());
+    }
+
+    @Test
+    public void rollbackExecutionRollbackConfigModifyTest() {
+        execution.setVariable("isRollback", false);
+        execution.setVariable("handlingCode", "Rollback");
+        execution.setVariable("requestAction", EMPTY_STRING);
+        execution.setVariable("resourceName", EMPTY_STRING);
+        List<ExecuteBuildingBlock> flowsToExecute = new ArrayList<>();
+        BuildingBlock buildingBlock1 = new BuildingBlock().setBpmnFlowName("VNFCheckPserversLockedFlagActivity");
+        ExecuteBuildingBlock ebb1 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock1);
+        flowsToExecute.add(ebb1);
+
+        BuildingBlock buildingBlock2 = new BuildingBlock().setBpmnFlowName("VNFCheckInMaintFlagActivity");
+        ExecuteBuildingBlock ebb2 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock2);
+        flowsToExecute.add(ebb2);
+
+        BuildingBlock buildingBlock3 = new BuildingBlock().setBpmnFlowName("VNFSetInMaintFlagActivity");
+        ExecuteBuildingBlock ebb3 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock3);
+        flowsToExecute.add(ebb3);
+
+        BuildingBlock buildingBlock4 = new BuildingBlock().setBpmnFlowName("VNFCheckClosedLoopDisabledFlagActivity");
+        ExecuteBuildingBlock ebb4 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock4);
+        flowsToExecute.add(ebb4);
+
+        BuildingBlock buildingBlock5 = new BuildingBlock().setBpmnFlowName("VNFSetClosedLoopDisabledFlagActivity");
+        ExecuteBuildingBlock ebb5 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock5);
+        flowsToExecute.add(ebb5);
+
+        BuildingBlock buildingBlock6 = new BuildingBlock().setBpmnFlowName("VNFHealthCheckActivity");
+        ExecuteBuildingBlock ebb6 = new ExecuteBuildingBlock().setBuildingBlock(buildingBlock6);
+        flowsToExecute.add(ebb6);
+
+        execution.setVariable("flowsToExecute", flowsToExecute);
+        execution.setVariable("gCurrentSequence", 6);
+
+        workflowActionBBTasks.rollbackExecutionPath(execution);
+        List<ExecuteBuildingBlock> ebbs = (List<ExecuteBuildingBlock>) execution.getVariable("flowsToExecute");
+        assertEquals("VNFUnsetClosedLoopDisabledFlagActivity", ebbs.get(0).getBuildingBlock().getBpmnFlowName());
+        assertEquals("VNFUnsetInMaintFlagActivity", ebbs.get(1).getBuildingBlock().getBpmnFlowName());
+        assertEquals(0, execution.getVariable("gCurrentSequence"));
+        assertEquals(2, ebbs.size());
+    }
+
+    @Test
+    public void postProcessingExecuteBBActivateVfModuleTest() throws CloneNotSupportedException {
+        BuildingBlock bbActivateVfModule = new BuildingBlock().setBpmnFlowName("ActivateVfModuleBB");
+        ExecuteBuildingBlock ebbActivateVfModule = new ExecuteBuildingBlock().setBuildingBlock(bbActivateVfModule);
+
+        WorkflowResourceIds resourceIdsActivateVfModule = new WorkflowResourceIds();
+        resourceIdsActivateVfModule.setServiceInstanceId("test-service-inbstance-id");
+        resourceIdsActivateVfModule.setVnfId("test-vnf-id");
+        resourceIdsActivateVfModule.setVfModuleId("test-vf-module-id");
+        resourceIdsActivateVfModule.setConfigurationId("");
+
+        RequestDetails requestDetails = new RequestDetails();
+
+        ebbActivateVfModule.setApiVersion("7");
+        ebbActivateVfModule.setaLaCarte(true);
+        ebbActivateVfModule.setRequestAction("createInstance");
+        ebbActivateVfModule.setVnfType("test-vnf-type");
+        ebbActivateVfModule.setRequestId("f6c00ae2-a205-4cbd-b055-02e553efde12");
+        ebbActivateVfModule.setRequestDetails(requestDetails);
+        ebbActivateVfModule.setWorkflowResourceIds(resourceIdsActivateVfModule);
+
+        ConfigurationResourceKeys configurationResourceKeys = new ConfigurationResourceKeys();
+        configurationResourceKeys.setCvnfcCustomizationUUID("07d64cd2-4427-4156-b11d-d14b96b3e4cb");
+        configurationResourceKeys.setVfModuleCustomizationUUID("50b61075-6ebb-4aab-a9fc-bedad9a2aa76");
+        configurationResourceKeys.setVnfResourceCustomizationUUID("a1d0e36e-34a9-431b-b5ba-4bbb72f63c7c");
+        configurationResourceKeys.setVnfcName("rdm54bvbgw5001vm018pim001");
+
+        ExecuteBuildingBlock ebbAddFabricConfig =
+                workflowActionBBTasks.getExecuteBBForConfig("AddFabricConfigurationBB", ebbActivateVfModule,
+                        "cc7e12f9-967c-4362-8d14-e5b2bf0608a4", configurationResourceKeys);
+
+        assertEquals("7", ebbAddFabricConfig.getApiVersion());
+        assertTrue(ebbAddFabricConfig.isaLaCarte());
+        assertEquals("createInstance", ebbAddFabricConfig.getRequestAction());
+        assertEquals("test-vnf-type", ebbAddFabricConfig.getVnfType());
+        assertEquals("f6c00ae2-a205-4cbd-b055-02e553efde12", ebbAddFabricConfig.getRequestId());
+        assertEquals(requestDetails, ebbAddFabricConfig.getRequestDetails());
+        assertEquals("cc7e12f9-967c-4362-8d14-e5b2bf0608a4",
+                ebbAddFabricConfig.getWorkflowResourceIds().getConfigurationId());
+        assertEquals("test-service-inbstance-id", ebbAddFabricConfig.getWorkflowResourceIds().getServiceInstanceId());
+        assertEquals("test-vnf-id", ebbAddFabricConfig.getWorkflowResourceIds().getVnfId());
+        assertEquals("test-vf-module-id", ebbAddFabricConfig.getWorkflowResourceIds().getVfModuleId());
+
+        assertThat(ebbAddFabricConfig.getConfigurationResourceKeys()).isEqualTo(configurationResourceKeys);
+        assertThat(ebbAddFabricConfig.getWorkflowResourceIds())
+                .isNotEqualTo(ebbActivateVfModule.getWorkflowResourceIds());
+        assertThat(ebbAddFabricConfig.getWorkflowResourceIds().getConfigurationId())
+                .isNotEqualTo(ebbActivateVfModule.getWorkflowResourceIds().getConfigurationId());
     }
 
     @Test
@@ -438,7 +678,7 @@ public class WorkflowActionBBTasksTest extends BaseTaskTest {
     }
 
     @Test
-    public void getConfigurationId() {
+    public void getConfigurationId() throws Exception {
         org.onap.aai.domain.yang.Vnfc vnfc = new org.onap.aai.domain.yang.Vnfc();
         vnfc.setModelInvariantId("modelInvariantId");
         vnfc.setVnfcName("testVnfcName");

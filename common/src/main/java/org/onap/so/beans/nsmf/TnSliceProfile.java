@@ -21,28 +21,16 @@
 package org.onap.so.beans.nsmf;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Data
 public class TnSliceProfile {
+
+    private String sliceProfileId;
 
     private String bandwidth;
 
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private int latency;
-
-    public String getBandwidth() {
-        return bandwidth;
-    }
-
-    public void setBandwidth(String bandwidth) {
-        this.bandwidth = bandwidth;
-    }
-
-    public int getLatency() {
-        return latency;
-    }
-
-    public void setLatency(int latency) {
-        this.latency = latency;
-    }
 }

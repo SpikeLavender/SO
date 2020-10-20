@@ -7,7 +7,7 @@ logging:
 
 spring:
   datasource:
-    jdbc-url: jdbc:mariadb://49.232.146.162:8989/requestdb
+    jdbcUrl: jdbc:mariadb://49.232.146.162:8989/requestdb
     username: root
     password: 123456
     driver-class-name: org.mariadb.jdbc.Driver

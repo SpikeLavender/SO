@@ -21,12 +21,15 @@
 package org.onap.so.adapters.catalogdb.catalogrest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import java.io.IOException;
+import java.util.List;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.json.JSONException;
 import org.junit.Test;
 import org.onap.so.adapters.catalogdb.CatalogDbAdapterBaseTest;
+import org.onap.so.db.catalog.beans.ProcessingFlags;
 import org.onap.so.db.catalog.beans.ServiceRecipe;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
@@ -36,6 +39,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 public class CatalogDBRestTest extends CatalogDbAdapterBaseTest {
@@ -54,6 +59,8 @@ public class CatalogDBRestTest extends CatalogDbAdapterBaseTest {
     private static final String ECOMP_MSO_CATALOG_V2_SERVICE_VNFS = "ecomp/mso/catalog/v2/serviceVnfs";
 
     private static final String ECOMP_MSO_CATALOG_V2_SERVICE_RESOURCES = "ecomp/mso/catalog/v2/serviceResources";
+
+    private static final String ECOMP_MSO_CATALOG_PROCESSING_FLAGS = "ecomp/mso/catalog/v2/processingFlags";
 
     TestRestTemplate restTemplate = new TestRestTemplate("test", "test");
 
@@ -803,6 +810,72 @@ public class CatalogDBRestTest extends CatalogDbAdapterBaseTest {
                 restTemplate.exchange(builder.toUriString(), HttpMethod.POST, entity, String.class);
 
         assertEquals(Response.Status.CREATED.getStatusCode(), response.getStatusCode().value());
+    }
+
+    @Test
+    public void testGetProcessingFlagsByFlag() throws Exception {
+        HttpEntity<String> entity = new HttpEntity<String>(null, headers);
+        headers.set("Accept", MediaType.APPLICATION_JSON);
+
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl(createURLWithPort(ECOMP_MSO_CATALOG_PROCESSING_FLAGS)).pathSegment("TESTFLAG");
+
+        ResponseEntity<String> response =
+                restTemplate.exchange(builder.toUriString(), HttpMethod.GET, entity, String.class);
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatusCode().value());
+        ObjectMapper mapper = new ObjectMapper();
+        ProcessingFlags processingFlagsResponse = mapper.readValue(response.getBody(), ProcessingFlags.class);
+
+        assertEquals(processingFlagsResponse.getFlag(), "TESTFLAG");
+        assertEquals(processingFlagsResponse.getValue(), "NO");
+        assertEquals(processingFlagsResponse.getEndpoint(), "TESTENDPOINT");
+        assertEquals(processingFlagsResponse.getDescription(), "TEST FLAG");
+    }
+
+    @Test
+    public void testGetAllProcessingFlags() throws Exception {
+        HttpEntity<String> entity = new HttpEntity<String>(null, headers);
+        headers.set("Accept", MediaType.APPLICATION_JSON);
+
+        UriComponentsBuilder builder =
+                UriComponentsBuilder.fromHttpUrl(createURLWithPort(ECOMP_MSO_CATALOG_PROCESSING_FLAGS));
+
+        ResponseEntity<String> response =
+                restTemplate.exchange(builder.toUriString(), HttpMethod.GET, entity, String.class);
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatusCode().value());
+        ObjectMapper mapper = new ObjectMapper();
+
+        List<ProcessingFlags> processingFlagsResponse =
+                mapper.readValue(response.getBody(), new TypeReference<List<ProcessingFlags>>() {});
+
+        boolean testFlagFound = false;
+        for (int i = 0; i < processingFlagsResponse.size(); i++) {
+            if (processingFlagsResponse.get(i).getFlag().equals("TESTFLAG")) {
+                assertEquals(processingFlagsResponse.get(i).getEndpoint(), "TESTENDPOINT");
+                assertEquals(processingFlagsResponse.get(i).getDescription(), "TEST FLAG");
+                testFlagFound = true;
+            }
+        }
+        assertTrue(testFlagFound);
+    }
+
+    @Test
+    public void testSetProcessingFlagsFlagValue() throws JSONException {
+        ProcessingFlags updatedProcessingFlag = new ProcessingFlags();
+        updatedProcessingFlag.setFlag("TESTFLAG");
+        updatedProcessingFlag.setValue("YES");
+        HttpEntity<ProcessingFlags> entity = new HttpEntity<ProcessingFlags>(updatedProcessingFlag, headers);
+        headers.set("Accept", MediaType.APPLICATION_JSON);
+
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl(createURLWithPort(ECOMP_MSO_CATALOG_PROCESSING_FLAGS)).pathSegment("TESTFLAG");
+
+        ResponseEntity<String> response =
+                restTemplate.exchange(builder.toUriString(), HttpMethod.PUT, entity, String.class);
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatusCode().value());
     }
 
     private String createURLWithPort(String uri) {

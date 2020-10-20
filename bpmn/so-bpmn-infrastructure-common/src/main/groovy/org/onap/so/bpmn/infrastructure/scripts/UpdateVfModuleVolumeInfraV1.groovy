@@ -22,34 +22,33 @@
 
 package org.onap.so.bpmn.infrastructure.scripts
 
-import org.onap.so.logger.LoggingAnchor
-import groovy.json.JsonException
-import groovy.json.JsonSlurper
+import static org.apache.cxf.common.util.CollectionUtils.isEmpty
+import javax.ws.rs.core.UriBuilder
 import org.camunda.bpm.engine.delegate.BpmnError
 import org.camunda.bpm.engine.delegate.DelegateExecution
 import org.onap.aai.domain.yang.GenericVnf
 import org.onap.aai.domain.yang.VfModule
 import org.onap.aai.domain.yang.VolumeGroup
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper
+import org.onap.aaiclient.client.aai.entities.Relationships
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
+import org.onap.logging.filter.base.ErrorCode
 import org.onap.so.bpmn.common.scripts.ExceptionUtil
 import org.onap.so.bpmn.common.scripts.MsoUtils
 import org.onap.so.bpmn.common.scripts.VfModuleBase
 import org.onap.so.bpmn.common.scripts.VidUtils
 import org.onap.so.bpmn.core.UrnPropertiesReader
 import org.onap.so.bpmn.core.WorkflowException
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.entities.AAIResultWrapper
-import org.onap.so.client.aai.entities.Relationships
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
 import org.onap.so.constants.Defaults
-import org.onap.logging.filter.base.ErrorCode
+import org.onap.so.logger.LoggingAnchor
 import org.onap.so.logger.MessageEnum
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
-import javax.ws.rs.core.UriBuilder
-
-import static org.apache.cxf.common.util.CollectionUtils.isEmpty
+import groovy.json.JsonException
+import groovy.json.JsonSlurper
 
 class UpdateVfModuleVolumeInfraV1 extends VfModuleBase {
     private static final Logger logger = LoggerFactory.getLogger(UpdateVfModuleVolumeInfraV1.class)
@@ -208,16 +207,16 @@ class UpdateVfModuleVolumeInfraV1 extends VfModuleBase {
         def aicCloudRegion = execution.getVariable('UPDVfModVol_aicCloudRegion')
 
         try {
-            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.VOLUME_GROUP, Defaults.CLOUD_OWNER.toString(), aicCloudRegion, volumeGroupId)
+            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.cloudInfrastructure().cloudRegion(Defaults.CLOUD_OWNER.toString(), aicCloudRegion).volumeGroup(volumeGroupId))
             AAIResultWrapper wrapper = getAAIClient().get(uri)
             Optional<VolumeGroup> volumeGroup = wrapper.asBean(VolumeGroup.class)
             if (volumeGroup.isPresent()) {
                 execution.setVariable('UPDVfModVol_aaiVolumeGroupResponse', volumeGroup.get())
                 Optional<Relationships> relationships = wrapper.getRelationships()
                 if (relationships.isPresent()) {
-                    List<AAIResourceUri> tenantURIList = relationships.get().getRelatedAAIUris(AAIObjectType.TENANT)
+                    List<AAIResourceUri> tenantURIList = relationships.get().getRelatedUris(Types.TENANT)
                     if (!isEmpty(tenantURIList)) {
-                        String volumeGroupTenantId = tenantURIList.get(0).getURIKeys().get("tenant-id")
+                        String volumeGroupTenantId = tenantURIList.get(0).getURIKeys().get(AAIFluentTypeBuilder.Types.TENANT.getUriParams().tenantId)
                         execution.setVariable('UPDVfModVol_volumeGroupTenantId', volumeGroupTenantId)
                         logger.debug("Received Tenant Id {} from AAI for Volume Group with Volume Group Id {}, AIC Cloud Region ",
                                 volumeGroupTenantId, volumeGroupId, aicCloudRegion)
@@ -225,7 +224,7 @@ class UpdateVfModuleVolumeInfraV1 extends VfModuleBase {
                         exceptionUtil.buildAndThrowWorkflowException(execution, 2500, "Could not find Tenant Id element in Volume Group with Volume Group Id " + volumeGroupId
                                 + ", AIC Cloud Region " + aicCloudRegion)
                     }
-                    execution.setVariable('UPDVfModVol_relatedVfModuleLink', relationships.get().getRelatedLinks(AAIObjectType.VF_MODULE).get(0))
+                    execution.setVariable('UPDVfModVol_relatedVfModuleLink', relationships.get().getRelatedLinks(Types.VF_MODULE).get(0))
 
                 } else {
                     exceptionUtil.buildAndThrowWorkflowException(execution, 2500, "Could not find Tenant Id element in Volume Group with Volume Group Id " + volumeGroupId
@@ -250,7 +249,7 @@ class UpdateVfModuleVolumeInfraV1 extends VfModuleBase {
 
         def vnfId = execution.getVariable('vnfId')
 
-        AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.GENERIC_VNF, vnfId)
+        AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().genericVnf(vnfId))
         try {
             Optional<GenericVnf> genericVnf = getAAIClient().get(GenericVnf.class, uri)
             if (genericVnf.isPresent()) {
@@ -274,7 +273,7 @@ class UpdateVfModuleVolumeInfraV1 extends VfModuleBase {
 
         String queryAAIVfModuleRequest = execution.getVariable('UPDVfModVol_relatedVfModuleLink')
         execution.setVariable('UPDVfModVol_personaModelId', '')
-        AAIResourceUri uri = AAIUriFactory.createResourceFromExistingURI(AAIObjectType.VF_MODULE, UriBuilder.fromPath(queryAAIVfModuleRequest).build())
+        AAIResourceUri uri = AAIUriFactory.createResourceFromExistingURI(Types.VF_MODULE, UriBuilder.fromPath(queryAAIVfModuleRequest).build())
         try{
            Optional<VfModule> vfModule = getAAIClient().get(VfModule.class,uri)
             if(vfModule.isPresent()){

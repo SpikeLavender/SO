@@ -17,7 +17,6 @@
  # limitations under the License.
  * ============LICENSE_END=========================================================
  */
-
 package org.onap.so.beans.nsmf;
 
 import com.fasterxml.jackson.annotation.JsonInclude;

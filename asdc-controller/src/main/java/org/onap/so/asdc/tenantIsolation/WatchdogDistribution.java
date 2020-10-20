@@ -25,11 +25,11 @@ package org.onap.so.asdc.tenantIsolation;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.onap.so.client.aai.AAIObjectType;
-import org.onap.so.client.aai.AAIResourcesClient;
-import org.onap.so.client.aai.entities.uri.AAIResourceUri;
-import org.onap.so.client.aai.entities.uri.AAIUriFactory;
-import org.onap.so.client.graphinventory.entities.uri.Depth;
+import org.onap.aaiclient.client.aai.AAIResourcesClient;
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri;
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder;
+import org.onap.aaiclient.client.graphinventory.entities.uri.Depth;
 import org.onap.so.db.catalog.beans.Service;
 import org.onap.so.db.catalog.data.repository.ServiceRepository;
 import org.onap.so.db.request.beans.WatchdogComponentDistributionStatus;
@@ -183,8 +183,8 @@ public class WatchdogDistribution {
 
 
 
-            AAIResourceUri aaiUri = AAIUriFactory.createResourceUri(AAIObjectType.MODEL_VER, serviceModelInvariantUUID,
-                    serviceModelVersionId);
+            AAIResourceUri aaiUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.serviceDesignAndCreation()
+                    .model(serviceModelInvariantUUID).modelVer(serviceModelVersionId));
             aaiUri.depth(Depth.ZERO); // Do not return relationships if any
             logger.debug("Target A&AI Resource URI: {}", aaiUri.build().toString());
 

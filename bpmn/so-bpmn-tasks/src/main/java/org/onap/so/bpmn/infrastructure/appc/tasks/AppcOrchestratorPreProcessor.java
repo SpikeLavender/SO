@@ -1,9 +1,16 @@
 package org.onap.so.bpmn.infrastructure.appc.tasks;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.onap.aai.domain.yang.Vserver;
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper;
+import org.onap.aaiclient.client.aai.entities.Relationships;
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types;
 import org.onap.appc.client.lcm.model.Action;
 import org.onap.so.appc.orchestrator.service.beans.ApplicationControllerTaskRequest;
 import org.onap.so.appc.orchestrator.service.beans.ApplicationControllerVm;
@@ -15,10 +22,6 @@ import org.onap.so.bpmn.servicedecomposition.bbobjects.VfModule;
 import org.onap.so.bpmn.servicedecomposition.entities.GeneralBuildingBlock;
 import org.onap.so.bpmn.servicedecomposition.entities.ResourceKey;
 import org.onap.so.bpmn.servicedecomposition.tasks.ExtractPojosForBB;
-import org.onap.so.client.aai.AAIObjectType;
-import org.onap.so.client.aai.entities.AAIResultWrapper;
-import org.onap.so.client.aai.entities.Relationships;
-import org.onap.so.client.aai.entities.uri.AAIResourceUri;
 import org.onap.so.client.exception.BBObjectNotFoundException;
 import org.onap.so.client.exception.ExceptionBuilder;
 import org.onap.so.client.orchestration.AAIVnfResources;
@@ -29,6 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Component
 public class AppcOrchestratorPreProcessor {
@@ -73,6 +78,9 @@ public class AppcOrchestratorPreProcessor {
             String identityUrl = execution.getVariable("identityUrl");
             appcTaskRequest.setIdentityUrl(identityUrl);
 
+            String requestorId = gBBInput.getRequestContext().getRequestorId();
+            appcTaskRequest.setRequestorId(requestorId);
+
             if (gBBInput.getRequestContext().getRequestParameters() != null) {
                 String payload = gBBInput.getRequestContext().getRequestParameters().getPayload();
                 if (payload == null) {
@@ -84,8 +92,16 @@ public class AppcOrchestratorPreProcessor {
                 appcTaskRequest.setNewSoftwareVersion(newSoftwareVersion);
                 String operationsTimeout = JsonUtils.getJsonValue(payload, "operations_timeout");
                 appcTaskRequest.setOperationsTimeout(operationsTimeout);
-            }
 
+                Map<String, String> configMap = new HashMap<>();
+                ObjectMapper objectMapper = new ObjectMapper();
+                String configParamsStr = JsonUtils.getJsonValue(payload, "configuration_parameters");
+                if (configParamsStr != null) {
+                    configMap =
+                            objectMapper.readValue(configParamsStr, new TypeReference<HashMap<String, String>>() {});
+                }
+                appcTaskRequest.setConfigParams(configMap);
+            }
             ControllerSelectionReference controllerSelectionReference = catalogDbClient
                     .getControllerSelectionReferenceByVnfTypeAndActionCategory(vnfType, action.toString());
             String controllerType = null;
@@ -170,11 +186,11 @@ public class AppcOrchestratorPreProcessor {
         if (aaiRW != null && aaiRW.getRelationships().isPresent()) {
             Relationships relationships = aaiRW.getRelationships().get();
             if (relationships != null) {
-                List<AAIResourceUri> vserverUris = relationships.getRelatedAAIUris(AAIObjectType.VSERVER);
+                List<AAIResourceUri> vserverUris = relationships.getRelatedUris(Types.VSERVER);
                 ArrayList<String> vserverIds = new ArrayList<String>();
                 ArrayList<String> vserverSelfLinks = new ArrayList<String>();
                 for (AAIResourceUri j : vserverUris) {
-                    String vserverId = j.getURIKeys().get("vserver-id");
+                    String vserverId = j.getURIKeys().get(AAIFluentTypeBuilder.Types.VSERVER.getUriParams().vserverId);
                     vserverIds.add(vserverId);
                     Optional<Vserver> oVserver = aaiVnfResources.getVserver(j);
                     if (oVserver.isPresent()) {
@@ -229,8 +245,13 @@ public class AppcOrchestratorPreProcessor {
                                     .isEmpty()) {
                         errorMessage = "APPC action Snapshot is missing vserverId parameter. ";
                     }
-                    break;
                 }
+                break;
+            case ConfigModify:
+                if (appcTaskRequest.getConfigParams().isEmpty() || appcTaskRequest.getConfigParams() == null) {
+                    errorMessage = "APPC action ConfigModify is missing Configuration parameters. ";
+                }
+                break;
             default:
                 break;
         }

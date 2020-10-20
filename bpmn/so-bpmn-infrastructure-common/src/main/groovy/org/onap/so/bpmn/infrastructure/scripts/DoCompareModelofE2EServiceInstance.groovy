@@ -37,11 +37,13 @@ import org.onap.so.bpmn.core.domain.ModelInfo
 import org.onap.so.bpmn.core.domain.Resource
 import org.onap.so.bpmn.core.domain.ResourceModelInfo
 import org.onap.so.bpmn.core.json.JsonUtils
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.AAIResourcesClient
-import org.onap.so.client.aai.entities.AAIResultWrapper
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.AAIResourcesClient
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -142,7 +144,7 @@ public class DoCompareModelofE2EServiceInstance extends AbstractServiceTaskProce
 			String serviceType = execution.getVariable('serviceType')
 
 			AAIResourcesClient resourceClient = new AAIResourcesClient()
-			AAIResourceUri serviceInstanceUri = AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE, globalSubscriberId, serviceType, serviceInstanceId)
+			AAIResourceUri serviceInstanceUri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business().customer(globalSubscriberId).serviceSubscription(serviceType).serviceInstance(serviceInstanceId))
 			AAIResultWrapper wrapper = resourceClient.get(serviceInstanceUri, NotFoundException.class)
 
 			Optional<ServiceInstance> si = wrapper.asBean(ServiceInstance.class)

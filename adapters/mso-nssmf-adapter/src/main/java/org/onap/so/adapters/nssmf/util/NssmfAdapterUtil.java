@@ -21,14 +21,13 @@
 package org.onap.so.adapters.nssmf.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.onap.logging.filter.base.ErrorCode;
+import java.io.IOException;
 import org.onap.so.adapters.nssmf.enums.ActionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-
+import org.onap.logging.filter.base.ErrorCode;
+import org.springframework.stereotype.Component;
 import static org.onap.so.logger.LoggingAnchor.THREE;
 import static org.onap.so.logger.MessageEnum.RA_NS_EXC;
 

@@ -1,6 +1,8 @@
 package org.onap.so.appc.orchestrator.service.beans;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 import org.onap.appc.client.lcm.model.Action;
 import org.onap.so.appc.orchestrator.service.beans.ApplicationControllerVnf;
 
@@ -9,6 +11,7 @@ public class ApplicationControllerTaskRequest implements Serializable {
     private static final long serialVersionUID = -3150320542857627682L;
 
     private Action action;
+    private String requestorId;
     private String controllerType;
     private String identityUrl;
     private String operationsTimeout;
@@ -18,6 +21,15 @@ public class ApplicationControllerTaskRequest implements Serializable {
     private String existingSoftwareVersion;
     private String newSoftwareVersion;
     private ApplicationControllerVnf applicationControllerVnf;
+    private Map<String, String> configParams = new HashMap<String, String>();
+
+    public Map<String, String> getConfigParams() {
+        return configParams;
+    }
+
+    public void setConfigParams(Map<String, String> configParams) {
+        this.configParams = configParams;
+    }
 
     public Action getAction() {
         return action;
@@ -97,6 +109,14 @@ public class ApplicationControllerTaskRequest implements Serializable {
 
     public void setNewSoftwareVersion(String newSoftwareVersion) {
         this.newSoftwareVersion = newSoftwareVersion;
+    }
+
+    public String getRequestorId() {
+        return requestorId;
+    }
+
+    public void setRequestorId(String requestorId) {
+        this.requestorId = requestorId;
     }
 
 

@@ -23,8 +23,8 @@ package org.onap.so.client.restproperties;
 import java.net.MalformedURLException;
 import java.net.URL;
 import org.onap.so.bpmn.core.UrnPropertiesReader;
-import org.onap.so.client.aai.AAIProperties;
-import org.onap.so.client.aai.AAIVersion;
+import org.onap.aaiclient.client.aai.AAIProperties;
+import org.onap.aaiclient.client.aai.AAIVersion;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -33,11 +33,10 @@ public class AAIPropertiesImpl implements AAIProperties {
     public static final String MSO_MSO_KEY = "mso.msoKey";
     public static final String AAI_AUTH = "aai.auth";
     public static final String AAI_ENDPOINT = "aai.endpoint";
-    private UrnPropertiesReader reader;
 
     @Override
     public URL getEndpoint() throws MalformedURLException {
-        return new URL(reader.getVariable(AAI_ENDPOINT));
+        return new URL(UrnPropertiesReader.getVariable(AAI_ENDPOINT));
     }
 
     @Override
@@ -52,11 +51,11 @@ public class AAIPropertiesImpl implements AAIProperties {
 
     @Override
     public String getAuth() {
-        return reader.getVariable(AAI_AUTH);
+        return UrnPropertiesReader.getVariable(AAI_AUTH);
     }
 
     @Override
     public String getKey() {
-        return reader.getVariable(MSO_MSO_KEY);
+        return UrnPropertiesReader.getVariable(MSO_MSO_KEY);
     }
 }

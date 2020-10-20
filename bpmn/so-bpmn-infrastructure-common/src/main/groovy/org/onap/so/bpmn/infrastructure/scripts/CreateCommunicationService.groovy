@@ -26,6 +26,10 @@ import org.camunda.bpm.engine.delegate.DelegateExecution
 import org.json.JSONObject
 import org.onap.aai.domain.yang.Relationship
 import org.onap.aai.domain.yang.ServiceInstance
+import org.onap.aaiclient.client.aai.AAIResourcesClient
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
 import org.onap.so.bpmn.common.scripts.AbstractServiceTaskProcessor
 import org.onap.so.bpmn.common.scripts.ExceptionUtil
 import org.onap.so.bpmn.common.scripts.MsoUtils
@@ -36,10 +40,6 @@ import org.onap.so.bpmn.core.domain.ServiceDecomposition
 import org.onap.so.bpmn.core.domain.ServiceInfo
 import org.onap.so.bpmn.core.domain.ServiceProxy
 import org.onap.so.bpmn.core.json.JsonUtils
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.AAIResourcesClient
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
 import org.onap.so.db.request.beans.OperationStatus
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -184,7 +184,7 @@ class CreateCommunicationService extends AbstractServiceTaskProcessor {
         logger.debug(Prefix + "prepareInitOperationStatus Start")
 
         String serviceId = execution.getVariable("serviceInstanceId")
-        // 生成 operationId
+        //operationId is generated
         String operationId = execution.getVariable("operationId")
         logger.debug("Generated new operation for Service Instance serviceId:" + serviceId + " operationId:" + operationId)
 
@@ -350,7 +350,7 @@ class CreateCommunicationService extends AbstractServiceTaskProcessor {
     /**
      * get E2EST id through CST id and change communication profile to E2E service profile
      * 1. get E2EST id from cst
-     * 1.1 查source service id
+     * 1.1 source service id
      * 1.2 source service
      * 1.3 source service input, init e2e profile
      */
@@ -370,20 +370,43 @@ class CreateCommunicationService extends AbstractServiceTaskProcessor {
 
 
             for (String e2eInput in e2eInputs) {
-                if (jsonUtil.getJsonValue(e2eInput, "type") == "integer") {
+                key = jsonUtil.getJsonValue(e2eInput, "name")
+                String type = jsonUtil.getJsonValue(e2eInput, "type")
+                if (type == "integer") {
                     def temp
-                    key = jsonUtil.getJsonValue(e2eInput, "name")
                     value = csInputMap.containsKey(key) ? csInputMap.getOrDefault(key, 0) : (isBlank(temp = jsonUtil.getJsonValue(e2eInput, "default")) ? 0 : temp)
 
                     e2eInputMap.put(key, value as Integer)
-                } else {
-                    e2eInputMap.put(key = jsonUtil.getJsonValue(e2eInput, "name"), csInputMap.containsKey(key)
+                } else if(type == "string") {
+                    e2eInputMap.put(key, csInputMap.containsKey(key)
                             ? csInputMap.getOrDefault(key, null) : (jsonUtil.getJsonValue(e2eInput, "default")))
+
                 }
             }
 
+            //TODO temp solution
             e2eInputMap.put("sNSSAI", execution.getVariable("sNSSAI_id"))
-	    e2eInputMap.put("sST", execution.getVariable("csServiceType"))
+	        e2eInputMap.put("sST", execution.getVariable("csServiceType"))
+
+            Integer activityFactor = 60
+            Integer random = new Random().nextInt(5) + 2
+            Integer dLThptPerUE = Integer.parseInt(csInputMap.get("expDataRateDL").toString())
+            Integer uLThptPerUE = Integer.parseInt(csInputMap.get("expDataRateUL").toString())
+            Integer maxNumberofUEs = Integer.parseInt(csInputMap.get("maxNumberofUEs").toString())
+            Integer dLThptPerSlice = dLThptPerUE * maxNumberofUEs * activityFactor * random
+            Integer uLThptPerSlice = uLThptPerUE * maxNumberofUEs * activityFactor * random
+            Integer maxNumberofConns = maxNumberofUEs * activityFactor * 3
+
+            e2eInputMap.put("jitter", 10)
+            e2eInputMap.put("activityFactor", activityFactor)
+            e2eInputMap.put("maxNumberofUEs", maxNumberofUEs)
+            e2eInputMap.put("dLThptPerUE", dLThptPerUE)
+            e2eInputMap.put("uLThptPerUE", uLThptPerUE)
+            e2eInputMap.put("dLThptPerSlice", dLThptPerSlice)
+            e2eInputMap.put("uLThptPerSlice", uLThptPerSlice)
+            e2eInputMap.put("maxNumberofConns", maxNumberofConns)
+            e2eInputMap.put("coverageAreaTAList", csInputMap.get("coverageAreaList"))
+
             execution.setVariable("e2eInputMap", e2eInputMap)
             execution.setVariable("e2eServiceType", e2eServiceDecomposition.getServiceType())
             execution.setVariable("e2eModelInvariantUuid", e2eServiceDecomposition.getModelInfo().getModelInvariantUuid())
@@ -535,10 +558,7 @@ class CreateCommunicationService extends AbstractServiceTaskProcessor {
         String msg
         try {
             String serviceInstanceId = execution.getVariable("serviceInstanceId")
-            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE,
-                    execution.getVariable("globalSubscriberId"),
-                    execution.getVariable("subscriptionServiceType"),
-                    serviceInstanceId).relationshipAPI()
+            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business().customer(execution.getVariable("globalSubscriberId")).serviceSubscription(execution.getVariable("subscriptionServiceType")).serviceInstance(serviceInstanceId)).relationshipAPI()
             client.create(uri, relationship)
 
         } catch (BpmnError e) {
@@ -630,8 +650,7 @@ class CreateCommunicationService extends AbstractServiceTaskProcessor {
             // create service
             ServiceInstance csi = new ServiceInstance()
             csi.setOrchestrationStatus(orchestrationStatus)
-            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE,
-                    globalSubscriberId, subscriptionServiceType, serviceInstanceId)
+            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.business().customer(globalSubscriberId).serviceSubscription(subscriptionServiceType).serviceInstance(serviceInstanceId))
             client.update(uri, csi)
             logger.debug(Prefix + "updateFinishStatusInAAI update communication service status to deactivated")
 

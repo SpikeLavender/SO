@@ -1,8 +1,10 @@
 package org.onap.so.utils;
 
 import java.security.GeneralSecurityException;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.camunda.bpm.client.ExternalTaskClient;
 import org.camunda.bpm.client.interceptor.ClientRequestInterceptor;
 import org.camunda.bpm.client.interceptor.auth.BasicAuthProvider;
@@ -22,8 +24,16 @@ public class ExternalTaskServiceUtils {
     @Autowired
     public Environment env;
 
-    protected Set<ExternalTaskClient> taskClients = ConcurrentHashMap.newKeySet();
 
+    private static final long DEFAULT_LOCK_DURATION_LONG = 2700000;
+    private static final long DEFAULT_LOCK_DURATION_MEDIUM = 900000;
+    private static final long DEFAULT_LOCK_DURATION_SHORT = 300000;
+
+    private static final String LOCK_DURATION_LONG = "mso.workflow.topics.lockDurationLong";
+    private static final String LOCK_DURATION_MEDIUM = "mso.workflow.topics.lockDurationMedium";
+    private static final String LOCK_DURATION_SHORT = "mso.workflow.topics.lockDurationShort";
+
+    protected Set<ExternalTaskClient> taskClients = ConcurrentHashMap.newKeySet();
 
     private static final Logger logger = LoggerFactory.getLogger(ExternalTaskServiceUtils.class);
 
@@ -51,17 +61,48 @@ public class ExternalTaskServiceUtils {
     }
 
     public int getMaxClients() {
-        return Integer.parseInt(env.getProperty("workflow.topics.maxClients", "3"));
+        return Integer.parseInt(env.getProperty("workflow.topics.maxClients", "10"));
+    }
+
+    public Long getLockDuration() {
+        Long lockDuration = Long.parseLong(env.getProperty("mso.audit.lock-time", "60000"));
+        return lockDuration;
+    }
+
+    public Long getLongLockDuration() {
+        Long lockDuration = Long.parseLong(env.getProperty("mso.long.lock-time", "600000"));
+        return lockDuration;
     }
 
     @ScheduledLogging
     @Scheduled(fixedDelay = 30000)
     public void checkAllClientsActive() {
-        getClients().stream().filter(client -> !client.isActive()).forEach(ExternalTaskClient::start);
+        try {
+            List<ExternalTaskClient> inactiveClients =
+                    getClients().stream().filter(client -> !client.isActive()).collect(Collectors.toList());
+            inactiveClients.forEach(c -> {
+                c.start();
+            });
+        } catch (Exception e) {
+            logger.error("Exception occured in checkAllClientsActive", e);
+        }
+
     }
 
     protected Set<ExternalTaskClient> getClients() {
         return taskClients;
+    }
+
+    public long getLockDurationLong() {
+        return env.getProperty(LOCK_DURATION_LONG, Long.class, new Long(DEFAULT_LOCK_DURATION_LONG));
+    }
+
+    public long getLockDurationMedium() {
+        return env.getProperty(LOCK_DURATION_MEDIUM, Long.class, new Long(DEFAULT_LOCK_DURATION_MEDIUM));
+    }
+
+    public long getLockDurationShort() {
+        return env.getProperty(LOCK_DURATION_SHORT, Long.class, new Long(DEFAULT_LOCK_DURATION_SHORT));
     }
 
 }

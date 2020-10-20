@@ -23,7 +23,6 @@ package org.onap.so.db.catalog.beans;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -44,8 +43,10 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.openpojo.business.annotation.BusinessKey;
 import uk.co.blackpepper.bowman.annotation.LinkedResource;
+import uk.co.blackpepper.bowman.annotation.RemoteResource;
 
 @Entity
+@RemoteResource("/cvnfcCustomization")
 @Table(name = "cvnfc_customization")
 public class CvnfcCustomization implements Serializable {
 
@@ -92,11 +93,11 @@ public class CvnfcCustomization implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     private Date created;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "VF_MODULE_CUSTOMIZATION_ID")
     private VfModuleCustomization vfModuleCustomization;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "VNFC_CUST_MODEL_CUSTOMIZATION_UUID")
     private VnfcCustomization vnfcCustomization;
 

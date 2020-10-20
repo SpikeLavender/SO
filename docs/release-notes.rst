@@ -9,6 +9,81 @@ Service Orchestrator Release Notes
 
 The SO provides the highest level of service orchestration in the ONAP architecture. 
 
+
+
+Version: 1.6.4
+-----------------------
+
+:Release Date: 13th July 2020
+
+**Docker Images**
+
+**Dockers released for SO:**
+
+ - onap/so/api-handler-infra
+ - onap/so/bpmn-infra
+ - onap/so/catalog-db-adapter
+ - onap/so/openstack-adapter
+ - onap/so/request-db-adapter
+ - onap/so/sdc-controller
+ - onap/so/sdnc-adapter
+ - onap/so/so-monitoring
+ - onap/so/vfc-adapter
+ - onap/so/vnfm-adapter
+ - onap/so/ve-vnfm-adapter
+ - onap/so/nssmf-adapter
+ - onap/so/appc-orchestrator
+
+**Release Purpose**
+
+The main goal of the Frankfurt maintenance release was to:
+
+	- Appc Orchestraor changes were merged in SO and OOM as part of the release. This also used for the inplace software update flows.
+	- MDONS had an issue in its delete flow that was addressed.
+	- Vnfm-Adapter was unable to communicate with ETSI-Catalog through MSB, as the MSB cert is changed during the RC2 and this impacted the SO and ETSI Catalog DB connectivity.
+
+**New Features**
+--N/A--
+**Epics**
+--N/A--
+**Stories**
+--N/A--
+**Key Issues Addressed**
+
+-  [`SO-2903 <https://jira.onap.org/browse/SO-2903>`__\ ] - Include so-appc-orchestrator with SO OOM.
+-  [`SO-2967 <https://jira.onap.org/browse/SO-2967>`__\ ] - Error in Delete MDONS service flow which causes No such property error.
+-  [`SO-2982 <https://jira.onap.org/browse/SO-2982>`__\ ] - Vnfm-Adapter unable to communicate with ETSI-Catalog through MSB.
+-  [`SO-3022 <https://jira.onap.org/browse/SO-3022>`__\ ] - Use BB-based VNF-InPlaceUpdate flow for inPlaceSoftwareUpdate requests. 
+
+
+**Security Notes**
+ 
+ Quick Links:
+
+ - `SO project page <https://wiki.onap.org/display/DW/Service+Orchestrator+Project>`_
+ - `Passing Badge information for SO <https://bestpractices.coreinfrastructure.org/en/projects/1702>`_
+
+
+**Known Issues**
+
+
+OJSI Issues
+
+	N/A
+
+**Upgrade Notes**
+
+	N/A
+
+**Deprecation Notes**
+
+	N/A
+
+**Other**
+
+	N/A
+***************************************************************************************
+
 Version: 1.6.3
 -----------------------
 
@@ -364,7 +439,7 @@ The main goal of the El-Alto release was to improve documentation, UT improvemen
 -  [`SO-2354 <https://jira.onap.org/browse/SO-2354>`__\ ] - vCPE model_customization_id not found on create vfmodule
 -  [`SO-2351 <https://jira.onap.org/browse/SO-2351>`__\ ] - SO Distribution Error on Allotted Resource - duplicate primary
 -  [`SO-2349 <https://jira.onap.org/browse/SO-2349>`__\ ] - Exception in DMAAP Client when PNF_READY event arrives from PRH
--  [`SO-2337 <https://jira.onap.org/browse/SO-2337>`__\ ] - Git clone not working for CSIT filename too long
+-  [`SO-2337 <https://jira.onap.org/browse/SO-2337>`__\ ] - git clone --depth 1 not working for CSIT filename too long
 -  [`SO-2289 <https://jira.onap.org/browse/SO-2289>`__\ ] - CreateVcpeResCustService_simplified workflow used in PnP PNF registration workflow returns an exception in Dmaap listener
 -  [`SO-2229 <https://jira.onap.org/browse/SO-2229>`__\ ] - sdc adapter and openstack container in crash loopback
 -  [`SO-2228 <https://jira.onap.org/browse/SO-2228>`__\ ] - SDC Handler crash loopback

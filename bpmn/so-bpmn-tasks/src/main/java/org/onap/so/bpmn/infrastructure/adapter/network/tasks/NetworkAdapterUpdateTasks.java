@@ -32,8 +32,6 @@ import org.onap.so.bpmn.servicedecomposition.entities.ResourceKey;
 import org.onap.so.bpmn.servicedecomposition.tasks.ExtractPojosForBB;
 import org.onap.so.client.adapter.network.mapper.NetworkAdapterObjectMapper;
 import org.onap.so.client.exception.ExceptionBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -57,7 +55,7 @@ public class NetworkAdapterUpdateTasks {
             UpdateNetworkRequest updateNetworkRequest = networkAdapterObjectMapper.createNetworkUpdateRequestMapper(
                     gBBInput.getRequestContext(), gBBInput.getCloudRegion(), gBBInput.getOrchContext(), serviceInstance,
                     l3Network, gBBInput.getUserInput(), gBBInput.getCustomer());
-            execution.setVariable("networkAdapterRequest", updateNetworkRequest);
+            execution.setVariable("networkAdapterRequest", updateNetworkRequest.toXmlString());
 
         } catch (Exception ex) {
             exceptionUtil.buildAndThrowWorkflowException(execution, 7000, ex);

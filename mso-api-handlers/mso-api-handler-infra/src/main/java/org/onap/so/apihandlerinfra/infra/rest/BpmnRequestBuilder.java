@@ -29,14 +29,16 @@ import org.onap.aai.domain.yang.L3Network;
 import org.onap.aai.domain.yang.ServiceInstance;
 import org.onap.aai.domain.yang.VfModule;
 import org.onap.aai.domain.yang.VolumeGroup;
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types;
 import org.onap.logging.ref.slf4j.ONAPLogConstants;
 import org.onap.so.apihandlerinfra.infra.rest.exception.AAIEntityNotFound;
 import org.onap.so.apihandlerinfra.infra.rest.exception.CloudConfigurationNotFoundException;
-import org.onap.so.client.aai.AAIObjectType;
-import org.onap.so.client.aai.entities.AAIResultWrapper;
 import org.onap.so.constants.Status;
 import org.onap.so.db.request.beans.InfraActiveRequests;
 import org.onap.so.db.request.client.RequestsDbClient;
+import org.onap.so.logger.HttpHeadersConstants;
 import org.onap.so.serviceinstancebeans.CloudConfiguration;
 import org.onap.so.serviceinstancebeans.ModelInfo;
 import org.onap.so.serviceinstancebeans.ModelType;
@@ -55,12 +57,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class BpmnRequestBuilder {
 
     private static final String CLOUD_CONFIGURATION_COULD_NOT_BE_FOUND = "Cloud Configuration could not be found";
-
-    private static final String CLOUD_REGION_ID = "cloud-region-id";
-
-    private static final String CLOUD_OWNER = "cloud-owner";
-
-    private static final String TENANT_ID = "tenant-id";
 
     private static final String GENERIC_VNF_NOT_FOUND_IN_INVENTORY_VNF_ID =
             "Generic Vnf Not Found In Inventory, VnfId: ";
@@ -277,17 +273,20 @@ public class BpmnRequestBuilder {
     public CloudConfiguration mapCloudConfiguration(GenericVnf vnf, String vfModuleId) {
         CloudConfiguration cloudConfig = new CloudConfiguration();
         AAIResultWrapper wrapper = new AAIResultWrapper(vnf);
-        Optional<org.onap.so.client.aai.entities.Relationships> relationshipsOpt = wrapper.getRelationships();
+        Optional<org.onap.aaiclient.client.aai.entities.Relationships> relationshipsOpt = wrapper.getRelationships();
         String tenantId = null;
         String cloudOwner = null;
         String lcpRegionId = null;
         if (relationshipsOpt.isPresent()) {
-            tenantId = relationshipsOpt.get().getRelatedUris(AAIObjectType.TENANT).stream().findFirst()
-                    .map(item -> item.getURIKeys().get(TENANT_ID)).orElse(null);
-            cloudOwner = relationshipsOpt.get().getRelatedUris(AAIObjectType.TENANT).stream().findFirst()
-                    .map(item -> item.getURIKeys().get(CLOUD_OWNER)).orElse(null);
-            lcpRegionId = relationshipsOpt.get().getRelatedUris(AAIObjectType.TENANT).stream().findFirst()
-                    .map(item -> item.getURIKeys().get(CLOUD_REGION_ID)).orElse(null);
+            tenantId = relationshipsOpt.get().getRelatedUris(Types.TENANT).stream().findFirst()
+                    .map(item -> item.getURIKeys().get(AAIFluentTypeBuilder.Types.TENANT.getUriParams().tenantId))
+                    .orElse(null);
+            cloudOwner = relationshipsOpt.get().getRelatedUris(Types.TENANT).stream().findFirst().map(
+                    item -> item.getURIKeys().get(AAIFluentTypeBuilder.Types.CLOUD_REGION.getUriParams().cloudOwner))
+                    .orElse(null);
+            lcpRegionId = relationshipsOpt.get().getRelatedUris(Types.TENANT).stream().findFirst().map(
+                    item -> item.getURIKeys().get(AAIFluentTypeBuilder.Types.CLOUD_REGION.getUriParams().cloudRegionId))
+                    .orElse(null);
         }
 
         if (tenantId == null || cloudOwner == null || lcpRegionId == null) {
@@ -319,17 +318,20 @@ public class BpmnRequestBuilder {
     public CloudConfiguration mapCloudConfigurationVolume(GenericVnf vnf, VolumeGroup volumeGroup) {
         CloudConfiguration cloudConfig = new CloudConfiguration();
         AAIResultWrapper wrapper = new AAIResultWrapper(vnf);
-        Optional<org.onap.so.client.aai.entities.Relationships> relationshipsOpt = wrapper.getRelationships();
+        Optional<org.onap.aaiclient.client.aai.entities.Relationships> relationshipsOpt = wrapper.getRelationships();
         String tenantId = null;
         String cloudOwner = null;
         String lcpRegionId = null;
         if (relationshipsOpt.isPresent()) {
-            tenantId = relationshipsOpt.get().getRelatedUris(AAIObjectType.TENANT).stream().findFirst()
-                    .map(item -> item.getURIKeys().get(TENANT_ID)).orElse(null);
-            cloudOwner = relationshipsOpt.get().getRelatedUris(AAIObjectType.TENANT).stream().findFirst()
-                    .map(item -> item.getURIKeys().get(CLOUD_OWNER)).orElse(null);
-            lcpRegionId = relationshipsOpt.get().getRelatedUris(AAIObjectType.TENANT).stream().findFirst()
-                    .map(item -> item.getURIKeys().get(CLOUD_REGION_ID)).orElse(null);
+            tenantId = relationshipsOpt.get().getRelatedUris(Types.TENANT).stream().findFirst()
+                    .map(item -> item.getURIKeys().get(AAIFluentTypeBuilder.Types.TENANT.getUriParams().tenantId))
+                    .orElse(null);
+            cloudOwner = relationshipsOpt.get().getRelatedUris(Types.TENANT).stream().findFirst().map(
+                    item -> item.getURIKeys().get(AAIFluentTypeBuilder.Types.CLOUD_REGION.getUriParams().cloudOwner))
+                    .orElse(null);
+            lcpRegionId = relationshipsOpt.get().getRelatedUris(Types.TENANT).stream().findFirst().map(
+                    item -> item.getURIKeys().get(AAIFluentTypeBuilder.Types.CLOUD_REGION.getUriParams().cloudRegionId))
+                    .orElse(null);
         }
 
         if (tenantId == null || cloudOwner == null || lcpRegionId == null) {
@@ -435,7 +437,7 @@ public class BpmnRequestBuilder {
         RequestInfo requestInfo = new RequestInfo();
         requestInfo.setSuppressRollback(false);
         requestInfo.setSource(MDC.get(ONAPLogConstants.MDCs.PARTNER_NAME));
-        requestInfo.setRequestorId(MDC.get(ONAPLogConstants.MDCs.PARTNER_NAME));
+        requestInfo.setRequestorId(MDC.get(HttpHeadersConstants.REQUESTOR_ID));
         return requestInfo;
     }
 

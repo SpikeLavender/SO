@@ -28,7 +28,6 @@ import org.onap.so.adapters.nssmf.enums.SelectionType;
 import org.onap.so.adapters.nssmf.exceptions.ApplicationException;
 import org.onap.so.beans.nsmf.*;
 import org.onap.so.db.request.beans.ResourceOperationStatus;
-
 import static org.onap.so.adapters.nssmf.enums.JobStatus.PROCESSING;
 import static org.onap.so.adapters.nssmf.util.NssmfAdapterUtil.marshal;
 
@@ -77,6 +76,7 @@ public abstract class InternalNssmfManager extends BaseNssmfManager {
         descriptor.setStatus(status.getStatus());
         descriptor.setStatusDescription(status.getStatusDescription());
         descriptor.setProgress(Integer.parseInt(status.getProgress()));
+        descriptor.setNssiId(status.getResourceInstanceID());
         // descriptor.setResponseId(status.getOperationId());
         return restUtil.createResponse(200, marshal(descriptor));
     }

@@ -1,6 +1,7 @@
 .. This work is licensed under a Creative Commons Attribution 4.0 International License.
 .. http://creativecommons.org/licenses/by/4.0
 .. Copyright 2018 Huawei Technologies Co., Ltd.
+.. _architecture:
 
 SO - Architecture
 =================
@@ -15,6 +16,8 @@ SO Deployment View
 
 .. image:: ../images/SO_Architecture_Internal.png
 
+.. image:: ../images/so-architecture.png
+
 SO Sub-Components
 ------------------
 
@@ -25,7 +28,7 @@ SO Sub-Components
 * Handle service-level and infrastructure (VNF & network) requests
 
   Service-agnostic APIs
-    * “Service Instantiation API”
+    * "Service Instantiation API"
 
   Model-driven recipe selection
     * Use SO Catalog to map input requests to BPMN flows
@@ -43,7 +46,7 @@ SO Sub-Components
 
   Expose RESTful interface to API-H (unique path per recipe)
 
-  Make use of common “building block” sub-flows
+  Make use of common "building block" sub-flows
 
   Sequence orchestration steps for each Resource in the recipe
     * Request and configure network resources via SDN-C
@@ -120,4 +123,4 @@ Third Party and Open Source
 **Other Open Source Components of Note:**
   Tomcat
   MySQL/MariaDB
-  Openstack Java SDK (“woorea”)
+  Openstack Java SDK ("woorea")

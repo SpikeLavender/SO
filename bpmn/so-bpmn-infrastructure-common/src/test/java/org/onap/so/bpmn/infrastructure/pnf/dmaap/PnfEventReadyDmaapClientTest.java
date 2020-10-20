@@ -107,7 +107,7 @@ public class PnfEventReadyDmaapClientTest {
      * - map is filled with one entry with the key that we get from response
      * <p>
      * run method should invoke thread from map to notify camunda process, remove element from the map (map is empty)
-     * and shutdown the manager because of empty map
+     * and shutdown the executor because of empty map
      */
     @Test
     public void pnfCorrelationIdIsFoundInHttpResponse_notifyAboutPnfReady() throws IOException {

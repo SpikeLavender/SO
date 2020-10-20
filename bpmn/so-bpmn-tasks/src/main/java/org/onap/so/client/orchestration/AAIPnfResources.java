@@ -21,19 +21,29 @@
 package org.onap.so.client.orchestration;
 
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
+import org.onap.aai.domain.yang.RelatedToProperty;
+import org.onap.aai.domain.yang.Relationship;
+import org.onap.aai.domain.yang.RelationshipData;
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri;
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder;
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types;
 import org.onap.so.bpmn.common.InjectionHelper;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.Pnf;
 import org.onap.so.bpmn.servicedecomposition.bbobjects.ServiceInstance;
-import org.onap.so.client.aai.AAIObjectType;
-import org.onap.so.client.aai.entities.uri.AAIResourceUri;
-import org.onap.so.client.aai.entities.uri.AAIUriFactory;
 import org.onap.so.client.aai.mapper.AAIObjectMapper;
 import org.onap.so.db.catalog.beans.OrchestrationStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import com.google.common.base.Strings;
 
 @Component
 public class AAIPnfResources {
+
+    private static final Logger logger = LoggerFactory.getLogger(AAIPnfResources.class);
 
     @Autowired
     private InjectionHelper injectionHelper;
@@ -42,21 +52,120 @@ public class AAIPnfResources {
     private AAIObjectMapper aaiObjectMapper;
 
     public void createPnfAndConnectServiceInstance(Pnf pnf, ServiceInstance serviceInstance) {
-        AAIResourceUri pnfURI = AAIUriFactory.createResourceUri(AAIObjectType.PNF, pnf.getPnfName());
+        AAIResourceUri pnfURI = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().pnf(pnf.getPnfName()));
         pnf.setOrchestrationStatus(OrchestrationStatus.INVENTORIED);
-        AAIResourceUri serviceInstanceURI =
-                AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE, serviceInstance.getServiceInstanceId());
+        AAIResourceUri serviceInstanceURI = AAIUriFactory
+                .createResourceUri(Types.SERVICE_INSTANCE.getFragment(serviceInstance.getServiceInstanceId()));
         injectionHelper.getAaiClient().createIfNotExists(pnfURI, Optional.of(aaiObjectMapper.mapPnf(pnf)))
                 .connect(pnfURI, serviceInstanceURI);
     }
 
     public void updateOrchestrationStatusPnf(Pnf pnf, OrchestrationStatus orchestrationStatus) {
-        AAIResourceUri pnfURI = AAIUriFactory.createResourceUri(AAIObjectType.PNF, pnf.getPnfName());
+        AAIResourceUri pnfURI = AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().pnf(pnf.getPnfName()));
 
         Pnf pnfCopy = pnf.shallowCopyId();
 
         pnf.setOrchestrationStatus(orchestrationStatus);
         pnfCopy.setOrchestrationStatus(orchestrationStatus);
         injectionHelper.getAaiClient().update(pnfURI, aaiObjectMapper.mapPnf(pnfCopy));
+    }
+
+    public void checkIfPnfExistsInAaiAndCanBeUsed(Pnf pnf) throws Exception {
+        Optional<org.onap.aai.domain.yang.Pnf> pnfFromAai =
+                injectionHelper.getAaiClient().get(org.onap.aai.domain.yang.Pnf.class,
+                        AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().pnf(pnf.getPnfName())));
+        if (pnfFromAai.isPresent()) {
+            checkIfPnfCanBeUsed(pnfFromAai.get());
+            updatePnfInAAI(pnf, pnfFromAai.get());
+        }
+    }
+
+    private void updatePnfInAAI(Pnf pnf, org.onap.aai.domain.yang.Pnf pnfFromAai) {
+        updatePnfFields(pnf, pnfFromAai);
+        injectionHelper.getAaiClient().update(
+                AAIUriFactory.createResourceUri(AAIFluentTypeBuilder.network().pnf(pnf.getPnfName())), pnfFromAai);
+        logger.debug("updatePnfInAAI: {}", pnfFromAai);
+    }
+
+    private void updatePnfFields(Pnf pnf, org.onap.aai.domain.yang.Pnf pnfFromAai) {
+        if (pnf.getModelInfoPnf() != null
+                && StringUtils.isNotBlank(pnf.getModelInfoPnf().getModelCustomizationUuid())) {
+            pnfFromAai.setModelCustomizationId(pnf.getModelInfoPnf().getModelCustomizationUuid());
+        }
+        if (pnf.getModelInfoPnf() != null && StringUtils.isNotBlank(pnf.getModelInfoPnf().getModelInvariantUuid())) {
+            pnfFromAai.setModelInvariantId(pnf.getModelInfoPnf().getModelInvariantUuid());
+        }
+        if (pnf.getModelInfoPnf() != null && StringUtils.isNotBlank(pnf.getModelInfoPnf().getModelUuid())) {
+            pnfFromAai.setModelVersionId(pnf.getModelInfoPnf().getModelUuid());
+        }
+        if (pnf.getOrchestrationStatus() != null && StringUtils.isNotBlank(pnf.getOrchestrationStatus().toString())) {
+            pnfFromAai.setOrchestrationStatus(pnf.getOrchestrationStatus().toString());
+        }
+        if (StringUtils.isNotBlank(pnf.getRole())) {
+            pnfFromAai.setNfRole(pnf.getRole());
+        }
+    }
+
+    private void checkIfPnfCanBeUsed(org.onap.aai.domain.yang.Pnf pnfFromAai) throws Exception {
+        isRelatedToService(pnfFromAai);
+        if (isOrchestrationStatusSet(pnfFromAai)) {
+            checkOrchestrationStatusOfExistingPnf(pnfFromAai);
+        }
+    }
+
+    private boolean isOrchestrationStatusSet(org.onap.aai.domain.yang.Pnf pnfFromAai) {
+        if (Strings.isNullOrEmpty(pnfFromAai.getOrchestrationStatus())) {
+            logger.debug("pnf with name {} already exists with not set orchestration status and can be used",
+                    pnfFromAai.getPnfName());
+            return false;
+        }
+        return true;
+    }
+
+    private void checkOrchestrationStatusOfExistingPnf(org.onap.aai.domain.yang.Pnf pnfFromAai) throws Exception {
+        if (OrchestrationStatus.INVENTORIED.toString().equals(pnfFromAai.getOrchestrationStatus())) {
+            logger.debug("pnf with name {} already exists with orchestration status Inventoried and can be used",
+                    pnfFromAai.getPnfName());
+        } else {
+            String errorMessage = String.format(
+                    "pnf with name %s already exists with orchestration status %s, existing pnf can be used only "
+                            + "if status is not set or set as Inventoried",
+                    pnfFromAai.getPnfName(), pnfFromAai.getOrchestrationStatus());
+            logger.error(errorMessage);
+            throw new Exception(errorMessage);
+        }
+    }
+
+    private void isRelatedToService(org.onap.aai.domain.yang.Pnf pnfFromAai) throws Exception {
+        if (pnfFromAai.getRelationshipList() != null) {
+            for (Relationship relationship : pnfFromAai.getRelationshipList().getRelationship()) {
+                if (relationship.getRelatedTo().equals("service-instance")) {
+                    String errorMessage = prepareRelationErrorMessage(pnfFromAai, relationship);
+                    logger.error(errorMessage);
+                    throw new Exception(errorMessage);
+                }
+            }
+        }
+    }
+
+    private String prepareRelationErrorMessage(org.onap.aai.domain.yang.Pnf pnfFromAai, Relationship relationship) {
+        String serviceInstanceName = "";
+        String serviceInstanceId = "";
+
+        for (RelationshipData relationshipData : relationship.getRelationshipData()) {
+            if (relationshipData.getRelationshipKey().equals("service-instance.service-instance-id")) {
+                serviceInstanceId = relationshipData.getRelationshipValue();
+                break;
+            }
+        }
+        for (RelatedToProperty relatedToProperty : relationship.getRelatedToProperty()) {
+            if (relatedToProperty.getPropertyKey().equals("service-instance.service-instance-name")) {
+                serviceInstanceName = relatedToProperty.getPropertyValue();
+                break;
+            }
+        }
+        return String.format(
+                "Pnf with name %s exist with orchestration status %s and is related to %s service with certain service-instance-id: %s",
+                pnfFromAai.getPnfName(), pnfFromAai.getOrchestrationStatus(), serviceInstanceName, serviceInstanceId);
     }
 }

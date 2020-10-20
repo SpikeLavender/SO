@@ -22,7 +22,6 @@ package org.onap.so.client.cds;
 
 import org.onap.so.client.RestProperties;
 
-
 public interface CDSProperties extends RestProperties {
 
     String getHost();
@@ -32,4 +31,8 @@ public interface CDSProperties extends RestProperties {
     String getBasicAuth();
 
     int getTimeout();
+
+    boolean getUseSSL();
+
+    boolean getUseBasicAuth();
 }

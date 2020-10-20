@@ -42,8 +42,6 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import org.onap.aai.domain.yang.GenericVnf;
-import org.onap.aai.domain.yang.ServiceInstance;
 import org.onap.aai.domain.yang.Tenant;
 import org.onap.so.apihandler.common.ResponseBuilder;
 import org.onap.so.apihandlerinfra.infra.rest.AAIDataRetrieval;
@@ -156,9 +154,8 @@ public class MsoRequest {
 
 
     // Parse request JSON
-    public void parse(ServiceInstancesRequest sir, HashMap<String, String> instanceIdMap, Actions action,
-            String version, String originalRequestJSON, int reqVersion, Boolean aLaCarteFlag)
-            throws ValidationException, IOException {
+    public void parse(ServiceInstancesRequest sir, Map<String, String> instanceIdMap, Actions action, String version,
+            String originalRequestJSON, int reqVersion, Boolean aLaCarteFlag) throws ValidationException, IOException {
 
         logger.debug("Validating the Service Instance request");
         List<ValidationRule> rules = new ArrayList<>();
@@ -454,7 +451,7 @@ public class MsoRequest {
     }
 
     public void createErrorRequestRecord(Status status, String requestId, String errorMessage, Actions action,
-            String requestScope, String requestJSON) {
+            String requestScope, String requestJSON, String serviceInstanceId) {
         try {
             InfraActiveRequests request = new InfraActiveRequests(requestId);
             Timestamp startTimeStamp = new Timestamp(System.currentTimeMillis());
@@ -466,6 +463,9 @@ public class MsoRequest {
             request.setRequestAction(action.toString());
             request.setRequestScope(requestScope);
             request.setRequestBody(requestJSON);
+            if (serviceInstanceId != null) {
+                request.setServiceInstanceId(serviceInstanceId);
+            }
             Timestamp endTimeStamp = new Timestamp(System.currentTimeMillis());
             request.setEndTime(endTimeStamp);
             request.setRequestUrl(MDC.get(LogConstants.HTTP_URL));

@@ -20,8 +20,8 @@
  * ============LICENSE_END=========================================================
  */
 package org.onap.so.bpmn.infrastructure.scripts
-import org.onap.so.client.aai.AAIResourcesClient
-import org.onap.so.client.aai.entities.uri.AAIResourceUri;
+import org.onap.aaiclient.client.aai.AAIResourcesClient
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri;
 
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -36,11 +36,13 @@ import org.onap.so.bpmn.core.RollbackData
 import org.onap.so.bpmn.core.WorkflowException
 import org.onap.so.bpmn.core.domain.Resource
 import org.onap.so.bpmn.core.json.JsonUtils
-import org.onap.so.client.aai.AAIObjectType
-import org.onap.so.client.aai.AAIResourcesClient
-import org.onap.so.client.aai.entities.AAIResultWrapper
-import org.onap.so.client.aai.entities.uri.AAIResourceUri
-import org.onap.so.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.aai.AAIObjectType
+import org.onap.aaiclient.client.aai.AAIResourcesClient
+import org.onap.aaiclient.client.aai.entities.AAIResultWrapper
+import org.onap.aaiclient.client.aai.entities.uri.AAIResourceUri
+import org.onap.aaiclient.client.aai.entities.uri.AAIUriFactory
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder
+import org.onap.aaiclient.client.generated.fluentbuilders.AAIFluentTypeBuilder.Types
 import org.springframework.web.util.UriUtils;
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -315,7 +317,7 @@ public class DoUpdateE2EServiceInstance extends AbstractServiceTaskProcessor {
 			org.onap.aai.domain.yang.ServiceInstance si = execution.getVariable("serviceInstanceData")
 
             AAIResourcesClient client = new AAIResourcesClient()
-            AAIResourceUri uri = AAIUriFactory.createResourceUri(AAIObjectType.SERVICE_INSTANCE, serviceInstanceId)
+            AAIResourceUri uri = AAIUriFactory.createResourceUri(Types.SERVICE_INSTANCE.getFragment(serviceInstanceId))
 			client.update(uri, si)
 
 		} catch (BpmnError e) {

@@ -30,7 +30,6 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.JoinColumns;
 import javax.persistence.ManyToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.Table;
@@ -42,8 +41,10 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.openpojo.business.annotation.BusinessKey;
 import uk.co.blackpepper.bowman.annotation.LinkedResource;
+import uk.co.blackpepper.bowman.annotation.RemoteResource;
 
 @Entity
+@RemoteResource("/cvnfcConfigurationCustomization")
 @Table(name = "cvnfc_configuration_customization")
 public class CvnfcConfigurationCustomization implements Serializable {
 
@@ -78,11 +79,11 @@ public class CvnfcConfigurationCustomization implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     private Date created;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "CONFIGURATION_MODEL_UUID")
     private ConfigurationResource configurationResource;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "CVNFC_CUSTOMIZATION_ID")
     private CvnfcCustomization cvnfcCustomization;
 

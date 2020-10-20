@@ -11,7 +11,7 @@ import org.onap.so.adapters.appc.orchestrator.client.beans.Parameters;
 import org.onap.so.adapters.appc.orchestrator.client.beans.RequestParameters;
 import org.onap.so.appc.orchestrator.service.beans.ApplicationControllerTaskRequest;
 import org.onap.so.appc.orchestrator.service.beans.ApplicationControllerVm;
-import org.onap.so.client.graphinventory.GraphInventoryCommonObjectMapperProvider;
+import org.onap.aaiclient.client.graphinventory.GraphInventoryCommonObjectMapperProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -32,10 +32,10 @@ public class ApplicationControllerTaskImpl {
         Optional<String> vserverId = Optional.empty();
         Parameters parameters = new Parameters();
         ConfigurationParameters configParams = new ConfigurationParameters();
+        RequestParameters requestParams = new RequestParameters();
 
         switch (request.getAction()) {
             case HealthCheck:
-                RequestParameters requestParams = new RequestParameters();
                 requestParams.setHostIpAddress(request.getApplicationControllerVnf().getVnfHostIpAddress());
                 parameters.setRequestParameters(requestParams);
                 payload = Optional.of((mapper.getMapper().writeValueAsString(parameters)));
@@ -75,6 +75,12 @@ public class ApplicationControllerTaskImpl {
                 payload = Optional.of((mapper.getMapper().writeValueAsString(parameters)));
                 break;
             case ConfigModify:
+                requestParams.setHostIpAddress(request.getApplicationControllerVnf().getVnfHostIpAddress());
+                configParams.setAdditionalProperties(request.getConfigParams());
+                parameters.setRequestParameters(requestParams);
+                parameters.setConfigurationParameters(configParams);
+                payload = Optional.of((mapper.getMapper().writeValueAsString(parameters)));
+                break;
             case ConfigScaleOut:
                 break;
             case UpgradePreCheck:
@@ -97,6 +103,7 @@ public class ApplicationControllerTaskImpl {
                     vserverId = Optional
                             .of(request.getApplicationControllerVnf().getApplicationControllerVm().getVserverId());
                 }
+                break;
             default:
                 // errorMessage = "Unable to idenify Action request for AppCClient";
                 break;
@@ -104,7 +111,7 @@ public class ApplicationControllerTaskImpl {
 
         status = appcClient.vnfCommand(request.getAction(), msoRequestId,
                 request.getApplicationControllerVnf().getVnfId(), vserverId, payload, request.getControllerType(),
-                listener);
+                listener, request.getRequestorId());
 
         return status;
     }

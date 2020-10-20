@@ -40,6 +40,7 @@ public class HeatBridgeConstants {
     public static final Integer OS_DEFAULT_HEAT_NESTING = 5;
     public static final String OS_SERVER_RESOURCE_TYPE = "OS::Nova::Server";
     public static final String OS_PORT_RESOURCE_TYPE = "OS::Neutron::Port";
+    public static final String OS_NEUTRON_PROVIDERNET = "OS::Neutron::ProviderNet";
     public static final String OS_SRIOV_PORT_TYPE = "direct";
     public static final String OS_PCI_SLOT_KEY = "pci_slot";
     public static final String OS_PHYSICAL_NETWORK_KEY = "physical_network";
@@ -64,6 +65,8 @@ public class HeatBridgeConstants {
     public static final String AAI_VF_MODULE_ID = "vf-module.vf-module-id";
     public static final String AAI_IMAGE = "image";
     public static final String AAI_IMAGE_ID = "image.image-id";
+    public static final String AAI_TENANT = "tenant";
+    public static final String AAI_TENANT_ID = "tenant.tenant-id";
     public static final String AAI_CLOUD_OWNER = "cloud-region.cloud-owner";
     public static final String AAI_CLOUD_REGION_ID = "cloud-region.cloud-region-id";
     public static final String AAI_FLAVOR = "flavor";
@@ -72,6 +75,8 @@ public class HeatBridgeConstants {
     public static final String AAI_SRIOV_PF = "sriov-pf";
     public static final String AAI_P_INTERFACE_NAME = "p-interface.interface-name";
     public static final String AAI_SRIOV_PF_PCI_ID = "sriov-pf.pf-pci-id";
+    public static final String AAI_VNFC = "vnfc";
+    public static final String AAI_VNFC_ID = "vnfc.vnfc-name";
 
     /**
      * Keys for internal usage

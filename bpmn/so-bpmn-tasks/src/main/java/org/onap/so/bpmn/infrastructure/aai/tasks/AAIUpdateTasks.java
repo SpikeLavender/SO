@@ -32,7 +32,6 @@ import org.onap.so.bpmn.servicedecomposition.bbobjects.*;
 import org.onap.so.bpmn.servicedecomposition.entities.GeneralBuildingBlock;
 import org.onap.so.bpmn.servicedecomposition.entities.ResourceKey;
 import org.onap.so.bpmn.servicedecomposition.tasks.ExtractPojosForBB;
-import org.onap.so.client.exception.BBObjectNotFoundException;
 import org.onap.so.client.exception.ExceptionBuilder;
 import org.onap.so.client.orchestration.*;
 import org.onap.so.db.catalog.beans.OrchestrationStatus;
@@ -88,6 +87,13 @@ public class AAIUpdateTasks {
      */
     public void updateOrchestrationStatusAssignedPnf(BuildingBlockExecution execution) {
         updateOrchestrationStatusForPnf(execution, OrchestrationStatus.ASSIGNED);
+    }
+
+    /**
+     * BPMN access method to update status of Pnf to Inventoried in AAI
+     */
+    public void updateOrchestrationStatusInventoriedPnf(BuildingBlockExecution execution) {
+        updateOrchestrationStatusForPnf(execution, OrchestrationStatus.INVENTORIED);
     }
 
     /**
