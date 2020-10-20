@@ -2913,6 +2913,9 @@ public class ToscaResourceInstaller {
     }
 
     private void createServiceArtifact(Service service, VfResourceStructure vfResourceStruct, String artifactContent) {
+        if(null == vfResourceStruct){
+            return;
+        }
         List<ServiceArtifact> serviceArtifactList = new ArrayList<>();
         ServiceArtifact serviceArtifact;
         List<IArtifactInfo> artifactInfoList = vfResourceStruct.getNotification().getServiceArtifacts().stream()
